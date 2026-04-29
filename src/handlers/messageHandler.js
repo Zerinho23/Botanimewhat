@@ -44,15 +44,21 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
 async function handleMessages(sock, { messages }) {
   for (const msg of messages) {
     try {
-      if (!msg.message || msg.key.fromMe) continue;
+      if (!msg.message) continue;
 
       const from = msg.key.remoteJid;
       const isGroup = from.endsWith("@g.us");
-      const sender = isGroup ? msg.key.participant : from;
+      const sender = isGroup
+        ? msg.key.participant
+        : msg.key.fromMe
+          ? sock.user?.id?.split(":")[0] + "@s.whatsapp.net"
+          : from;
       if (!sender) continue;
 
       const text = extractText(msg).trim();
       if (!text) continue;
+
+      if (msg.key.fromMe && !text.startsWith(config.prefix)) continue;
 
       if (isGroup) {
         const group = db.getGroup(from);
