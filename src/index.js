@@ -16,6 +16,12 @@ const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
 const { startWebServer, setPairingCode } = require("./utils/webServer");
 const { restoreAuth, scheduleBackup } = require("./utils/authBackup");
+const {
+  saveMessage,
+  getMessage,
+  cachedGroupMetadata,
+  invalidateGroup,
+} = require("./utils/messageStore");
 
 const AUTH_DIR = path.join(__dirname, "..", "auth");
 
@@ -60,11 +66,35 @@ async function startBot() {
     browser: Browsers.ubuntu("Chrome"),
     syncFullHistory: false,
     markOnlineOnConnect: true,
+    generateHighQualityLinkPreview: false,
+    getMessage,
+    cachedGroupMetadata: (jid) => cachedGroupMetadata(jid, sock),
   });
+
+  const originalSendMessage = sock.sendMessage.bind(sock);
+  sock.sendMessage = async (jid, content, options) => {
+    const result = await originalSendMessage(jid, content, options);
+    try {
+      saveMessage(result);
+    } catch (_) {
+      // ignore
+    }
+    return result;
+  };
 
   sock.ev.on("creds.update", async () => {
     await saveCreds();
     scheduleBackup(AUTH_DIR);
+  });
+
+  sock.ev.on("groups.update", (updates) => {
+    for (const u of updates) {
+      if (u.id) invalidateGroup(u.id);
+    }
+  });
+
+  sock.ev.on("group-participants.update", ({ id }) => {
+    invalidateGroup(id);
   });
 
   handleConnection(sock, startBot, {
@@ -74,6 +104,13 @@ async function startBot() {
   handleGroupEvents(sock);
 
   sock.ev.on("messages.upsert", async (m) => {
+    for (const msg of m.messages || []) {
+      try {
+        saveMessage(msg);
+      } catch (_) {
+        // ignore
+      }
+    }
     await handleMessages(sock, m);
   });
 
