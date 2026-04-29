@@ -49,6 +49,62 @@ async function getAnimeOpenings() {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function decodeHtml(s) {
+  if (!s) return "";
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#8211;/g, "-")
+    .replace(/&#8212;/g, "-")
+    .replace(/&hellip;/g, "...")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .trim();
+}
+
+async function getAnimeNews(limit = 5) {
+  const sources = [
+    "https://www.animenewsnetwork.com/all/rss.xml",
+    "https://feeds.feedburner.com/crunchyroll/animenews",
+  ];
+  for (const url of sources) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 AnimeBot/1.0" },
+      });
+      if (!res.ok) continue;
+      const xml = await res.text();
+      const items = [];
+      const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/g;
+      let match;
+      while ((match = itemRegex.exec(xml)) && items.length < limit) {
+        const block = match[1];
+        const title = decodeHtml(block.match(/<title>([\s\S]*?)<\/title>/)?.[1] || "");
+        const link = decodeHtml(block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "");
+        const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || "").trim();
+        const description = decodeHtml(
+          block.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "",
+        ).slice(0, 200);
+        if (title && link) items.push({ title, link, pubDate, description });
+      }
+      if (items.length) return items;
+    } catch (_) {
+      // try next source
+    }
+  }
+  return [];
+}
+
 module.exports = {
   getRandomAnime,
   getTopAnimes,
@@ -57,4 +113,5 @@ module.exports = {
   getRandomWaifu,
   searchAnime,
   getAnimeOpenings,
+  getAnimeNews,
 };
