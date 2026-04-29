@@ -1,0 +1,20 @@
+{
+  "name": "whatsapp-anime-bot",
+  "version": "1.0.0",
+  "description": "Bot avanzado de WhatsApp enfocado en anime usando Baileys",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": ["whatsapp", "bot", "anime", "baileys", "jikan", "anilist"],
+  "author": "Otaku Dev",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "axios": "^1.7.7",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
