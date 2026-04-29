@@ -2,6 +2,7 @@ const api = require("../../utils/api");
 const format = require("../../utils/format");
 const config = require("../../config/config");
 const db = require("../../database/db");
+const { translate } = require("../../utils/translator");
 
 module.exports = {
   name: "waifu",
@@ -12,6 +13,9 @@ module.exports = {
     try {
       const character = await api.getRandomCharacter();
       const image = character.images?.jpg?.image_url || (await api.getRandomWaifu());
+      if (character.about) {
+        character.about = await translate(character.about);
+      }
       const caption = format.formatWaifu(character, sender);
       db.assignWaifu(sender, {
         name: character.name,
