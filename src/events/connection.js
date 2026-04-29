@@ -3,6 +3,9 @@ const qrcode = require("qrcode-terminal");
 const logger = require("../utils/logger");
 const { setQR, setConnected } = require("../utils/webServer");
 
+let isReconnecting = false;
+let reconnectAttempts = 0;
+
 function handleConnection(sock, startBot, options = {}) {
   const { usePairingCode } = options;
 
@@ -26,10 +29,40 @@ function handleConnection(sock, startBot, options = {}) {
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
       logger.warn(`Conexión cerrada (code: ${code}). Reconectando: ${shouldReconnect}`);
-      if (shouldReconnect) setTimeout(() => startBot(), 3000);
-      else logger.error("Sesión cerrada. Activa RESET_SESSION=true y reinicia.");
+
+      if (!shouldReconnect) {
+        logger.error("Sesión cerrada por WhatsApp. Saliendo para regenerar...");
+        setTimeout(() => process.exit(1), 1000);
+        return;
+      }
+
+      if (isReconnecting) {
+        logger.warn("Ya hay una reconexión en curso, ignorando.");
+        return;
+      }
+
+      isReconnecting = true;
+      reconnectAttempts++;
+      const delay = Math.min(5000 * reconnectAttempts, 30000);
+
+      try {
+        sock.ev.removeAllListeners();
+        sock.end?.(undefined);
+      } catch (_) {
+        // ignore
+      }
+
+      setTimeout(() => {
+        isReconnecting = false;
+        startBot().catch((err) => {
+          logger.error(`Falló reinicio: ${err.message}`);
+          process.exit(1);
+        });
+      }, delay);
     } else if (connection === "open") {
       setConnected(true);
+      isReconnecting = false;
+      reconnectAttempts = 0;
       logger.success("✅ Bot conectado a WhatsApp correctamente");
     }
   });
