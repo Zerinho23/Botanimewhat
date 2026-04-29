@@ -9,7 +9,7 @@ function header(title) {
 }
 
 function footer() {
-  return `${divider()}\n${emojis.sparkles} _AnimeBot powered by Baileys_`;
+  return `${divider()}\n${emojis.sparkles} _AnimeBot by zerinho23_`;
 }
 
 function box(title, lines) {
