@@ -43,7 +43,7 @@ async function startBot() {
     logger: pino({ level: "silent" }),
     printQRInTerminal: false,
     auth: state,
-    browser: Browsers.macOS("Desktop"),
+    browser: Browsers.ubuntu("Chrome"),
     syncFullHistory: false,
     markOnlineOnConnect: true,
   });
@@ -59,6 +59,35 @@ async function startBot() {
   sock.ev.on("messages.upsert", async (m) => {
     await handleMessages(sock, m);
   });
+
+  if (USE_PAIRING_CODE && !sock.authState.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const code = await sock.requestPairingCode(PAIRING_NUMBER);
+        const formatted = code.match(/.{1,4}/g).join("-");
+        logger.info("");
+        logger.info("╔═══════════════════════════════════════════╗");
+        logger.info("║   CÓDIGO DE VINCULACIÓN DE WHATSAPP       ║");
+        logger.info("╠═══════════════════════════════════════════╣");
+        logger.info(`║          👉  ${formatted}  👈              ║`);
+        logger.info("╚═══════════════════════════════════════════╝");
+        logger.info("");
+        logger.info("📱 PASO A PASO:");
+        logger.info("   1. Abre WhatsApp en tu teléfono");
+        logger.info("   2. Ajustes → Dispositivos vinculados");
+        logger.info("   3. Toca 'Vincular un dispositivo'");
+        logger.info("   4. Toca 'Vincular con número de teléfono' (texto azul abajo)");
+        logger.info(`   5. Verifica que tu número sea: +${PAIRING_NUMBER}`);
+        logger.info(`   6. Ingresa el código: ${formatted}`);
+        logger.info("");
+        logger.info("⏰ Tienes 60 segundos antes de que expire.");
+        logger.info("");
+      } catch (err) {
+        logger.error(`No pude generar el código: ${err.message}`);
+        logger.error("Verifica que PAIRING_NUMBER esté bien escrito.");
+      }
+    }, 4000);
+  }
 }
 
 (async () => {
