@@ -1,6 +1,7 @@
 const api = require("../../utils/api");
 const format = require("../../utils/format");
 const config = require("../../config/config");
+const { translate } = require("../../utils/translator");
 
 module.exports = {
   name: "personaje",
@@ -20,6 +21,9 @@ module.exports = {
         return sock.sendMessage(from, {
           text: `${config.emojis.error} No encontré ningún personaje con el nombre *${name}*.`,
         }, { quoted: msg });
+      }
+      if (character.about) {
+        character.about = await translate(character.about);
       }
       const caption = format.formatCharacter(character);
       const image = character.images?.jpg?.image_url;
