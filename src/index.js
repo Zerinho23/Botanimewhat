@@ -14,18 +14,22 @@ const { loadCommands } = require("./handlers/commandHandler");
 const { handleMessages } = require("./handlers/messageHandler");
 const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
+const { startWebServer, setPairingCode } = require("./utils/webServer");
 
 const AUTH_DIR = path.join(__dirname, "..", "auth");
 
 const PAIRING_NUMBER = (process.env.PAIRING_NUMBER || "").replace(/[^0-9]/g, "");
 const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
 const RESET_SESSION = process.env.RESET_SESSION === "true";
+const PORT = parseInt(process.env.PORT) || 3000;
 
 if (RESET_SESSION && fs.existsSync(AUTH_DIR)) {
   logger.warn("⚠️  RESET_SESSION=true → borrando carpeta auth/ ...");
   fs.rmSync(AUTH_DIR, { recursive: true, force: true });
   logger.success("Sesión vieja eliminada. Generando nueva vinculación...");
 }
+
+startWebServer(PORT);
 
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
@@ -36,6 +40,8 @@ async function startBot() {
 
   if (USE_PAIRING_CODE) {
     logger.info(`🔢 Modo código de vinculación para +${PAIRING_NUMBER}`);
+  } else {
+    logger.info(`📱 Modo QR. Abre la URL pública del servidor para escanear.`);
   }
 
   const sock = makeWASocket({
@@ -65,26 +71,17 @@ async function startBot() {
       try {
         const code = await sock.requestPairingCode(PAIRING_NUMBER);
         const formatted = code.match(/.{1,4}/g).join("-");
+        setPairingCode(formatted);
         logger.info("");
         logger.info("╔═══════════════════════════════════════════╗");
         logger.info("║   CÓDIGO DE VINCULACIÓN DE WHATSAPP       ║");
-        logger.info("╠═══════════════════════════════════════════╣");
         logger.info(`║          👉  ${formatted}  👈              ║`);
         logger.info("╚═══════════════════════════════════════════╝");
         logger.info("");
-        logger.info("📱 PASO A PASO:");
-        logger.info("   1. Abre WhatsApp en tu teléfono");
-        logger.info("   2. Ajustes → Dispositivos vinculados");
-        logger.info("   3. Toca 'Vincular un dispositivo'");
-        logger.info("   4. Toca 'Vincular con número de teléfono' (texto azul abajo)");
-        logger.info(`   5. Verifica que tu número sea: +${PAIRING_NUMBER}`);
-        logger.info(`   6. Ingresa el código: ${formatted}`);
-        logger.info("");
-        logger.info("⏰ Tienes 60 segundos antes de que expire.");
+        logger.info(`📱 También puedes ver el código en la página web del bot.`);
         logger.info("");
       } catch (err) {
         logger.error(`No pude generar el código: ${err.message}`);
-        logger.error("Verifica que PAIRING_NUMBER esté bien escrito.");
       }
     }, 4000);
   }
