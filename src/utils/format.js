@@ -87,6 +87,18 @@ function formatProfile(user, name) {
   return box("PERFIL OTAKU", lines);
 }
 
+function formatNews(news) {
+  const lines = [];
+  news.forEach((n, i) => {
+    const num = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${emojis.fire} ${i + 1}.`;
+    lines.push(`${num} *${n.title}*`);
+    if (n.description) lines.push(`   _${truncate(n.description, 140)}_`);
+    lines.push(`   🔗 ${n.link}`);
+    lines.push("");
+  });
+  return box("NOTICIAS DE ANIME", lines);
+}
+
 function formatHelp(prefix, commands) {
   const grouped = {};
   for (const cmd of commands) {
@@ -114,5 +126,6 @@ module.exports = {
   formatCharacter,
   formatWaifu,
   formatProfile,
+  formatNews,
   formatHelp,
 };
