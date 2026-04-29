@@ -15,6 +15,7 @@ const { handleMessages } = require("./handlers/messageHandler");
 const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
 const { startWebServer, setPairingCode } = require("./utils/webServer");
+const { restoreAuth, scheduleBackup } = require("./utils/authBackup");
 
 const AUTH_DIR = path.join(__dirname, "..", "auth");
 
@@ -31,8 +32,15 @@ if (RESET_SESSION && fs.existsSync(AUTH_DIR)) {
 
 startWebServer(PORT);
 
+let restoredFromBackup = false;
+
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
+
+  const localExists = fs.existsSync(AUTH_DIR) && fs.readdirSync(AUTH_DIR).length > 0;
+  if (!localExists && !restoredFromBackup && !RESET_SESSION) {
+    restoredFromBackup = await restoreAuth(AUTH_DIR);
+  }
 
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -54,7 +62,10 @@ async function startBot() {
     markOnlineOnConnect: true,
   });
 
-  sock.ev.on("creds.update", saveCreds);
+  sock.ev.on("creds.update", async () => {
+    await saveCreds();
+    scheduleBackup(AUTH_DIR);
+  });
 
   handleConnection(sock, startBot, {
     pairingNumber: PAIRING_NUMBER,
