@@ -16,12 +16,19 @@ const { handleGroupEvents } = require("./events/groupEvents");
 
 const AUTH_DIR = path.join(__dirname, "..", "auth");
 
+const PAIRING_NUMBER = (process.env.PAIRING_NUMBER || "").replace(/[^0-9]/g, "");
+const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
+
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
 
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   logger.info(`Baileys v${version.join(".")} (latest: ${isLatest})`);
+
+  if (USE_PAIRING_CODE) {
+    logger.info(`🔢 Modo código de vinculación para +${PAIRING_NUMBER}`);
+  }
 
   const sock = makeWASocket({
     version,
@@ -35,7 +42,10 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  handleConnection(sock, startBot);
+  handleConnection(sock, startBot, {
+    pairingNumber: PAIRING_NUMBER,
+    usePairingCode: USE_PAIRING_CODE,
+  });
   handleGroupEvents(sock);
 
   sock.ev.on("messages.upsert", async (m) => {
