@@ -6,6 +6,7 @@ const {
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const path = require("path");
+const fs = require("fs");
 
 const config = require("./config/config");
 const logger = require("./utils/logger");
@@ -18,6 +19,13 @@ const AUTH_DIR = path.join(__dirname, "..", "auth");
 
 const PAIRING_NUMBER = (process.env.PAIRING_NUMBER || "").replace(/[^0-9]/g, "");
 const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
+const RESET_SESSION = process.env.RESET_SESSION === "true";
+
+if (RESET_SESSION && fs.existsSync(AUTH_DIR)) {
+  logger.warn("⚠️  RESET_SESSION=true → borrando carpeta auth/ ...");
+  fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+  logger.success("Sesión vieja eliminada. Generando nueva vinculación...");
+}
 
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
