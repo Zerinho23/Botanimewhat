@@ -1,6 +1,7 @@
 const api = require("../../utils/api");
 const format = require("../../utils/format");
 const config = require("../../config/config");
+const { translate } = require("../../utils/translator");
 
 module.exports = {
   name: "anime",
@@ -10,6 +11,9 @@ module.exports = {
     await sock.sendMessage(from, { text: `${config.emojis.sparkles} Buscando un anime para ti...` }, { quoted: msg });
     try {
       const anime = await api.getRandomAnime();
+      if (anime.synopsis) {
+        anime.synopsis = await translate(anime.synopsis);
+      }
       const caption = format.formatAnime(anime);
       const image = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
       if (image) {
