@@ -128,22 +128,81 @@ function formatDateES(input) {
   }
 }
 
+function _relativeTimeES(input) {
+  if (!input) return null;
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return null;
+  const diff = Date.now() - d.getTime();
+  if (diff < 0) return "ahora mismo";
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "hace unos segundos";
+  if (min < 60) return `hace ${min} ${min === 1 ? "minuto" : "minutos"}`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `hace ${hours} ${hours === 1 ? "hora" : "horas"}`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `hace ${days} ${days === 1 ? "día" : "días"}`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `hace ${weeks} ${weeks === 1 ? "semana" : "semanas"}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `hace ${months} ${months === 1 ? "mes" : "meses"}`;
+  const years = Math.floor(days / 365);
+  return `hace ${years} ${years === 1 ? "año" : "años"}`;
+}
+
+function _shortLink(url, max = 60) {
+  if (!url) return "";
+  let clean = url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  if (clean.length > max) clean = clean.slice(0, max - 1) + "…";
+  return clean;
+}
+
+function _readingTime(text) {
+  if (!text) return null;
+  const words = text.trim().split(/\s+/).length;
+  const mins = Math.max(1, Math.round(words / 220));
+  return `${mins} min de lectura`;
+}
+
 function formatNewsCard(news, index, total) {
   const date = formatDateES(news.pubDate);
-  const desc = news.description ? highlightKeywords(truncate(news.description, 350)) : "";
+  const relative = _relativeTimeES(news.pubDate);
+  const desc = news.description ? highlightKeywords(truncate(news.description, 900)) : "";
+  const tags = (news.categories || []).slice(0, 5).map((c) => `#${c.replace(/\s+/g, "")}`).join("  ");
+
   const lines = [
-    `📰 *NOTICIAS DE ANIME*  ${index}/${total}`,
+    `📰 *NOTICIAS DE ANIME*  •  ${index}/${total}`,
     divider(),
     "",
     `${emojis.cherry} *${news.title}*`,
     "",
   ];
-  if (desc) {
-    lines.push(`📌 ${desc}`);
-    lines.push("");
-  }
+
+  // Bloque de meta: fuente, fecha relativa, autor
+  const metaLine1 = [];
+  if (news.source) metaLine1.push(`🗞️ _${news.source}_`);
+  if (relative) metaLine1.push(`🕒 _${relative}_`);
+  if (metaLine1.length) lines.push(metaLine1.join("  •  "));
+
+  if (news.author) lines.push(`✍️ _${news.author}_`);
   if (date) lines.push(`📅 _${date}_`);
-  lines.push(`🔗 ${news.link}`);
+  if (tags) lines.push(`🏷️ _${tags}_`);
+
+  if (desc) {
+    lines.push("");
+    lines.push(divider());
+    lines.push("");
+    lines.push(`📝 ${desc}`);
+    const rt = _readingTime(news.description);
+    if (rt) {
+      lines.push("");
+      lines.push(`⏱️ _${rt}_`);
+    }
+  }
+
+  lines.push("");
+  lines.push(divider());
+  lines.push(`🔗 *Leer artículo completo:*`);
+  lines.push(news.link);
   lines.push("");
   lines.push(divider());
   lines.push(`${emojis.sparkles} _AnimeBot by zerinho23_`);

@@ -221,8 +221,29 @@ async function getAnimeNews(limit = 5) {
           const image = extractImage(block);
           const description = decodeHtml(
             block.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "",
-          ).slice(0, 350);
-          if (title && link) allItems.push({ title, link, pubDate, description, image });
+          ).slice(0, 1500);
+          const author = decodeHtml(
+            block.match(/<dc:creator>([\s\S]*?)<\/dc:creator>/)?.[1] ||
+              block.match(/<author>([\s\S]*?)<\/author>/)?.[1] ||
+              "",
+          ).replace(/^.*?\(|\)$/g, "").trim();
+          const categories = [];
+          const catRegex = /<category[^>]*>([\s\S]*?)<\/category>/g;
+          let cmatch;
+          while ((cmatch = catRegex.exec(block))) {
+            const cat = decodeHtml(cmatch[1]).trim();
+            if (cat && !categories.includes(cat) && categories.length < 6) {
+              categories.push(cat);
+            }
+          }
+          const source = url.includes("animenewsnetwork")
+            ? "Anime News Network"
+            : url.includes("crunchyroll")
+              ? "Crunchyroll News"
+              : "Otaku News";
+          if (title && link) {
+            allItems.push({ title, link, pubDate, description, image, author, categories, source });
+          }
         }
       } catch (_) {
         // try next source
