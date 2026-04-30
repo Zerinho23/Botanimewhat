@@ -15,7 +15,7 @@ const { handleMessages } = require("./handlers/messageHandler");
 const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
 const { startWebServer, setPairingCode } = require("./utils/webServer");
-const { restoreAuth, scheduleBackup } = require("./utils/authBackup");
+const { restoreAuth, scheduleBackup, performBackup, deleteBackup } = require("./utils/authBackup");
 const {
   saveMessage,
   getMessage,
@@ -31,10 +31,24 @@ const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
 const RESET_SESSION = process.env.RESET_SESSION === "true";
 const PORT = parseInt(process.env.PORT) || 3000;
 
-if (RESET_SESSION && fs.existsSync(AUTH_DIR)) {
-  logger.warn("⚠️  RESET_SESSION=true → borrando carpeta auth/ ...");
-  fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-  logger.success("Sesión vieja eliminada. Generando nueva vinculación...");
+let resetExecuted = false;
+
+async function maybeResetSession() {
+  if (!RESET_SESSION) return;
+  const credsPath = path.join(AUTH_DIR, "creds.json");
+  const hasValidLocalCreds = fs.existsSync(credsPath);
+  if (hasValidLocalCreds) {
+    logger.warn("⚠️  RESET_SESSION=true pero ya hay sesión válida local. Ignorando para no romperla.");
+    logger.warn("    👉 Cambia RESET_SESSION a false en Railway para evitar este aviso.");
+    return;
+  }
+  if (resetExecuted) return;
+  resetExecuted = true;
+  logger.warn("⚠️  RESET_SESSION=true → borrando sesión local y backup remoto...");
+  if (fs.existsSync(AUTH_DIR)) fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+  await deleteBackup();
+  logger.success("Sesión vieja eliminada. Se generará un QR nuevo.");
+  logger.warn("    👉 IMPORTANTE: cambia RESET_SESSION a false en Railway YA, o se borrará otra vez al próximo reinicio.");
 }
 
 startWebServer(PORT);
@@ -44,9 +58,13 @@ let restoredFromBackup = false;
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
 
+  await maybeResetSession();
+
   const localExists = fs.existsSync(AUTH_DIR) && fs.readdirSync(AUTH_DIR).length > 0;
   if (!localExists && !restoredFromBackup && !RESET_SESSION) {
     restoredFromBackup = await restoreAuth(AUTH_DIR);
+  } else if (localExists) {
+    logger.info("Sesión local presente, no se restaura del backup.");
   }
 
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
