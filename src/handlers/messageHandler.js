@@ -17,12 +17,10 @@ function extractText(msg) {
 async function awardXp(sock, userJid, groupJid, isCommand) {
   const user = db.getUser(userJid);
   const xpGain = isCommand ? config.level.xpPerCommand : config.level.xpPerMessage;
-  const coinGain = isCommand ? config.economy.coinsPerCommand : config.economy.coinsPerMessage;
 
   user.xp += xpGain;
   user.messages += isCommand ? 0 : 1;
   user.commands += isCommand ? 1 : 0;
-  if (config.economy.enabled) user.coins += coinGain;
 
   const required = user.level * config.level.levelMultiplier;
   let leveledUp = false;

@@ -1,5 +1,6 @@
 const config = require("../../config/config");
 const db = require("../../database/db");
+const { isAdmin } = require("../../handlers/antiSpamHandler");
 
 function divider() {
   return "━━━━━━━━━━━━━━━━━━━━";
@@ -17,12 +18,18 @@ function timeAgo(ts) {
 
 module.exports = {
   name: "fantasmas",
-  description: "Muestra los miembros del grupo que nunca han hablado",
+  description: "Muestra los miembros del grupo que nunca han hablado (solo admins)",
   aliases: ["ghosts", "inactivos", "nohablan", "silenciosos"],
-  async execute({ sock, msg, from, isGroup }) {
+  async execute({ sock, msg, from, sender, isGroup }) {
     if (!isGroup) {
       return sock.sendMessage(from, {
         text: `${config.emojis.warning} Este comando solo funciona en grupos.`,
+      }, { quoted: msg });
+    }
+
+    if (!(await isAdmin(sock, from, sender))) {
+      return sock.sendMessage(from, {
+        text: `${config.emojis.error} Solo los admins pueden usar este comando.`,
       }, { quoted: msg });
     }
 
