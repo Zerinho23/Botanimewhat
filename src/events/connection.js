@@ -1,7 +1,11 @@
 const { DisconnectReason } = require("@whiskeysockets/baileys");
 const qrcode = require("qrcode-terminal");
+const path = require("path");
 const logger = require("../utils/logger");
 const { setQR, setConnected } = require("../utils/webServer");
+const { performBackup } = require("../utils/authBackup");
+
+const AUTH_DIR = path.join(__dirname, "..", "..", "auth");
 
 let isReconnecting = false;
 let reconnectAttempts = 0;
@@ -64,6 +68,11 @@ function handleConnection(sock, startBot, options = {}) {
       isReconnecting = false;
       reconnectAttempts = 0;
       logger.success("✅ Bot conectado a WhatsApp correctamente");
+      setTimeout(() => {
+        performBackup(AUTH_DIR).catch((err) =>
+          logger.warn(`Backup post-conexión falló: ${err.message}`),
+        );
+      }, 5000);
     }
   });
 }
