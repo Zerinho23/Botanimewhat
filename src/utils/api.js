@@ -302,18 +302,93 @@ async function fetchArticleBody(url) {
   }
 }
 
+/**
+ * Convierte HTML de un campo RSS (description o content:encoded) a texto limpio
+ * preservando saltos de párrafo. Maneja CDATA, entidades numéricas y bloque-tags.
+ */
+function parseRssContent(raw) {
+  if (!raw) return "";
+  // Extraer contenido de CDATA si está presente
+  let text = raw.replace(/^[\s\S]*?<!\[CDATA\[\s*/i, "").replace(/\s*\]\]>[\s\S]*$/i, "");
+  if (text === raw) text = raw; // no había CDATA, usar tal cual
+
+  // Eliminar bloques completos que solo son ruido
+  text = text
+    .replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<aside\b[^>]*>[\s\S]*?<\/aside>/gi, "")
+    .replace(/<blockquote\b[^>]*>[\s\S]*?<\/blockquote>/gi, "");
+
+  // Convertir tags de bloque en saltos de línea ANTES de quitar tags.
+  // </p> y </hN> → doble salto (separa párrafos reales).
+  // </div> </li> </tr> → salto simple (separa elementos menores).
+  text = text
+    .replace(/<\/(p|h[1-6]|blockquote)>/gi, "\n\n")
+    .replace(/<\/(div|li|td|tr)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<hr\s*\/?>/gi, "\n\n");
+
+  // Quitar tags restantes
+  text = text.replace(/<[^>]+>/g, "");
+
+  // Decodificar entidades HTML (incluyendo numéricas &#NNNN;)
+  text = text
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&hellip;/g, "…")
+    .replace(/&mdash;/g, "—")
+    .replace(/&ndash;/g, "–")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+
+  // Normalizar espacios y líneas
+  text = text
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  // Filtrar líneas muy cortas (ruido: títulos de sección, créditos)
+  const lines = text.split("\n\n").filter((p) => {
+    const clean = p.trim();
+    if (clean.length < 40) return false;
+    if (/^(image|photo|via|source|advertisement|sponsored|by submitting|subscribe|sign up|follow us|©|copyright)/i.test(clean)) return false;
+    return true;
+  });
+
+  return lines.join("\n\n");
+}
+
 async function getAnimeNews(limit = 5) {
   const now = Date.now();
   if (_newsPool.length === 0 || now - _newsPoolTime > _NEWS_TTL) {
+    // Fuentes ordenadas por riqueza de contenido:
+    // - Otaku USA y Siliconera incluyen content:encoded con el artículo COMPLETO en el RSS
+    // - ANN y MAL tienen noticias de anime muy actualizadas (descripción corta, pero se intenta
+    //   enriquecer con fetchArticleBody desde Railway)
     const sources = [
-      "https://www.animenewsnetwork.com/all/rss.xml",
-      "https://feeds.feedburner.com/crunchyroll/animenews",
+      { url: "https://www.otakuusamagazine.com/feed/",               name: "Otaku USA" },
+      { url: "https://www.siliconera.com/category/anime/feed/",      name: "Siliconera" },
+      { url: "https://www.animenewsnetwork.com/all/rss.xml",         name: "Anime News Network" },
+      { url: "https://myanimelist.net/rss/news.xml",                  name: "MyAnimeList" },
     ];
     const allItems = [];
-    for (const url of sources) {
+    for (const src of sources) {
       try {
-        const res = await fetch(url, {
-          headers: { "User-Agent": "Mozilla/5.0 AnimeBot/1.0" },
+        const res = await fetch(src.url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; AnimeBot/2.0)" },
+          signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) continue;
         const xml = await res.text();
@@ -322,37 +397,35 @@ async function getAnimeNews(limit = 5) {
         while ((match = itemRegex.exec(xml))) {
           const block = match[1];
           const title = decodeHtml(block.match(/<title>([\s\S]*?)<\/title>/)?.[1] || "");
-          const link = decodeHtml(block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "");
+          const link  = decodeHtml((block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "").trim());
           const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || "").trim();
           const image = extractImage(block);
-          const description = decodeHtml(
-            block.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "",
-          ).slice(0, 1500);
+
+          // Preferir content:encoded (artículo completo) sobre description (resumen corto)
+          const rawContentEncoded = block.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/)?.[1] || "";
+          const rawDescription    = block.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "";
+          const richRaw = rawContentEncoded || rawDescription;
+          const description = parseRssContent(richRaw).slice(0, 4500);
+
           const author = decodeHtml(
             block.match(/<dc:creator>([\s\S]*?)<\/dc:creator>/)?.[1] ||
-              block.match(/<author>([\s\S]*?)<\/author>/)?.[1] ||
-              "",
+            block.match(/<author>([\s\S]*?)<\/author>/)?.[1] || "",
           ).replace(/^.*?\(|\)$/g, "").trim();
+
           const categories = [];
           const catRegex = /<category[^>]*>([\s\S]*?)<\/category>/g;
           let cmatch;
           while ((cmatch = catRegex.exec(block))) {
             const cat = decodeHtml(cmatch[1]).trim();
-            if (cat && !categories.includes(cat) && categories.length < 6) {
-              categories.push(cat);
-            }
+            if (cat && !categories.includes(cat) && categories.length < 6) categories.push(cat);
           }
-          const source = url.includes("animenewsnetwork")
-            ? "Anime News Network"
-            : url.includes("crunchyroll")
-              ? "Crunchyroll News"
-              : "Otaku News";
+
           if (title && link) {
-            allItems.push({ title, link, pubDate, description, image, author, categories, source });
+            allItems.push({ title, link, pubDate, description, image, author, categories, source: src.name });
           }
         }
       } catch (_) {
-        // try next source
+        // continuar con la siguiente fuente
       }
     }
     if (allItems.length) {
@@ -361,7 +434,6 @@ async function getAnimeNews(limit = 5) {
     }
   }
   if (!_newsPool.length) return [];
-  // Mezclar y devolver `limit` noticias aleatorias
   return _shuffle(_newsPool).slice(0, limit);
 }
 
