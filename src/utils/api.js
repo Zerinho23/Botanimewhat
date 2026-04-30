@@ -52,7 +52,7 @@ const axios = require("axios");
   function decodeHtml(s) {
     if (!s) return "";
     return s
-      .replace(/<![CDATA[([sS]*?)]]>/g, "$1")
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
       .replace(/<[^>]+>/g, "")
       .replace(/&amp;/g, "&")
       .replace(/&quot;/g, '"')
@@ -135,12 +135,10 @@ const axios = require("axios");
   async function getSeasonalAnime(limit = 5) {
     const now = Date.now();
     if (_seasonPool.length === 0 || now - _seasonPoolTime > _SEASON_TTL) {
-      // Pedir hasta 25 animes para tener variedad al mezclar
       const { data } = await jikan.get("/seasons/now?limit=25");
       _seasonPool = data.data || [];
       _seasonPoolTime = now;
     }
-    // Cada llamada devuelve una selección aleatoria distinta
     return _shuffle(_seasonPool).slice(0, limit);
   }
 
@@ -150,12 +148,7 @@ const axios = require("axios");
     if (month >= 3 && month <= 5) season = "spring";
     else if (month >= 6 && month <= 8) season = "summer";
     else if (month >= 9 && month <= 11) season = "fall";
-    const seasonES = {
-      winter: "Invierno",
-      spring: "Primavera",
-      summer: "Verano",
-      fall: "Otoño",
-    }[season];
+    const seasonES = { winter: "Invierno", spring: "Primavera", summer: "Verano", fall: "Otoño" }[season];
     return { season, seasonES, year: new Date().getFullYear() };
   }
 
