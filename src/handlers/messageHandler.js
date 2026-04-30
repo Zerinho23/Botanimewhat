@@ -86,9 +86,9 @@ async function handleMessages(sock, { messages }) {
       if (isGroup) {
         try {
           const group = db.getGroup(from);
-          group.messageLog = group.messageLog || {};
-          group.messageLog[sender] = Date.now();
-          db.updateGroup(from, { messageLog: group.messageLog });
+          const lastMessageAt = group.lastMessageAt || {};
+          lastMessageAt[sender] = Date.now();
+          db.updateGroup(from, { lastMessageAt });
         } catch (_) {
           // ignore
         }
