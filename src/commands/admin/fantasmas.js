@@ -39,7 +39,7 @@ module.exports = {
     const total = participants.length;
 
     const group = db.getGroup(from);
-    const messageLog = group.messageLog || {};
+    const messageLog = group.lastMessageAt || {};
 
     const ghosts = [];
     const lurkers = [];
