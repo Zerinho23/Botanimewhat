@@ -87,16 +87,86 @@ function formatProfile(user, name) {
   return box("PERFIL OTAKU", lines);
 }
 
-function formatNews(news) {
-  const lines = [];
-  news.forEach((n, i) => {
-    const num = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${emojis.fire} ${i + 1}.`;
-    lines.push(`${num} *${n.title}*`);
-    if (n.description) lines.push(`   _${truncate(n.description, 140)}_`);
-    lines.push(`   🔗 ${n.link}`);
+function highlightKeywords(text) {
+  if (!text) return text;
+  return text.replace(
+    /\b(Manga|Anime|Película|Pelicula|Serie|Temporada|Episodio|Capítulo|Capitulo|Estudio|Studio|Director|Productor|Trailer|Tráiler|Adaptación|Adaptacion|Estreno|Lanzamiento|Anuncio|Confirmado|Revelado|Oficial|Spin-off|Final|Continuación|Continuacion|Live-action|Light Novel|OVA|ONA|Especial|Reparto|Doblaje|Voz|Personaje|Protagonista|Manga\w*|Anime\w*)\b/gi,
+    "*$1*",
+  );
+}
+
+function formatDateES(input) {
+  if (!input) return null;
+  try {
+    const d = new Date(input);
+    if (isNaN(d.getTime())) return null;
+    const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (_) {
+    return null;
+  }
+}
+
+function formatNewsCard(news, index, total) {
+  const date = formatDateES(news.pubDate);
+  const desc = news.description ? highlightKeywords(truncate(news.description, 350)) : "";
+  const lines = [
+    `📰 *NOTICIAS DE ANIME*  ${index}/${total}`,
+    divider(),
+    "",
+    `${emojis.cherry} *${news.title}*`,
+    "",
+  ];
+  if (desc) {
+    lines.push(`📌 ${desc}`);
     lines.push("");
-  });
-  return box("NOTICIAS DE ANIME", lines);
+  }
+  if (date) lines.push(`📅 _${date}_`);
+  lines.push(`🔗 ${news.link}`);
+  lines.push("");
+  lines.push(divider());
+  lines.push(`${emojis.sparkles} _AnimeBot by zerinho23_`);
+  return lines.join("\n");
+}
+
+function formatSeasonHeader(seasonES, year, total) {
+  return [
+    `🌸 *ESTRENOS DE LA TEMPORADA* 🌸`,
+    divider(),
+    `${emojis.sparkles} *${seasonES} ${year}*`,
+    `${emojis.fire} Mostrando los ${total} animes más esperados`,
+    divider(),
+  ].join("\n");
+}
+
+function formatSeasonCard(anime, index, total) {
+  const studios = anime.studios?.map((s) => s.name).join(", ") || "Desconocido";
+  const genres = anime.genres?.map((g) => g.name).join(", ") || "N/A";
+  const synopsis = anime.synopsis ? truncate(anime.synopsis, 280) : "Sin sinopsis disponible.";
+  const aired = anime.aired?.string || "Por confirmar";
+  const lines = [
+    `🎬 *ESTRENO ${index}/${total}*`,
+    divider(),
+    "",
+    `${emojis.cherry} *${anime.title}*`,
+    anime.title_japanese ? `${emojis.heart} _${anime.title_japanese}_` : null,
+    "",
+    `📺 *Tipo:* ${anime.type || "N/A"}`,
+    `🎞️ *Episodios:* ${anime.episodes || "Por confirmar"}`,
+    `${emojis.star} *Score:* ${anime.score ? `${anime.score}/10` : "Sin puntaje aún"}`,
+    `🏢 *Estudio:* ${studios}`,
+    `${emojis.rose} *Géneros:* ${genres}`,
+    `📅 *Emisión:* ${aired}`,
+    "",
+    `📌 *Sinopsis:*`,
+    synopsis,
+    "",
+    `🔗 ${anime.url}`,
+    "",
+    divider(),
+    `${emojis.sparkles} _AnimeBot by zerinho23_`,
+  ].filter(Boolean);
+  return lines.join("\n");
 }
 
 function formatHelp(prefix, commands) {
@@ -126,6 +196,8 @@ module.exports = {
   formatCharacter,
   formatWaifu,
   formatProfile,
-  formatNews,
+  formatNewsCard,
+  formatSeasonHeader,
+  formatSeasonCard,
   formatHelp,
 };
