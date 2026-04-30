@@ -6,6 +6,8 @@ const { checkAntiSpam, checkAntiLink, checkStickerSpam } = require("./antiSpamHa
 
 // Cooldown por usuario: jid -> timestamp del último comando ejecutado
 const cooldowns = new Map();
+// Cooldown de XP por mensaje (anti-farmeo): jid -> timestamp último XP otorgado
+const xpCooldowns = new Map();
 
 function extractText(msg) {
   return (
@@ -18,6 +20,20 @@ function extractText(msg) {
 }
 
 async function awardXp(sock, userJid, groupJid, isCommand) {
+  // Cooldown solo aplica a XP por mensaje (no comandos)
+  if (!isCommand) {
+    const cooldownMs = (config.level.xpCooldownSeconds ?? 30) * 1000;
+    const last = xpCooldowns.get(userJid) || 0;
+    if (Date.now() - last < cooldownMs) {
+      // Aún se cuenta el mensaje pero no se da XP
+      const u = db.getUser(userJid);
+      u.messages += 1;
+      db.updateUser(userJid, u);
+      return;
+    }
+    xpCooldowns.set(userJid, Date.now());
+  }
+
   const user = db.getUser(userJid);
   const xpGain = isCommand ? config.level.xpPerCommand : config.level.xpPerMessage;
 
@@ -25,12 +41,15 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
   user.messages += isCommand ? 0 : 1;
   user.commands += isCommand ? 1 : 0;
 
-  const required = user.level * config.level.levelMultiplier;
   let leveledUp = false;
-  if (user.xp >= required) {
+  // Permitir múltiples niveles de subida si acumuló mucho XP, restando el requerido
+  // en lugar de poner XP a 0 (así no se pierde el progreso al subir).
+  let required = user.level * config.level.levelMultiplier;
+  while (user.xp >= required) {
+    user.xp -= required;
     user.level += 1;
-    user.xp = 0;
     leveledUp = true;
+    required = user.level * config.level.levelMultiplier;
   }
   db.updateUser(userJid, user);
 
