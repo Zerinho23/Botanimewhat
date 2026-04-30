@@ -24,23 +24,22 @@ async function getMessage(key) {
   return messages.get(k);
 }
 
-async function cachedGroupMetadata(jid, sock) {
-  if (!jid.endsWith("@g.us")) return undefined;
+function cachedGroupMetadata(jid) {
+  if (!jid || !jid.endsWith("@g.us")) return undefined;
   const cached = groupMetadataCache.get(jid);
   if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
     return cached.data;
   }
-  try {
-    const data = await sock.groupMetadata(jid);
-    if (groupMetadataCache.size > MAX_GROUPS) {
-      const firstKey = groupMetadataCache.keys().next().value;
-      groupMetadataCache.delete(firstKey);
-    }
-    groupMetadataCache.set(jid, { data, ts: Date.now() });
-    return data;
-  } catch (_) {
-    return undefined;
+  return undefined;
+}
+
+function setGroupMetadata(jid, data) {
+  if (!jid || !data) return;
+  if (groupMetadataCache.size > MAX_GROUPS) {
+    const firstKey = groupMetadataCache.keys().next().value;
+    groupMetadataCache.delete(firstKey);
   }
+  groupMetadataCache.set(jid, { data, ts: Date.now() });
 }
 
 function invalidateGroup(jid) {
@@ -51,5 +50,6 @@ module.exports = {
   saveMessage,
   getMessage,
   cachedGroupMetadata,
+  setGroupMetadata,
   invalidateGroup,
 };
