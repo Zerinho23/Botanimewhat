@@ -4,15 +4,44 @@ const logger = require("../utils/logger");
 
 const URL_REGEX = /(https?:\/\/[^\s]+)|(wa\.me\/[^\s]+)|(chat\.whatsapp\.com\/[^\s]+)/gi;
 
+// Normaliza un JID a su parte de usuario, sin sufijos de dispositivo.
+function _userPart(jid) {
+  return (jid || "").split("@")[0].split(":")[0];
+}
+
 async function isAdmin(sock, groupJid, userJid) {
+  if (!groupJid || !userJid) return false;
+
+  // El dueño del bot siempre es admin
+  try {
+    const ownerNum = (config.ownerNumber || "").replace(/\D/g, "");
+    const userNum = _userPart(userJid).replace(/\D/g, "");
+    if (ownerNum && userNum && userNum === ownerNum) return true;
+  } catch {}
+
   try {
     // Usar caché de metadatos para evitar llamadas repetidas a WhatsApp
     const { cachedGroupMetadata } = require("../utils/messageStore");
     const cached = cachedGroupMetadata(groupJid);
-    const metadata = cached || await sock.groupMetadata(groupJid);
-    const participant = metadata.participants.find((p) => p.id === userJid);
+    const metadata = cached || (await sock.groupMetadata(groupJid));
+    if (!metadata?.participants) return false;
+
+    const target = _userPart(userJid);
+
+    // Comparar con id, lid y jid en formato exacto y también solo con la parte de usuario,
+    // para soportar JIDs nuevos (LID) y antiguos (@s.whatsapp.net) sin falsos negativos.
+    const participant = metadata.participants.find((p) => {
+      if (!p) return false;
+      if (p.id === userJid || p.lid === userJid || p.jid === userJid) return true;
+      if (_userPart(p.id) === target) return true;
+      if (_userPart(p.lid) === target) return true;
+      if (_userPart(p.jid) === target) return true;
+      return false;
+    });
+
     return participant?.admin === "admin" || participant?.admin === "superadmin";
-  } catch {
+  } catch (err) {
+    logger.warn(`isAdmin falló para ${userJid} en ${groupJid}: ${err.message}`);
     return false;
   }
 }
