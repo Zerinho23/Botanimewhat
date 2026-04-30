@@ -1,69 +1,107 @@
 const config = require("../config/config");
-  const db = require("../database/db");
-  const logger = require("../utils/logger");
+const db = require("../database/db");
+const logger = require("../utils/logger");
 
-  const URL_REGEX = /(https?:\/\/[^\s]+)|(wa\.me\/[^\s]+)|(chat\.whatsapp\.com\/[^\s]+)/gi;
+const URL_REGEX = /(https?:\/\/[^\s]+)|(wa\.me\/[^\s]+)|(chat\.whatsapp\.com\/[^\s]+)/gi;
 
-  async function isAdmin(sock, groupJid, userJid) {
-    try {
-      // Usar caché de metadatos para evitar llamadas repetidas a WhatsApp
-      const { cachedGroupMetadata } = require("../utils/messageStore");
-      const cached = cachedGroupMetadata(groupJid);
-      const metadata = cached || await sock.groupMetadata(groupJid);
-      const participant = metadata.participants.find((p) => p.id === userJid);
-      return participant?.admin === "admin" || participant?.admin === "superadmin";
-    } catch {
-      return false;
-    }
-  }
-
-  async function checkAntiSpam(sock, msg, group, sender, from) {
-    const now = Date.now();
-    if (!group.messageLog) group.messageLog = {};
-    if (!Array.isArray(group.messageLog[sender])) group.messageLog[sender] = [];
-
-    group.messageLog[sender] = group.messageLog[sender].filter((t) => now - t < 1000);
-    group.messageLog[sender].push(now);
-
-    if (group.messageLog[sender].length > config.antiSpam.maxMessagesPerSecond) {
-      if (await isAdmin(sock, from, sender)) return false;
-      try {
-        await sock.sendMessage(from, { delete: msg.key });
-        await sock.sendMessage(from, {
-          text: `${config.emojis.warning} @${sender.split("@")[0]} cálmate, estás enviando demasiados mensajes.`,
-          mentions: [sender],
-        });
-        logger.warn(`Spam detectado de ${sender} en ${from}`);
-      } catch {}
-      db.updateGroup(from, { messageLog: group.messageLog });
-      return true;
-    }
-
-    db.updateGroup(from, { messageLog: group.messageLog });
+async function isAdmin(sock, groupJid, userJid) {
+  try {
+    // Usar caché de metadatos para evitar llamadas repetidas a WhatsApp
+    const { cachedGroupMetadata } = require("../utils/messageStore");
+    const cached = cachedGroupMetadata(groupJid);
+    const metadata = cached || await sock.groupMetadata(groupJid);
+    const participant = metadata.participants.find((p) => p.id === userJid);
+    return participant?.admin === "admin" || participant?.admin === "superadmin";
+  } catch {
     return false;
   }
+}
 
-  async function checkAntiLink(sock, msg, text, sender, from) {
-    const matches = text.match(URL_REGEX);
-    if (!matches) return false;
+async function checkAntiSpam(sock, msg, group, sender, from) {
+  const now = Date.now();
+  if (!group.messageLog) group.messageLog = {};
+  if (!Array.isArray(group.messageLog[sender])) group.messageLog[sender] = [];
 
-    const allowed = matches.every((url) =>
-      config.antiSpam.allowedDomains.some((d) => url.includes(d))
-    );
-    if (allowed) return false;
+  group.messageLog[sender] = group.messageLog[sender].filter((t) => now - t < 1000);
+  group.messageLog[sender].push(now);
 
+  if (group.messageLog[sender].length > config.antiSpam.maxMessagesPerSecond) {
     if (await isAdmin(sock, from, sender)) return false;
-
     try {
       await sock.sendMessage(from, { delete: msg.key });
       await sock.sendMessage(from, {
-        text: `${config.emojis.warning} @${sender.split("@")[0]} los enlaces no están permitidos en este grupo.`,
+        text: `${config.emojis.warning} @${sender.split("@")[0]} cálmate, estás enviando demasiados mensajes.`,
         mentions: [sender],
       });
-      logger.warn(`Enlace eliminado de ${sender} en ${from}`);
+      logger.warn(`Spam detectado de ${sender} en ${from}`);
     } catch {}
+    db.updateGroup(from, { messageLog: group.messageLog });
     return true;
   }
 
-  module.exports = { checkAntiSpam, checkAntiLink, isAdmin };
-  
+  db.updateGroup(from, { messageLog: group.messageLog });
+  return false;
+}
+
+// Anti-spam de stickers: permite 1 sticker por usuario en una ventana de 10s,
+// borra los siguientes y avisa al usuario una sola vez.
+async function checkStickerSpam(sock, msg, group, sender, from) {
+  const now = Date.now();
+  const WINDOW_MS = 10000;
+  const MAX_STICKERS = 1;
+
+  if (!group.stickerLog) group.stickerLog = {};
+  if (!Array.isArray(group.stickerLog[sender])) group.stickerLog[sender] = [];
+
+  // Mantener solo stickers dentro de la ventana
+  group.stickerLog[sender] = group.stickerLog[sender].filter((t) => now - t < WINDOW_MS);
+  group.stickerLog[sender].push(now);
+
+  if (group.stickerLog[sender].length > MAX_STICKERS) {
+    if (await isAdmin(sock, from, sender)) {
+      db.updateGroup(from, { stickerLog: group.stickerLog });
+      return false;
+    }
+    try {
+      // Borrar el sticker excedente
+      await sock.sendMessage(from, { delete: msg.key });
+      // Avisar solo en el primer exceso (cuando hay exactamente 2)
+      if (group.stickerLog[sender].length === 2) {
+        await sock.sendMessage(from, {
+          text: `${config.emojis.warning} @${sender.split("@")[0]} evita hacer spam de stickers.`,
+          mentions: [sender],
+        });
+      }
+      logger.warn(`Sticker spam detectado de ${sender} en ${from}`);
+    } catch {}
+    db.updateGroup(from, { stickerLog: group.stickerLog });
+    return true;
+  }
+
+  db.updateGroup(from, { stickerLog: group.stickerLog });
+  return false;
+}
+
+async function checkAntiLink(sock, msg, text, sender, from) {
+  const matches = text.match(URL_REGEX);
+  if (!matches) return false;
+
+  const allowed = matches.every((url) =>
+    config.antiSpam.allowedDomains.some((d) => url.includes(d))
+  );
+  if (allowed) return false;
+
+  if (await isAdmin(sock, from, sender)) return false;
+
+  try {
+    await sock.sendMessage(from, { delete: msg.key });
+    await sock.sendMessage(from, {
+      text: `${config.emojis.warning} @${sender.split("@")[0]} los enlaces no están permitidos en este grupo.`,
+      mentions: [sender],
+    });
+    logger.warn(`Enlace eliminado de ${sender} en ${from}`);
+  } catch {}
+  return true;
+}
+
+module.exports = { checkAntiSpam, checkStickerSpam, checkAntiLink, isAdmin };
