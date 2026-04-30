@@ -364,9 +364,12 @@ function startWebServer(port) {
       if (typeof onResetRequest === "function") {
         await onResetRequest();
       }
-      logger.success("✅ Sesión borrada. Reiniciando proceso para regenerar QR/código...");
+      logger.success("✅ Sesión borrada. Saliendo con exit(1) para que Railway reinicie el proceso y se regenere el QR/código...");
       res.json({ ok: true });
-      setTimeout(() => process.exit(0), 1500);
+      // exit(1) en vez de exit(0): Railway solo reinicia automáticamente cuando el
+      // exit code es distinto de 0 (política ON_FAILURE por defecto). Con exit(0)
+      // el contenedor se quedaba muerto sin reiniciar.
+      setTimeout(() => process.exit(1), 1500);
     } catch (err) {
       state.resetInProgress = false;
       logger.error(`Reset falló: ${err.message}`);
