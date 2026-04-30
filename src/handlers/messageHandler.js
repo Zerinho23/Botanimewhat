@@ -47,6 +47,7 @@ async function handleMessages(sock, { messages }) {
       if (!msg.message) continue;
 
       const from = msg.key.remoteJid;
+      if (!from || from === "status@broadcast") continue;
       const isGroup = from.endsWith("@g.us");
       const sender = isGroup
         ? msg.key.participant
@@ -59,6 +60,10 @@ async function handleMessages(sock, { messages }) {
       if (!text) continue;
 
       if (msg.key.fromMe && !text.startsWith(config.prefix)) continue;
+
+      if (text.startsWith(config.prefix)) {
+        logger.info(`📥 Mensaje de ${sender.split("@")[0]} en ${isGroup ? "grupo" : "privado"}: "${text.slice(0, 60)}"`);
+      }
 
       if (isGroup) {
         const group = db.getGroup(from);
@@ -95,9 +100,33 @@ async function handleMessages(sock, { messages }) {
       }
 
       logger.command(sender.split("@")[0], commandName, isGroup ? from : null);
-      await awardXp(sock, sender, isGroup ? from : null, true);
 
-      await command.execute({ sock, msg, args, from, sender, isGroup, text });
+      try {
+        await sock.sendPresenceUpdate("composing", from);
+      } catch (_) {
+        // ignore
+      }
+
+      awardXp(sock, sender, isGroup ? from : null, true).catch(() => {});
+
+      try {
+        await command.execute({ sock, msg, args, from, sender, isGroup, text });
+      } catch (err) {
+        logger.error(`Error en comando ${commandName}: ${err.message}`);
+        try {
+          await sock.sendMessage(from, {
+            text: `${config.emojis.error} Hubo un error al ejecutar el comando. Intenta de nuevo.`,
+          }, { quoted: msg });
+        } catch (_) {
+          // ignore
+        }
+      }
+
+      try {
+        await sock.sendPresenceUpdate("paused", from);
+      } catch (_) {
+        // ignore
+      }
     } catch (err) {
       logger.error(`Error procesando mensaje: ${err.message}`);
     }
