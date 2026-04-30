@@ -76,19 +76,35 @@ async function startBot() {
   });
 
   const _origSend = sock.sendMessage.bind(sock);
-  sock.sendMessage = (jid, content, options) => {
-    const promise = _origSend(jid, content, options);
-    Promise.resolve(promise).then(
-      (r) => {
-        const kind = content?.image ? "imagen" : content?.video ? "video" : "texto";
-        logger.info(`📤 ${kind} → ${jid?.split("@")[0]} ${r?.key?.id ? "OK" : "(sin id)"}`);
-      },
-      (e) => {
-        logger.error(`❌ Falló envío a ${jid}: ${e?.message || e}`);
-      },
-    );
-    return promise;
-  };
+  async function safeSend(jid, content, options, attempt = 1) {
+    try {
+      const r = await Promise.race([
+        _origSend(jid, content, options),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("send-timeout")), 25000)),
+      ]);
+      const kind = content?.image ? "imagen" : content?.video ? "video" : "texto";
+      logger.info(`📤 ${kind} → ${jid?.split("@")[0]} OK`);
+      return r;
+    } catch (e) {
+      const msg = e?.message || String(e);
+      logger.error(`❌ Falló envío a ${jid} (intento ${attempt}): ${msg}`);
+      if (attempt < 2 && jid?.endsWith("@g.us")) {
+        try {
+          const meta = await sock.groupMetadata(jid);
+          const participants = meta.participants?.map((p) => p.id) || [];
+          if (participants.length && typeof sock.assertSessions === "function") {
+            await sock.assertSessions(participants, true);
+            logger.info(`🔄 Sesiones refrescadas para ${participants.length} participantes`);
+          }
+        } catch (refreshErr) {
+          logger.warn(`No pude refrescar sesiones: ${refreshErr.message}`);
+        }
+        return safeSend(jid, content, options, attempt + 1);
+      }
+      throw e;
+    }
+  }
+  sock.sendMessage = (jid, content, options) => safeSend(jid, content, options);
 
   sock.ev.on("creds.update", async () => {
     await saveCreds();
@@ -121,7 +137,10 @@ async function startBot() {
     if (!jid?.endsWith("@g.us")) return;
     if (cachedGroupMetadata(jid)) return;
     try {
-      const data = await sock.groupMetadata(jid);
+      const data = await Promise.race([
+        sock.groupMetadata(jid),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("metadata-timeout")), 8000)),
+      ]);
       setGroupMetadata(jid, data);
       logger.info(`📚 Metadatos del grupo cacheados: ${data.subject || jid}`);
     } catch (err) {
