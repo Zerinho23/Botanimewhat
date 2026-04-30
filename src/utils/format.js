@@ -1,4 +1,17 @@
-const { emojis } = require("../config/config");
+const config = require("../config/config");
+const { emojis } = config;
+
+function _xpForNextLevel(level) {
+  const mult = config.level?.levelMultiplier ?? 250;
+  return level * mult;
+}
+
+function _progressBar(current, total, size = 12) {
+  if (!total || total <= 0) return "▱".repeat(size);
+  const ratio = Math.min(1, Math.max(0, current / total));
+  const filled = Math.round(ratio * size);
+  return "▰".repeat(filled) + "▱".repeat(size - filled);
+}
 
 function divider() {
   return "━━━━━━━━━━━━━━━━━━━━";
@@ -74,11 +87,19 @@ function formatWaifu(character, owner) {
 }
 
 function formatProfile(user, name) {
-  const nextLevel = user.level * 100;
+  const nextLevel = _xpForNextLevel(user.level);
+  const remaining = Math.max(0, nextLevel - user.xp);
+  const pct = nextLevel > 0 ? Math.min(100, Math.round((user.xp / nextLevel) * 100)) : 0;
+  const bar = _progressBar(user.xp, nextLevel, 14);
+
   const lines = [
     `${emojis.crown} *Usuario:* ${name || "Otaku"}`,
-    `${emojis.star} *Nivel:* ${user.level}`,
-    `${emojis.fire} *XP:* ${user.xp} / ${nextLevel}`,
+    "",
+    `${emojis.star} *Nivel ${user.level}*`,
+    `${emojis.fire} XP:  *${user.xp}* / ${nextLevel}`,
+    `${bar}  ${pct}%`,
+    `🎯 _Faltan ${remaining} XP para subir_`,
+    "",
     `${emojis.coin} *Monedas:* ${user.coins}`,
     `${emojis.heart} *Waifus:* ${user.waifus?.length || 0}`,
     `💬 *Mensajes:* ${user.messages}`,
@@ -169,6 +190,86 @@ function formatSeasonCard(anime, index, total) {
   return lines.join("\n");
 }
 
+function _statusBadge(status) {
+  if (!status) return "❔ Estado desconocido";
+  const s = status.toLowerCase();
+  if (s.includes("airing") && !s.includes("not")) return "🟢 En emisión";
+  if (s.includes("finished") || s.includes("completed")) return "✅ Finalizado";
+  if (s.includes("not yet") || s.includes("upcoming")) return "⏳ Próximamente";
+  return `📌 ${status}`;
+}
+
+function _typeIcon(type) {
+  if (!type) return "📺";
+  const t = type.toLowerCase();
+  if (t === "movie") return "🎬";
+  if (t === "ova") return "💿";
+  if (t === "ona") return "🌐";
+  if (t === "special") return "🎁";
+  if (t === "music") return "🎵";
+  return "📺";
+}
+
+function _scoreStars(score) {
+  if (!score || isNaN(score)) return "";
+  const n = Math.round(score / 2);
+  return "★".repeat(n) + "☆".repeat(5 - n);
+}
+
+function _yearOf(anime) {
+  if (anime.year) return anime.year;
+  if (anime.aired?.from) {
+    const d = new Date(anime.aired.from);
+    if (!isNaN(d.getTime())) return d.getFullYear();
+  }
+  return null;
+}
+
+function formatSearchResults(query, results) {
+  const lines = [
+    `${emojis.cherry} *BÚSQUEDA DE ANIME* ${emojis.cherry}`,
+    divider(),
+    `🔍 _Buscaste:_ *"${query}"*`,
+    `${emojis.sparkles} _${results.length} ${results.length === 1 ? "coincidencia" : "coincidencias"} encontrada${results.length === 1 ? "" : "s"}_`,
+    divider(),
+    "",
+  ];
+
+  results.forEach((a, i) => {
+    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${emojis.cherry} *${i + 1}.*`;
+    const altTitle = a.title_english && a.title_english !== a.title
+      ? a.title_english
+      : a.title_japanese && a.title_japanese !== a.title
+        ? a.title_japanese
+        : null;
+    const scoreText = a.score ? `⭐ *${a.score}*` : "⭐ _Sin nota_";
+    const stars = _scoreStars(a.score);
+    const typeIcon = _typeIcon(a.type);
+    const typeText = a.type || "N/A";
+    const eps = a.episodes ? `${a.episodes} ep${a.episodes === 1 ? "" : "s"}` : "? eps";
+    const year = _yearOf(a);
+    const genres = a.genres?.slice(0, 3).map((g) => g.name).join(" · ");
+    const status = _statusBadge(a.status);
+
+    lines.push(`${medal} *${a.title}*`);
+    if (altTitle) lines.push(`   📜 _${altTitle}_`);
+
+    const metaParts = [`${typeIcon} ${typeText}`, `🎞️ ${eps}`, scoreText];
+    if (year) metaParts.push(`📅 ${year}`);
+    lines.push(`   ${metaParts.join("  ·  ")}`);
+
+    if (stars) lines.push(`   ${stars}`);
+    if (genres) lines.push(`   🏷️ _${genres}_`);
+    lines.push(`   ${status}`);
+    if (i < results.length - 1) lines.push("");
+  });
+
+  lines.push("");
+  lines.push(divider());
+  lines.push(`${emojis.sparkles} _AnimeBot by zerinho23_`);
+  return lines.join("\n");
+}
+
 function formatHelp(prefix, commands) {
   const grouped = {};
   for (const cmd of commands) {
@@ -199,5 +300,6 @@ module.exports = {
   formatNewsCard,
   formatSeasonHeader,
   formatSeasonCard,
+  formatSearchResults,
   formatHelp,
 };

@@ -20,11 +20,11 @@ module.exports = {
           text: `${config.emojis.error} Sin resultados para *${query}*.`,
         }, { quoted: msg });
       }
-      const lines = results.map((a, i) =>
-        `${i + 1}. *${a.title}* — ⭐ ${a.score || "N/A"} (${a.episodes || "?"} eps)`
-      );
-      const caption = format.box(`BÚSQUEDA: ${query}`, lines);
-      const image = results[0]?.images?.jpg?.large_image_url;
+      const caption = format.formatSearchResults(query, results);
+      const image =
+        results[0]?.images?.jpg?.large_image_url ||
+        results[0]?.images?.webp?.large_image_url ||
+        results[0]?.images?.jpg?.image_url;
       if (image) {
         await sock.sendMessage(from, { image: { url: image }, caption }, { quoted: msg });
       } else {
