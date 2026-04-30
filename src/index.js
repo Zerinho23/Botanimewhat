@@ -117,12 +117,28 @@ async function startBot() {
   });
   handleGroupEvents(sock);
 
-  sock.ev.on("messages.upsert", (m) => {
+  async function ensureGroupMetadata(jid) {
+    if (!jid?.endsWith("@g.us")) return;
+    if (cachedGroupMetadata(jid)) return;
+    try {
+      const data = await sock.groupMetadata(jid);
+      setGroupMetadata(jid, data);
+      logger.info(`📚 Metadatos del grupo cacheados: ${data.subject || jid}`);
+    } catch (err) {
+      logger.warn(`No pude obtener metadatos del grupo ${jid}: ${err.message}`);
+    }
+  }
+
+  sock.ev.on("messages.upsert", async (m) => {
     for (const msg of m.messages || []) {
       try {
         saveMessage(msg);
       } catch (_) {
         // ignore
+      }
+      const from = msg.key?.remoteJid;
+      if (from?.endsWith("@g.us")) {
+        await ensureGroupMetadata(from);
       }
     }
     handleMessages(sock, m).catch((err) =>
