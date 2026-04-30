@@ -69,6 +69,7 @@ function getGroup(jid) {
       mutedUsers: [],
       warnings: {},
       messageLog: {},
+      lastMessageAt: {},
       createdAt: Date.now(),
     };
     save(GROUPS_FILE, groups);
