@@ -72,6 +72,18 @@ function decodeHtml(s) {
     .trim();
 }
 
+function extractImage(block) {
+  const enclosure = block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image/i);
+  if (enclosure) return enclosure[1];
+  const mediaContent = block.match(/<media:content[^>]+url=["']([^"']+)["']/i);
+  if (mediaContent && /\.(jpg|jpeg|png|webp)/i.test(mediaContent[1])) return mediaContent[1];
+  const mediaThumb = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+  if (mediaThumb) return mediaThumb[1];
+  const imgTag = block.match(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/i);
+  if (imgTag) return imgTag[1];
+  return null;
+}
+
 async function getAnimeNews(limit = 5) {
   const sources = [
     "https://www.animenewsnetwork.com/all/rss.xml",
@@ -92,10 +104,11 @@ async function getAnimeNews(limit = 5) {
         const title = decodeHtml(block.match(/<title>([\s\S]*?)<\/title>/)?.[1] || "");
         const link = decodeHtml(block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "");
         const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || "").trim();
+        const image = extractImage(block);
         const description = decodeHtml(
           block.match(/<description>([\s\S]*?)<\/description>/)?.[1] || "",
-        ).slice(0, 200);
-        if (title && link) items.push({ title, link, pubDate, description });
+        ).slice(0, 350);
+        if (title && link) items.push({ title, link, pubDate, description, image });
       }
       if (items.length) return items;
     } catch (_) {
@@ -103,6 +116,26 @@ async function getAnimeNews(limit = 5) {
     }
   }
   return [];
+}
+
+async function getSeasonalAnime(limit = 5) {
+  const { data } = await jikan.get(`/seasons/now?limit=${limit}`);
+  return data.data || [];
+}
+
+async function getCurrentSeasonInfo() {
+  const month = new Date().getMonth() + 1;
+  let season = "winter";
+  if (month >= 3 && month <= 5) season = "spring";
+  else if (month >= 6 && month <= 8) season = "summer";
+  else if (month >= 9 && month <= 11) season = "fall";
+  const seasonES = {
+    winter: "Invierno",
+    spring: "Primavera",
+    summer: "Verano",
+    fall: "Otoño",
+  }[season];
+  return { season, seasonES, year: new Date().getFullYear() };
 }
 
 module.exports = {
@@ -114,4 +147,6 @@ module.exports = {
   searchAnime,
   getAnimeOpenings,
   getAnimeNews,
+  getSeasonalAnime,
+  getCurrentSeasonInfo,
 };
