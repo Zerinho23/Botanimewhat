@@ -22,6 +22,9 @@ let cachedUsername = null;
 let lastBackupSha = null;
 let backupTimer = null;
 let backupInProgress = false;
+let firstScheduleAt = null;
+const MAX_BACKUP_DELAY_MS = 30000;
+const DEBOUNCE_MS = 5000;
 
 function deriveKey() {
   return crypto.createHash("sha256").update(TOKEN || "fallback-key").digest();
@@ -115,6 +118,24 @@ async function restoreAuth(authDir) {
   }
 }
 
+async function uploadBackup(user, body, allowRetry = true) {
+  const res = await fetch(
+    `${API_BASE}/repos/${user}/${BACKUP_REPO}/contents/${BACKUP_FILE}`,
+    { method: "PUT", headers: HEADERS, body: JSON.stringify(body) },
+  );
+  if (res.ok) return await res.json();
+  const txt = await res.text();
+  if ((res.status === 409 || res.status === 422) && allowRetry) {
+    logger.warn(`Conflicto en backup (${res.status}). Refrescando sha y reintentando...`);
+    const meta = await fetchBackupMetadata(user);
+    const newBody = { ...body };
+    if (meta) newBody.sha = meta.sha;
+    else delete newBody.sha;
+    return uploadBackup(user, newBody, false);
+  }
+  throw new Error(`PUT falló (${res.status}): ${txt.slice(0, 150)}`);
+}
+
 async function performBackup(authDir) {
   if (!TOKEN || backupInProgress) return;
   if (!fs.existsSync(authDir)) return;
@@ -128,6 +149,10 @@ async function performBackup(authDir) {
       }
     }
     if (Object.keys(files).length === 0) return;
+    if (!files["creds.json"]) {
+      logger.warn("Sesión sin creds.json, omitiendo backup.");
+      return;
+    }
     const user = await getUsername();
     await ensureRepoExists(user);
     if (lastBackupSha === null) {
@@ -141,15 +166,7 @@ async function performBackup(authDir) {
       content: contentB64,
     };
     if (lastBackupSha) body.sha = lastBackupSha;
-    const res = await fetch(
-      `${API_BASE}/repos/${user}/${BACKUP_REPO}/contents/${BACKUP_FILE}`,
-      { method: "PUT", headers: HEADERS, body: JSON.stringify(body) },
-    );
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`PUT falló (${res.status}): ${txt.slice(0, 150)}`);
-    }
-    const data = await res.json();
+    const data = await uploadBackup(user, body);
     lastBackupSha = data.content.sha;
     logger.info(`💾 Sesión respaldada en GitHub (${Object.keys(files).length} archivos).`);
   } catch (err) {
@@ -161,8 +178,52 @@ async function performBackup(authDir) {
 
 function scheduleBackup(authDir) {
   if (!TOKEN) return;
+  const now = Date.now();
+  if (firstScheduleAt && now - firstScheduleAt > MAX_BACKUP_DELAY_MS) {
+    if (backupTimer) clearTimeout(backupTimer);
+    backupTimer = null;
+    firstScheduleAt = null;
+    performBackup(authDir);
+    return;
+  }
+  if (!firstScheduleAt) firstScheduleAt = now;
   if (backupTimer) clearTimeout(backupTimer);
-  backupTimer = setTimeout(() => performBackup(authDir), 8000);
+  backupTimer = setTimeout(() => {
+    backupTimer = null;
+    firstScheduleAt = null;
+    performBackup(authDir);
+  }, DEBOUNCE_MS);
 }
 
-module.exports = { restoreAuth, scheduleBackup, performBackup };
+async function deleteBackup() {
+  if (!TOKEN) return;
+  try {
+    const user = await getUsername();
+    const meta = await fetchBackupMetadata(user);
+    if (!meta) {
+      logger.info("No hay backup remoto que borrar.");
+      return;
+    }
+    const res = await fetch(
+      `${API_BASE}/repos/${user}/${BACKUP_REPO}/contents/${BACKUP_FILE}`,
+      {
+        method: "DELETE",
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: `Reset session ${new Date().toISOString()}`,
+          sha: meta.sha,
+        }),
+      },
+    );
+    if (res.ok) {
+      lastBackupSha = null;
+      logger.success("Backup remoto eliminado.");
+    } else {
+      logger.warn(`No pude borrar backup remoto: ${res.status}`);
+    }
+  } catch (err) {
+    logger.warn(`Error borrando backup remoto: ${err.message}`);
+  }
+}
+
+module.exports = { restoreAuth, scheduleBackup, performBackup, deleteBackup };
