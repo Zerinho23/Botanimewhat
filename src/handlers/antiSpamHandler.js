@@ -17,7 +17,7 @@ async function isAdmin(sock, groupJid, userJid) {
 async function checkAntiSpam(sock, msg, group, sender, from) {
   const now = Date.now();
   if (!group.messageLog) group.messageLog = {};
-  if (!group.messageLog[sender]) group.messageLog[sender] = [];
+  if (!Array.isArray(group.messageLog[sender])) group.messageLog[sender] = [];
 
   group.messageLog[sender] = group.messageLog[sender].filter((t) => now - t < 1000);
   group.messageLog[sender].push(now);
