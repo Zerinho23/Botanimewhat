@@ -163,10 +163,33 @@ function _readingTime(text) {
   return `${mins} min de lectura`;
 }
 
+function _formatNewsBodyParagraphs(text, maxChars) {
+  if (!text) return "";
+  // Normalizar saltos múltiples y dividir en párrafos
+  const normalized = text.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  let truncated = normalized;
+  if (normalized.length > maxChars) {
+    // Cortar en límite de oración cuando sea posible
+    let cut = normalized.lastIndexOf(". ", maxChars);
+    if (cut < maxChars * 0.6) cut = maxChars;
+    truncated = normalized.slice(0, cut).trim() + "…";
+  }
+  const paragraphs = truncated.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length === 0) return "";
+
+  const out = [];
+  // Primer párrafo (lead) en negrita
+  out.push(`📝 *${paragraphs[0]}*`);
+  for (let i = 1; i < paragraphs.length; i++) {
+    out.push("");
+    out.push(highlightKeywords(paragraphs[i]));
+  }
+  return out.join("\n");
+}
+
 function formatNewsCard(news, index, total) {
   const date = formatDateES(news.pubDate);
   const relative = _relativeTimeES(news.pubDate);
-  const desc = news.description ? highlightKeywords(truncate(news.description, 900)) : "";
   const tags = (news.categories || []).slice(0, 5).map((c) => `#${c.replace(/\s+/g, "")}`).join("  ");
 
   const lines = [
@@ -187,11 +210,14 @@ function formatNewsCard(news, index, total) {
   if (date) lines.push(`📅 _${date}_`);
   if (tags) lines.push(`🏷️ _${tags}_`);
 
-  if (desc) {
+  // Cuerpo completo (hasta 2400 chars dentro del caption; el handler lo
+  // separará en mensajes adicionales si la nota es aún más larga).
+  const body = _formatNewsBodyParagraphs(news.description, 2400);
+  if (body) {
     lines.push("");
     lines.push(divider());
     lines.push("");
-    lines.push(`📝 ${desc}`);
+    lines.push(body);
     const rt = _readingTime(news.description);
     if (rt) {
       lines.push("");
@@ -207,6 +233,27 @@ function formatNewsCard(news, index, total) {
   lines.push(divider());
   lines.push(`${emojis.sparkles} _AnimeBot by zerinho23_`);
   return lines.join("\n");
+}
+
+/**
+ * Formatea solo el cuerpo de una noticia (cuando es demasiado largo para
+ * caber en el caption). Sin metadatos, sin link — solo párrafos legibles.
+ */
+function formatNewsBody(news) {
+  if (!news?.description) return "";
+  const normalized = news.description
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const paragraphs = normalized.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  if (!paragraphs.length) return "";
+
+  const out = [`📖 *Continuación de la noticia*`, divider(), ""];
+  for (const p of paragraphs) {
+    out.push(highlightKeywords(p));
+    out.push("");
+  }
+  return out.join("\n").trim();
 }
 
 function formatSeasonHeader(seasonES, year, total) {
@@ -357,6 +404,7 @@ module.exports = {
   formatWaifu,
   formatProfile,
   formatNewsCard,
+  formatNewsBody,
   formatSeasonHeader,
   formatSeasonCard,
   formatSearchResults,

@@ -196,6 +196,112 @@ let _newsPool = [];
 let _newsPoolTime = 0;
 const _NEWS_TTL = 5 * 60 * 1000;
 
+// Caché de cuerpos de artículos (10 min) para no re-descargar el mismo artículo
+const _articleCache = new Map();
+const _ARTICLE_TTL = 10 * 60 * 1000;
+const _ARTICLE_MAX_CACHE = 100;
+
+/**
+ * Descarga la página del artículo y extrae el texto principal.
+ * Devuelve un string con párrafos separados por doble salto, o null si falla.
+ */
+async function fetchArticleBody(url) {
+  if (!url || typeof url !== "string") return null;
+
+  const cached = _articleCache.get(url);
+  if (cached && Date.now() - cached.at < _ARTICLE_TTL) return cached.body;
+
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
+      },
+      signal: ctrl.signal,
+      redirect: "follow",
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      _articleCache.set(url, { body: null, at: Date.now() });
+      return null;
+    }
+    const html = await res.text();
+
+    // Acotar al área de contenido principal (heurísticas por orden de prioridad)
+    let scope = html;
+    const candidates = [
+      /<article\b[^>]*>([\s\S]*?)<\/article>/i,
+      /<div[^>]+id=["']content["'][^>]*>([\s\S]*?)<\/div>\s*<\/(?:div|article|main)>/i,
+      /<div[^>]+class=["'][^"']*(?:article-body|post-content|entry-content|story-body|news-content)[^"']*["'][^>]*>([\s\S]*?)<\/div>\s*<\/(?:div|article|main)>/i,
+      /<main\b[^>]*>([\s\S]*?)<\/main>/i,
+    ];
+    for (const re of candidates) {
+      const m = html.match(re);
+      if (m && m[1] && m[1].length > 300) {
+        scope = m[1];
+        break;
+      }
+    }
+
+    // Quitar scripts/estilos/figcaptions/aside antes de extraer texto
+    scope = scope
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, "")
+      .replace(/<aside\b[^>]*>[\s\S]*?<\/aside>/gi, "")
+      .replace(/<figcaption\b[^>]*>[\s\S]*?<\/figcaption>/gi, "")
+      .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, "");
+
+    const pRegex = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+    const paragraphs = [];
+    let m;
+    let totalLen = 0;
+    while ((m = pRegex.exec(scope))) {
+      // Limpiar HTML interno del párrafo
+      let text = m[1]
+        .replace(/<br\s*\/?>/gi, " ")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ");
+      text = decodeHtml(text).trim();
+      if (text.length < 50) continue;
+
+      // Filtrar ruido típico (boilerplate, créditos, suscripciones)
+      if (
+        /^(subscribe|sign up|click here|follow us|privacy policy|terms of|copyright|©|all rights|by submitting|read more|related|advertisement|sponsored|powered by|share this|tweet|cookies?)/i.test(
+          text,
+        )
+      )
+        continue;
+      if (/^(image|photo|via|source):\s/i.test(text) && text.length < 120) continue;
+
+      paragraphs.push(text);
+      totalLen += text.length;
+      if (totalLen > 3500) break;
+    }
+
+    // Mantener tamaño del caché acotado
+    if (_articleCache.size > _ARTICLE_MAX_CACHE) {
+      const firstKey = _articleCache.keys().next().value;
+      _articleCache.delete(firstKey);
+    }
+
+    if (!paragraphs.length) {
+      _articleCache.set(url, { body: null, at: Date.now() });
+      return null;
+    }
+    const body = paragraphs.join("\n\n");
+    _articleCache.set(url, { body, at: Date.now() });
+    return body;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function getAnimeNews(limit = 5) {
   const now = Date.now();
   if (_newsPool.length === 0 || now - _newsPoolTime > _NEWS_TTL) {
@@ -311,6 +417,7 @@ module.exports = {
   searchAnime,
   getAnimeOpenings,
   getAnimeNews,
+  fetchArticleBody,
   getSeasonalAnime,
   getCurrentSeasonInfo,
 };
