@@ -6,9 +6,9 @@ module.exports = {
   name: "help",
   description: "Muestra el menú de comandos",
   aliases: ["menu", "ayuda", "comandos"],
-  async execute({ sock, msg, from }) {
+  async execute({ sock, msg, from, isGroup }) {
     const commands = getAllCommands();
     const text = format.formatHelp(config.prefix, commands);
-    await sock.sendMessage(from, { text }, { quoted: msg });
+    await sock.sendMessage(from, { text }, isGroup ? {} : { quoted: msg });
   },
 };
