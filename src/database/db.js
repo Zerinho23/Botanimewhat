@@ -70,6 +70,7 @@ function updateUser(jid, data) {
 
 function getGroup(jid) {
   if (!groups[jid]) {
+    const now = Date.now();
     groups[jid] = {
       jid,
       name: "",
@@ -80,7 +81,8 @@ function getGroup(jid) {
       warnings: {},
       messageLog: {},
       lastMessageAt: {},
-      createdAt: Date.now(),
+      botJoinedAt: now, // cuándo el bot empezó a observar este grupo (para !purga / !fantasmas)
+      createdAt: now,
     };
     save(GROUPS_FILE, groups);
   }
