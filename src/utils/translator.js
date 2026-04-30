@@ -74,4 +74,21 @@ async function translate(text, target = "es") {
   }
 }
 
-module.exports = { translate, looksSpanish, stripHtml };
+async function translateForce(text, target = "en", source = "auto") {
+  if (!text || typeof text !== "string") return text;
+  const key = `force:${source}:${target}::${text}`;
+  if (cache.has(key)) return cache.get(key);
+  try {
+    const result = (await translateChunk(text, target, source)).trim();
+    if (cache.size > MAX_CACHE) {
+      const firstKey = cache.keys().next().value;
+      cache.delete(firstKey);
+    }
+    cache.set(key, result);
+    return result;
+  } catch (_) {
+    return text;
+  }
+}
+
+module.exports = { translate, translateForce, looksSpanish, stripHtml };

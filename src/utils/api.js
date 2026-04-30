@@ -1,9 +1,57 @@
 const axios = require("axios");
 const config = require("../config/config");
+const translator = require("./translator");
 
 const jikan = axios.create({ baseURL: config.api.jikanBase, timeout: 15000 });
 const waifuApi = axios.create({ baseURL: config.api.waifuBase, timeout: 15000 });
 const nekosApi = axios.create({ baseURL: config.api.nekosBase, timeout: 15000 });
+
+function _normalizeText(s) {
+  return (s || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function _bigrams(s) {
+  const set = new Set();
+  const t = _normalizeText(s);
+  if (t.length < 2) return set;
+  for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2));
+  return set;
+}
+
+function _diceSimilarity(a, b) {
+  const A = _bigrams(a);
+  const B = _bigrams(b);
+  if (!A.size || !B.size) return 0;
+  let inter = 0;
+  for (const bg of A) if (B.has(bg)) inter++;
+  return (2 * inter) / (A.size + B.size);
+}
+
+function _bestSimilarity(anime, queries) {
+  const candidates = [
+    anime.title,
+    anime.title_english,
+    anime.title_japanese,
+    ...((anime.titles || []).map((t) => t.title)),
+    ...((anime.title_synonyms || [])),
+  ].filter(Boolean);
+  let best = 0;
+  for (const q of queries) {
+    if (!q) continue;
+    for (const c of candidates) {
+      const s = _diceSimilarity(q, c);
+      if (s > best) best = s;
+    }
+  }
+  return best;
+}
 
 async function getRandomAnime() {
   const { data } = await jikan.get("/random/anime");
@@ -36,8 +84,58 @@ async function getRandomWaifu(category = "waifu") {
 }
 
 async function searchAnime(query) {
-  const { data } = await jikan.get(`/anime?q=${encodeURIComponent(query)}&limit=5`);
-  return data.data;
+  if (!query || !query.trim()) return [];
+  const original = query.trim();
+
+  let translated = null;
+  if (translator.looksSpanish(original)) {
+    try {
+      const t = await translator.translateForce(original, "en", "es");
+      if (t && _normalizeText(t) !== _normalizeText(original)) translated = t.trim();
+    } catch (_) {
+      translated = null;
+    }
+  }
+
+  const queriesToSearch = [original];
+  if (translated) queriesToSearch.push(translated);
+
+  const results = await Promise.all(
+    queriesToSearch.map((q) =>
+      jikan
+        .get(`/anime?q=${encodeURIComponent(q)}&limit=10`)
+        .then((r) => r.data?.data || [])
+        .catch(() => []),
+    ),
+  );
+
+  const merged = new Map();
+  for (const list of results) {
+    for (const a of list) {
+      if (!a || !a.mal_id) continue;
+      if (!merged.has(a.mal_id)) merged.set(a.mal_id, a);
+    }
+  }
+
+  const compareQueries = [original, translated].filter(Boolean);
+  const scored = [];
+  for (const a of merged.values()) {
+    const score = _bestSimilarity(a, compareQueries);
+    scored.push({ anime: a, score });
+  }
+
+  scored.sort((x, y) => y.score - x.score);
+
+  // Umbral mínimo: si nada se parece, evitamos devolver animes aleatorios.
+  const MIN_SCORE = 0.28;
+  const filtered = scored.filter((s) => s.score >= MIN_SCORE);
+
+  // Si todo cae bajo el umbral pero el mejor pasa un mínimo muy bajo, lo dejamos.
+  const finalList = filtered.length
+    ? filtered
+    : scored.filter((s) => s.score >= 0.18);
+
+  return finalList.slice(0, 5).map((s) => s.anime);
 }
 
 async function getAnimeOpenings() {
