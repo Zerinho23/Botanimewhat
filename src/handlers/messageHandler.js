@@ -83,6 +83,17 @@ async function handleMessages(sock, { messages }) {
 
       const isCommand = text.startsWith(config.prefix);
 
+      if (isGroup) {
+        try {
+          const group = db.getGroup(from);
+          group.messageLog = group.messageLog || {};
+          group.messageLog[sender] = Date.now();
+          db.updateGroup(from, { messageLog: group.messageLog });
+        } catch (_) {
+          // ignore
+        }
+      }
+
       if (!isCommand) {
         await awardXp(sock, sender, isGroup ? from : null, false);
         continue;
