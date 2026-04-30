@@ -24,6 +24,24 @@ async function translateChunk(text, target = "es", source = "auto") {
   return (data[0] || []).map((p) => p[0]).join("");
 }
 
+function stripHtml(text) {
+  if (!text) return text;
+  return text
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/(p|div|li|h\d)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 async function translate(text, target = "es") {
   if (!text || typeof text !== "string") return text;
   if (looksSpanish(text)) return text;
@@ -56,4 +74,4 @@ async function translate(text, target = "es") {
   }
 }
 
-module.exports = { translate, looksSpanish };
+module.exports = { translate, looksSpanish, stripHtml };
