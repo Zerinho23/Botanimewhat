@@ -1,19 +1,43 @@
 const { DisconnectReason } = require("@whiskeysockets/baileys");
 const qrcode = require("qrcode-terminal");
+const fs = require("fs");
 const path = require("path");
 const logger = require("../utils/logger");
 const { setQR, setConnected } = require("../utils/webServer");
-const { performBackup } = require("../utils/authBackup");
+const { performBackup, deleteBackup } = require("../utils/authBackup");
 
 const AUTH_DIR = path.join(__dirname, "..", "..", "auth");
 
 let isReconnecting = false;
 let reconnectAttempts = 0;
+let cleanupInProgress = false;
+
+async function cleanAndExit(reason) {
+  if (cleanupInProgress) return;
+  cleanupInProgress = true;
+  logger.warn(`Limpieza automática iniciada (${reason})...`);
+  try {
+    if (fs.existsSync(AUTH_DIR)) {
+      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+      logger.info("✓ Sesión local borrada");
+    }
+  } catch (e) {
+    logger.warn(`No pude borrar la sesión local: ${e.message}`);
+  }
+  try {
+    await deleteBackup();
+    logger.info("✓ Backup remoto borrado");
+  } catch (e) {
+    logger.warn(`No pude borrar el backup remoto: ${e.message}`);
+  }
+  logger.success("✅ Sesión limpiada. El proceso se reiniciará y verás un QR/código nuevo en la web.");
+  setTimeout(() => process.exit(1), 1500);
+}
 
 function handleConnection(sock, startBot, options = {}) {
   const { usePairingCode } = options;
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
@@ -35,8 +59,10 @@ function handleConnection(sock, startBot, options = {}) {
       logger.warn(`Conexión cerrada (code: ${code}). Reconectando: ${shouldReconnect}`);
 
       if (!shouldReconnect) {
-        logger.error("Sesión cerrada por WhatsApp. Saliendo para regenerar...");
-        setTimeout(() => process.exit(1), 1000);
+        // WhatsApp nos cerró la sesión: auto-limpieza para que el próximo arranque
+        // muestre un QR/código nuevo sin necesidad de tocar variables de entorno.
+        logger.error("Sesión cerrada por WhatsApp (loggedOut). Auto-limpieza activada.");
+        await cleanAndExit("loggedOut");
         return;
       }
 

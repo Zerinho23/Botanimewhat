@@ -15,7 +15,12 @@ const { loadCommands } = require("./handlers/commandHandler");
 const { handleMessages } = require("./handlers/messageHandler");
 const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
-const { startWebServer, setPairingCode } = require("./utils/webServer");
+const {
+  startWebServer,
+  setPairingCode,
+  setSocket,
+  setResetHandler,
+} = require("./utils/webServer");
 const { restoreAuth, scheduleBackup, performBackup, deleteBackup } = require("./utils/authBackup");
 const { restoreDatabase } = require("./utils/dbBackup");
 const {
@@ -31,28 +36,31 @@ const DB_DATA_DIR = path.join(__dirname, "database", "data");
 
 const PAIRING_NUMBER = (process.env.PAIRING_NUMBER || "").replace(/[^0-9]/g, "");
 const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
-const RESET_SESSION = process.env.RESET_SESSION === "true";
 const PORT = parseInt(process.env.PORT) || 3000;
 
-let resetExecuted = false;
-
-async function maybeResetSession() {
-  if (!RESET_SESSION) return;
-  const credsPath = path.join(AUTH_DIR, "creds.json");
-  const hasValidLocalCreds = fs.existsSync(credsPath);
-  if (hasValidLocalCreds) {
-    logger.warn("⚠️  RESET_SESSION=true pero ya hay sesión válida local. Ignorando para no romperla.");
-    logger.warn("    👉 Cambia RESET_SESSION a false en Railway para evitar este aviso.");
-    return;
-  }
-  if (resetExecuted) return;
-  resetExecuted = true;
-  logger.warn("⚠️  RESET_SESSION=true → borrando sesión local y backup remoto...");
-  if (fs.existsSync(AUTH_DIR)) fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-  await deleteBackup();
-  logger.success("Sesión vieja eliminada. Se generará un QR nuevo.");
-  logger.warn("    👉 IMPORTANTE: cambia RESET_SESSION a false en Railway YA, o se borrará otra vez al próximo reinicio.");
+if (process.env.RESET_SESSION === "true") {
+  logger.warn("");
+  logger.warn("⚠️  RESET_SESSION=true detectado pero IGNORADO.");
+  logger.warn("    Ya no es necesario tocar esta variable.");
+  logger.warn("    Para resetear la sesión usa el botón 'Cerrar sesión y re-vincular' en la página web del bot.");
+  logger.warn("    Puedes borrar RESET_SESSION de las variables de Railway.");
+  logger.warn("");
 }
+
+// Handler que ejecuta el reset cuando el usuario presiona el botón en la web
+setResetHandler(async () => {
+  logger.warn("Reset: borrando sesión local y backup remoto...");
+  if (fs.existsSync(AUTH_DIR)) {
+    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    logger.info("✓ Sesión local borrada");
+  }
+  try {
+    await deleteBackup();
+    logger.info("✓ Backup remoto borrado");
+  } catch (e) {
+    logger.warn(`Borrar backup remoto falló (puede que no exista todavía): ${e.message}`);
+  }
+});
 
 startWebServer(PORT);
 
@@ -64,8 +72,6 @@ const msgRetryCounterMap = {};
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
 
-  await maybeResetSession();
-
   // Restaurar base de datos local desde el backup en GitHub (Railway tiene fs efímero).
   // Hacemos esto ANTES de cargar comandos para que los datos estén disponibles desde el inicio.
   try {
@@ -76,7 +82,7 @@ async function startBot() {
   }
 
   const localExists = fs.existsSync(AUTH_DIR) && fs.readdirSync(AUTH_DIR).length > 0;
-  if (!localExists && !restoredFromBackup && !RESET_SESSION) {
+  if (!localExists && !restoredFromBackup) {
     restoredFromBackup = await restoreAuth(AUTH_DIR);
   } else if (localExists) {
     logger.info("Sesión local presente, no se restaura del backup.");
@@ -86,10 +92,18 @@ async function startBot() {
   const { version, isLatest } = await fetchLatestBaileysVersion();
   logger.info(`Baileys v${version.join(".")} (latest: ${isLatest})`);
 
-  if (USE_PAIRING_CODE) {
-    logger.info(`🔢 Modo código de vinculación para +${PAIRING_NUMBER}`);
+  const isRegistered = !!state.creds?.registered;
+  if (isRegistered) {
+    logger.info("✓ Sesión ya registrada, conectando...");
   } else {
-    logger.info(`📱 Modo QR. Abre la URL pública del servidor para escanear.`);
+    logger.info("");
+    logger.info("📲 Sesión NO registrada. Vincula tu WhatsApp:");
+    logger.info("   👉 Abre la URL pública del bot en cualquier navegador");
+    logger.info("   👉 Elige escanear el QR o generar un código de 8 dígitos");
+    if (USE_PAIRING_CODE) {
+      logger.info(`   👉 También se generará automáticamente un código para +${PAIRING_NUMBER}`);
+    }
+    logger.info("");
   }
 
   const sock = makeWASocket({
@@ -109,6 +123,9 @@ async function startBot() {
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
   });
+
+  // Exponer el socket al webServer para que pueda generar códigos de vinculación bajo demanda
+  setSocket(sock);
 
   const _origSend = sock.sendMessage.bind(sock);
   async function safeSend(jid, content, options, attempt = 1) {
@@ -205,22 +222,24 @@ async function startBot() {
     );
   });
 
+  // Si el usuario configuró PAIRING_NUMBER, generar automáticamente un código
+  // (compatibilidad hacia atrás; el método preferido ahora es la web).
   if (USE_PAIRING_CODE && !sock.authState.creds.registered) {
     setTimeout(async () => {
       try {
         const code = await sock.requestPairingCode(PAIRING_NUMBER);
         const formatted = code.match(/.{1,4}/g).join("-");
-        setPairingCode(formatted);
+        setPairingCode(formatted, PAIRING_NUMBER);
         logger.info("");
         logger.info("╔═══════════════════════════════════════════╗");
         logger.info("║   CÓDIGO DE VINCULACIÓN DE WHATSAPP       ║");
         logger.info(`║          👉  ${formatted}  👈              ║`);
         logger.info("╚═══════════════════════════════════════════╝");
         logger.info("");
-        logger.info(`📱 También puedes ver el código en la página web del bot.`);
+        logger.info(`📱 También puedes ver el código (y generar otro) en la página web del bot.`);
         logger.info("");
       } catch (err) {
-        logger.error(`No pude generar el código: ${err.message}`);
+        logger.error(`No pude generar el código automático: ${err.message}`);
       }
     }, 4000);
   }
