@@ -3,6 +3,13 @@ const format = require("../../utils/format");
 const config = require("../../config/config");
 const { translate } = require("../../utils/translator");
 
+const FALLBACK_IMAGE =
+  "https://cdn.myanimelist.net/s/common/uploaded_files/1641457734-26ef41a7e6b3a1cd8b11366aae93edec.jpeg";
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 module.exports = {
   name: "noticias",
   description: "Muestra las últimas noticias del mundo del anime",
@@ -18,20 +25,36 @@ module.exports = {
       if (!news.length) {
         return sock.sendMessage(
           from,
-          { text: `${config.emojis.error} No pude obtener noticias en este momento. Intenta más tarde.` },
+          { text: `${config.emojis.error} No pude obtener noticias. Intenta más tarde.` },
           { quoted: msg },
         );
       }
-      for (const n of news) {
+
+      for (let i = 0; i < news.length; i++) {
+        const n = news[i];
         try {
           n.title = await translate(n.title);
           if (n.description) n.description = await translate(n.description);
         } catch (_) {
-          // si falla la traducción, deja el original
+          // si falla, usar original
         }
+        const caption = format.formatNewsCard(n, i + 1, news.length);
+        const imageUrl = n.image || FALLBACK_IMAGE;
+        try {
+          await sock.sendMessage(
+            from,
+            { image: { url: imageUrl }, caption },
+            { quoted: i === 0 ? msg : undefined },
+          );
+        } catch (_) {
+          await sock.sendMessage(
+            from,
+            { text: caption },
+            { quoted: i === 0 ? msg : undefined },
+          );
+        }
+        if (i < news.length - 1) await sleep(800);
       }
-      const text = format.formatNews(news);
-      await sock.sendMessage(from, { text }, { quoted: msg });
     } catch (err) {
       await sock.sendMessage(
         from,
