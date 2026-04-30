@@ -70,7 +70,25 @@ async function startBot() {
     generateHighQualityLinkPreview: false,
     getMessage,
     cachedGroupMetadata,
+    keepAliveIntervalMs: 30000,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
   });
+
+  const _origSend = sock.sendMessage.bind(sock);
+  sock.sendMessage = (jid, content, options) => {
+    const promise = _origSend(jid, content, options);
+    Promise.resolve(promise).then(
+      (r) => {
+        const kind = content?.image ? "imagen" : content?.video ? "video" : "texto";
+        logger.info(`📤 ${kind} → ${jid?.split("@")[0]} ${r?.key?.id ? "OK" : "(sin id)"}`);
+      },
+      (e) => {
+        logger.error(`❌ Falló envío a ${jid}: ${e?.message || e}`);
+      },
+    );
+    return promise;
+  };
 
   sock.ev.on("creds.update", async () => {
     await saveCreds();
