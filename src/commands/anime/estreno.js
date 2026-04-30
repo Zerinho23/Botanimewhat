@@ -1,7 +1,7 @@
 const api = require("../../utils/api");
 const format = require("../../utils/format");
 const config = require("../../config/config");
-const { translate } = require("../../utils/translator");
+const { translate, stripHtml } = require("../../utils/translator");
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -9,16 +9,20 @@ function sleep(ms) {
 
 module.exports = {
   name: "estreno",
-  description: "Muestra los animes que se estrenan esta temporada",
+  description: "Muestra un estreno de la temporada (usa !estreno 3 para más)",
   aliases: ["estrenos", "temporada", "season"],
-  async execute({ sock, msg, from }) {
+  async execute({ sock, msg, from, args }) {
+    let count = parseInt(args?.[0]) || 1;
+    if (count < 1) count = 1;
+    if (count > 5) count = 5;
+
     await sock.sendMessage(
       from,
-      { text: `${config.emojis.sparkles} Buscando los estrenos de la temporada actual...` },
+      { text: `${config.emojis.sparkles} Buscando ${count === 1 ? "un estreno" : `${count} estrenos`} de la temporada actual...` },
       { quoted: msg },
     );
     try {
-      const animes = await api.getSeasonalAnime(5);
+      const animes = await api.getSeasonalAnime(count);
       if (!animes.length) {
         return sock.sendMessage(
           from,
@@ -34,11 +38,13 @@ module.exports = {
 
       for (let i = 0; i < animes.length; i++) {
         const anime = animes[i];
+        if (anime.synopsis) anime.synopsis = stripHtml(anime.synopsis);
         try {
           if (anime.synopsis) anime.synopsis = await translate(anime.synopsis);
         } catch (_) {
           // dejar original si falla
         }
+        if (anime.synopsis) anime.synopsis = stripHtml(anime.synopsis);
         const caption = format.formatSeasonCard(anime, i + 1, animes.length);
         const imageUrl =
           anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
