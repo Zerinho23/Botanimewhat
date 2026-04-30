@@ -3,6 +3,7 @@ const {
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
     Browsers,
+    makeCacheableSignalKeyStore,
   } = require("@whiskeysockets/baileys");
   const pino = require("pino");
   const path = require("path");
@@ -55,8 +56,11 @@ const {
 
   let restoredFromBackup = false;
 
-  // Contador de reintentos de mensajes — fix para "Decrypted message with closed session"
+  // Persiste entre reconexiones para rastrear reintentos de mensajes
   const msgRetryCounterMap = {};
+
+  // Logger silencioso para el store de claves
+  const silentLogger = pino({ level: "silent" });
 
   async function startBot() {
     logger.info(`Iniciando ${config.botName}...`);
@@ -82,9 +86,15 @@ const {
 
     const sock = makeWASocket({
       version,
-      logger: pino({ level: "silent" }),
+      logger: silentLogger,
       printQRInTerminal: false,
-      auth: state,
+      auth: {
+        creds: state.creds,
+        // makeCacheableSignalKeyStore previene "Decrypted message with closed session"
+        // al mantener las claves Signal en memoria y evitar lecturas/escrituras
+        // concurrentes que corrompen la sesión de cifrado
+        keys: makeCacheableSignalKeyStore(state.keys, silentLogger),
+      },
       browser: Browsers.ubuntu("Chrome"),
       syncFullHistory: false,
       markOnlineOnConnect: true,
