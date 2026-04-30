@@ -20,6 +20,7 @@ const {
   saveMessage,
   getMessage,
   cachedGroupMetadata,
+  setGroupMetadata,
   invalidateGroup,
 } = require("./utils/messageStore");
 
@@ -68,19 +69,8 @@ async function startBot() {
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: false,
     getMessage,
-    cachedGroupMetadata: (jid) => cachedGroupMetadata(jid, sock),
+    cachedGroupMetadata,
   });
-
-  const originalSendMessage = sock.sendMessage.bind(sock);
-  sock.sendMessage = async (jid, content, options) => {
-    const result = await originalSendMessage(jid, content, options);
-    try {
-      saveMessage(result);
-    } catch (_) {
-      // ignore
-    }
-    return result;
-  };
 
   sock.ev.on("creds.update", async () => {
     await saveCreds();
@@ -97,13 +87,19 @@ async function startBot() {
     invalidateGroup(id);
   });
 
+  sock.ev.on("groups.upsert", (groups) => {
+    for (const g of groups) {
+      if (g.id) setGroupMetadata(g.id, g);
+    }
+  });
+
   handleConnection(sock, startBot, {
     pairingNumber: PAIRING_NUMBER,
     usePairingCode: USE_PAIRING_CODE,
   });
   handleGroupEvents(sock);
 
-  sock.ev.on("messages.upsert", async (m) => {
+  sock.ev.on("messages.upsert", (m) => {
     for (const msg of m.messages || []) {
       try {
         saveMessage(msg);
@@ -111,7 +107,9 @@ async function startBot() {
         // ignore
       }
     }
-    await handleMessages(sock, m);
+    handleMessages(sock, m).catch((err) =>
+      logger.error(`handleMessages error: ${err.message}`),
+    );
   });
 
   if (USE_PAIRING_CODE && !sock.authState.creds.registered) {
