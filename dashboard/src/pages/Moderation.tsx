@@ -1,254 +1,538 @@
-import { useEffect, useState } from 'react'
-  import { Shield, RefreshCw, Clock, UserX, Volume2, VolumeX, AlertTriangle, Search, Check, X } from 'lucide-react'
-  import { getModHistory, getGroups, postModAction, isConfigured, type ModEntry, type Group } from '../api'
+import { useEffect, useState, useCallback } from 'react'
+  import {
+    Shield, RefreshCw, Search, AlertTriangle,
+    UserX, Volume2, VolumeX, Trash2, ChevronDown, ChevronRight,
+    Clock, Users, Zap, CheckCircle, X, Crown
+  } from 'lucide-react'
+  import {
+    getModHistory, getGroups, getModGroup, postModAction,
+    isConfigured,
+    type ModEntry, type Group, type GroupModData, type GroupMember
+  } from '../api'
 
-  const ACTION_META: Record<string, { color: string; label: string; icon: React.ElementType }> = {
-    ban:     { color:'#e53935', label:'Ban',        icon: UserX },
-    kick:    { color:'#ff5252', label:'Expulsión',  icon: UserX },
-    warn:    { color:'#f59e0b', label:'Advertencia', icon: AlertTriangle },
-    mute:    { color:'#3b82f6', label:'Silenciar',  icon: VolumeX },
-    unmute:  { color:'#10b981', label:'Desmutear',  icon: Volume2 },
-    unban:   { color:'#10b981', label:'Desbanear',  icon: Shield },
+  // ─── helpers ────────────────────────────────────────────────────────────────
+  const ACTION_META: Record<string, { color: string; bg: string; label: string; icon: React.ElementType }> = {
+    ban:        { color: '#ff3355', bg: 'rgba(255,51,85,.15)',   label: 'Ban',         icon: UserX },
+    kick:       { color: '#ff5252', bg: 'rgba(255,82,82,.12)',   label: 'Expulsado',   icon: UserX },
+    warn:       { color: '#f59e0b', bg: 'rgba(245,158,11,.12)',  label: 'Advertencia', icon: AlertTriangle },
+    clearwarns: { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Warns borr.', icon: Trash2 },
+    mute:       { color: '#3b82f6', bg: 'rgba(59,130,246,.12)',  label: 'Muteado',     icon: VolumeX },
+    unmute:     { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Desmuteado',  icon: Volume2 },
   }
-  function metaOf(action: string) {
-    return ACTION_META[action] || { color:'rgba(240,240,245,.4)', label:action, icon:Shield }
-  }
+  const metaOf = (a: string) => ACTION_META[a] ?? { color: 'var(--tx3)', bg: 'rgba(255,255,255,.06)', label: a, icon: Shield }
 
   function fmtTs(ts: number) {
-    return new Date(ts).toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+    return new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
-  export default function Moderation() {
-    const [history,  setHistory] = useState<ModEntry[]>([])
-    const [groups,   setGroups]  = useState<Group[]>([])
-    const [loading,  setLoad]    = useState(true)
-    const [refreshing,setRef]    = useState(false)
-    const [search,   setSearch]  = useState('')
-    const [filterAct,setFA]      = useState<string>('all')
-    const [showForm, setForm]    = useState(false)
-    const [fGroup,   setFGroup]  = useState('')
-    const [fUser,    setFUser]   = useState('')
-    const [fAction,  setFAction] = useState('warn')
-    const [fReason,  setFReason] = useState('')
-    const [sending,  setSending] = useState(false)
-    const [sendMsg,  setSendMsg] = useState<{type:'ok'|'err'; text:string}|null>(null)
+  function avatarColor(jid: string) {
+    const n = jid.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+    const hues = [0, 25, 200, 260, 130, 320, 170]
+    return `hsl(${hues[n % hues.length]}, 70%, 55%)`
+  }
 
-    const load = async (r=false) => {
-      if (!isConfigured()) { setLoad(false); return }
-      if (r) setRef(true)
-      try {
-        const [hist, grps] = await Promise.allSettled([getModHistory(), getGroups()])
-        if (hist.status === 'fulfilled') setHistory(hist.value)
-        if (grps.status === 'fulfilled') setGroups(grps.value)
-      } catch {}
-      setLoad(false); setRef(false)
-    }
-    useEffect(() => { load() }, [])
+  // ─── toast hook ─────────────────────────────────────────────────────────────
+  type Toast = { id: number; text: string; ok: boolean }
+  function useToasts() {
+    const [toasts, setToasts] = useState<Toast[]>([])
+    const add = useCallback((text: string, ok = true) => {
+      const id = Date.now()
+      setToasts(t => [...t, { id, text, ok }])
+      setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500)
+    }, [])
+    return { toasts, add }
+  }
 
-    if (!isConfigured()) return (
-      <div className="empty-state" style={{ height:320 }}>
-        <div className="empty-state-title" style={{ color:'var(--gold)' }}>VITE_API_URL no configurada en Vercel</div>
-      </div>
-    )
-    if (loading) return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:320, gap:10, color:'var(--tx3)' }}>
-        <RefreshCw size={18} style={{ animation:'spin 1s linear infinite' }} />
-        <span style={{ fontSize:13 }}>Cargando historial…</span>
-      </div>
-    )
-
-    const actionCounts: Record<string, number> = {}
-    history.forEach(e => { actionCounts[e.action] = (actionCounts[e.action]||0)+1 })
-
-    const filtered = history.filter(e => {
-      const s = search.toLowerCase()
-      const matchSearch = (e.userName||'').toLowerCase().includes(s) || (e.userJid||'').includes(s) || (e.groupName||'').toLowerCase().includes(s)
-      const matchAction = filterAct === 'all' || e.action === filterAct
-      return matchSearch && matchAction
-    })
-
-    const sendAction = async () => {
-      if (!fUser.trim() || !fGroup) return
-      setSending(true); setSendMsg(null)
-      try {
-        await postModAction({ groupJid: fGroup, userJid: fUser.trim() + '@s.whatsapp.net', action: fAction, reason: fReason.trim() })
-        setSendMsg({ type:'ok', text:`Acción "${fAction}" ejecutada correctamente` })
-        setFUser(''); setFReason('')
-        setTimeout(() => { setSendMsg(null); load(true) }, 3000)
-      } catch (e: unknown) {
-        setSendMsg({ type:'err', text: e instanceof Error ? e.message : 'Error al ejecutar acción' })
-      }
-      setSending(false)
-    }
-
-    const ACTIONS = ['warn','kick','ban','mute','unmute','unban']
+  // ─── MemberRow ───────────────────────────────────────────────────────────────
+  function MemberRow({
+    member, muted, warns, groupJid, onAction, busy
+  }: {
+    member: GroupMember
+    muted: boolean
+    warns: number
+    groupJid: string
+    onAction: (jid: string, action: string) => Promise<void>
+    busy: boolean
+  }) {
+    const num = member.jid.split('@')[0].split(':')[0]
+    const displayName = member.name || num
+    const color = avatarColor(member.jid)
 
     return (
-      <div style={{ display:'flex', flexDirection:'column', gap:22 }} className="animate-fade-up">
-
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
-          <div>
-            <h1 style={{ fontFamily:"'Rajdhani',sans-serif", fontWeight:700, fontSize:'1.6rem' }}>Moderación</h1>
-            <p style={{ fontSize:12, color:'var(--tx3)', marginTop:3 }}>{history.length} acciones registradas</p>
-          </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button className={`btn btn-sm ${showForm?'btn-primary':'btn-red'}`} onClick={()=>setForm(f=>!f)}>
-              <Shield size={13} /> {showForm ? 'Cancelar' : 'Nueva acción'}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={()=>load(true)} disabled={refreshing}>
-              <RefreshCw size={13} style={{ animation:refreshing?'spin 1s linear infinite':'none' }} />
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))', gap:10 }}>
-          {Object.entries(actionCounts).map(([action, count]) => {
-            const m = metaOf(action)
-            return (
-              <div key={action} className="card" style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:10,
-                cursor:'pointer', borderColor:filterAct===action?m.color+'44':undefined }}
-                onClick={() => setFA(f => f===action?'all':action)}>
-                <div className="icon-badge" style={{ background:m.color+'20' }}>
-                  <m.icon size={14} color={m.color} />
-                </div>
-                <div>
-                  <div style={{ fontWeight:700, fontSize:'1.2rem', color:m.color }}>{count}</div>
-                  <div style={{ fontSize:10, color:'var(--tx3)', textTransform:'uppercase' }}>{m.label}</div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* New action form */}
-        {showForm && (
-          <div className="card animate-scale-in" style={{ padding:22, borderColor:'rgba(229,57,53,.2)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:18 }}>
-              <Shield size={15} color="var(--red)" />
-              <strong style={{ fontSize:14 }}>Ejecutar acción de moderación</strong>
+      <tr style={{ opacity: busy ? .6 : 1, transition: 'opacity .2s' }}>
+        <td>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9, background: color + '22',
+              border: `1px solid ${color}55`, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0,
+              fontSize: 12, fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif"
+            }}>
+              {displayName[0]?.toUpperCase()}
             </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{displayName}</span>
+                {member.isAdmin && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, letterSpacing: '.1em', color: 'var(--gold)',
+                    background: 'rgba(255,200,0,.1)', border: '1px solid rgba(255,200,0,.3)',
+                    padding: '1px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 3
+                  }}>
+                    <Crown size={8} /> ADMIN
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>+{num}</div>
+            </div>
+          </div>
+        </td>
 
-            {sendMsg && (
-              <div className={`alert ${sendMsg.type==='ok'?'alert-ok':'alert-err'}`} style={{ marginBottom:16 }}>
-                {sendMsg.type==='ok' ? <Check size={14} /> : <X size={14} />}
-                {sendMsg.text}
+        <td>
+          {muted
+            ? <span className="badge badge-red"><VolumeX size={10} /> Muteado</span>
+            : <span className="badge badge-green"><Volume2 size={10} /> Activo</span>
+          }
+        </td>
+
+        <td>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {warns > 0 && (
+              <span style={{
+                background: warns >= 3 ? 'rgba(255,51,85,.15)' : 'rgba(245,158,11,.12)',
+                color: warns >= 3 ? '#ff3355' : '#f59e0b',
+                border: `1px solid ${warns >= 3 ? 'rgba(255,51,85,.3)' : 'rgba(245,158,11,.25)'}`,
+                padding: '2px 8px', borderRadius: 5, fontSize: 12, fontWeight: 800,
+                display: 'flex', alignItems: 'center', gap: 4
+              }}>
+                <AlertTriangle size={10} /> {warns}
+              </span>
+            )}
+            {warns === 0 && <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
+          </div>
+        </td>
+
+        <td>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {!member.isAdmin && (
+              <>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  style={{ color: muted ? '#10b981' : '#3b82f6', borderColor: muted ? 'rgba(16,185,129,.3)' : 'rgba(59,130,246,.3)' }}
+                  onClick={() => onAction(member.jid, muted ? 'unmute' : 'mute')}
+                  disabled={busy}
+                  title={muted ? 'Desmutear' : 'Mutear'}
+                >
+                  {muted ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                  {muted ? 'Desmutear' : 'Mutear'}
+                </button>
+
+                <button
+                  className="btn btn-ghost btn-xs"
+                  style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,.3)' }}
+                  onClick={() => onAction(member.jid, 'warn')}
+                  disabled={busy}
+                  title="Agregar advertencia"
+                >
+                  <AlertTriangle size={12} /> Warn
+                </button>
+
+                {warns > 0 && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    style={{ color: '#10b981', borderColor: 'rgba(16,185,129,.3)' }}
+                    onClick={() => onAction(member.jid, 'clearwarns')}
+                    disabled={busy}
+                    title="Borrar advertencias"
+                  >
+                    <Trash2 size={12} /> Borrar warns
+                  </button>
+                )}
+
+                <button
+                  className="btn btn-ghost btn-xs"
+                  style={{ color: 'var(--red)', borderColor: 'rgba(229,57,53,.25)' }}
+                  onClick={() => {
+                    if (confirm(`¿Expulsar a ${displayName} (+${num}) del grupo?`)) onAction(member.jid, 'kick')
+                  }}
+                  disabled={busy}
+                  title="Expulsar del grupo"
+                >
+                  <UserX size={12} /> Expulsar
+                </button>
+              </>
+            )}
+            {member.isAdmin && (
+              <span style={{ fontSize: 11, color: 'var(--tx3)', fontStyle: 'italic' }}>Sin acciones sobre admins</span>
+            )}
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  // ─── main page ───────────────────────────────────────────────────────────────
+  export default function Moderation() {
+    const [groups,      setGroups]      = useState<Group[]>([])
+    const [selectedJid, setSelectedJid] = useState<string>('')
+    const [modData,     setModData]     = useState<GroupModData | null>(null)
+    const [history,     setHistory]     = useState<ModEntry[]>([])
+    const [loadingGroups, setLoadingGroups] = useState(true)
+    const [loadingMembers, setLoadingMembers] = useState(false)
+    const [refreshingHistory, setRefreshingHistory] = useState(false)
+    const [search,      setSearch]      = useState('')
+    const [filterStatus, setFilter]     = useState<'all' | 'muted' | 'warned'>('all')
+    const [busyJids,    setBusy]        = useState<Set<string>>(new Set())
+    const [showHistory, setShowHistory] = useState(true)
+    const [historyFilter, setHF]        = useState<string>('all')
+    const { toasts, add: addToast }     = useToasts()
+
+    if (!isConfigured()) return (
+      <div className="empty-state" style={{ height: 360 }}>
+        <div className="empty-state-icon"><AlertTriangle size={28} color="var(--gold)" /></div>
+        <div className="empty-state-title" style={{ color: 'var(--gold)' }}>VITE_API_URL no configurada</div>
+        <div className="empty-state-sub">Ve a Vercel → Settings → Environment Variables</div>
+      </div>
+    )
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const loadGroups = useCallback(async () => {
+      try { setGroups(await getGroups()) }
+      catch { addToast('Error cargando grupos', false) }
+      setLoadingGroups(false)
+    }, [addToast])
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const loadMembers = useCallback(async (jid: string) => {
+      if (!jid) return
+      setLoadingMembers(true); setModData(null)
+      try { setModData(await getModGroup(jid)) }
+      catch { addToast('Error cargando miembros del grupo', false) }
+      setLoadingMembers(false)
+    }, [addToast])
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const loadHistory = useCallback(async (silent = false) => {
+      if (!silent) setRefreshingHistory(true)
+      try { setHistory(await getModHistory()) } catch {}
+      setRefreshingHistory(false)
+    }, [])
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      loadGroups()
+      loadHistory()
+    }, [loadGroups, loadHistory])
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      if (selectedJid) loadMembers(selectedJid)
+    }, [selectedJid, loadMembers])
+
+    const handleAction = async (userJid: string, action: string) => {
+      if (!selectedJid) return
+      setBusy(prev => new Set(prev).add(userJid))
+      try {
+        await postModAction({ groupJid: selectedJid, userJid, action })
+        const labels: Record<string, string> = {
+          mute: 'Usuario muteado', unmute: 'Usuario desmuteado',
+          warn: 'Advertencia agregada', clearwarns: 'Warns eliminados',
+          kick: 'Usuario expulsado'
+        }
+        addToast(labels[action] || `Acción "${action}" ejecutada`, true)
+        // Refresh members & history
+        await Promise.all([loadMembers(selectedJid), loadHistory(true)])
+      } catch (e: unknown) {
+        addToast(e instanceof Error ? e.message : 'Error al ejecutar acción', false)
+      }
+      setBusy(prev => { const s = new Set(prev); s.delete(userJid); return s })
+    }
+
+    // Stats
+    const mutedCount  = modData ? modData.muted.length : 0
+    const warnedCount = modData ? Object.values(modData.warnings).filter(w => w > 0).length : 0
+    const memberCount = modData ? modData.members.length : 0
+    const adminCount  = modData ? modData.members.filter(m => m.isAdmin).length : 0
+
+    // Filter members
+    const filteredMembers = (modData?.members ?? []).filter((m: GroupMember) => {
+      const s = search.toLowerCase()
+      const matchSearch = (m.name || '').toLowerCase().includes(s) || m.jid.includes(s)
+      const isMuted  = modData!.muted.includes(m.jid)
+      const hasWarns = (modData!.warnings[m.jid] ?? 0) > 0
+      if (filterStatus === 'muted'  && !isMuted)  return false
+      if (filterStatus === 'warned' && !hasWarns) return false
+      return matchSearch
+    })
+
+    const filteredHistory = history.filter(e =>
+      historyFilter === 'all' || e.action === historyFilter
+    )
+
+    const historyActionCounts: Record<string, number> = {}
+    history.forEach(e => { historyActionCounts[e.action] = (historyActionCounts[e.action] || 0) + 1 })
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-up">
+
+        {/* ── Toast stack ─────────────────────────────────────────────────────── */}
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {toasts.map(t => (
+            <div key={t.id} className="animate-scale-in" style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 16px', borderRadius: 10, minWidth: 220, maxWidth: 320,
+              background: t.ok ? 'rgba(16,185,129,.15)' : 'rgba(229,57,53,.15)',
+              border: `1px solid ${t.ok ? 'rgba(16,185,129,.35)' : 'rgba(229,57,53,.35)'}`,
+              boxShadow: '0 8px 32px rgba(0,0,0,.4)', backdropFilter: 'blur(12px)',
+              fontSize: 13, fontWeight: 600, color: t.ok ? '#10b981' : 'var(--red)'
+            }}>
+              {t.ok ? <CheckCircle size={14} /> : <X size={14} />}
+              {t.text}
+            </div>
+          ))}
+        </div>
+
+        {/* ── Header ──────────────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: '1.6rem' }}>
+              <Shield size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8, color: 'var(--red)' }} />
+              Moderación
+            </h1>
+            <p style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 3 }}>
+              Gestiona usuarios directamente desde el panel
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => { if (selectedJid) loadMembers(selectedJid); loadHistory() }} disabled={loadingMembers}>
+              <RefreshCw size={13} style={{ animation: loadingMembers ? 'spin 1s linear infinite' : 'none' }} />
+              Actualizar
+            </button>
+          </div>
+        </div>
+
+        {/* ── Group selector ──────────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <Users size={14} color="var(--tx3)" />
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', color: 'var(--tx3)', textTransform: 'uppercase' }}>Grupo</span>
+            </div>
+            {loadingGroups ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--tx3)', fontSize: 12 }}>
+                <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Cargando grupos…
+              </div>
+            ) : (
+              <div style={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 420 }}>
+                <select
+                  className="select"
+                  value={selectedJid}
+                  onChange={e => setSelectedJid(e.target.value)}
+                  style={{ paddingRight: 32 }}
+                >
+                  <option value="">— Seleccionar grupo —</option>
+                  {groups.map(g => (
+                    <option key={g.jid} value={g.jid}>{g.name || g.jid.split('@')[0]}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
               </div>
             )}
+            {selectedJid && modData && (
+              <span style={{ fontSize: 12, color: 'var(--tx3)' }}>
+                {memberCount} miembros · {adminCount} admins · {mutedCount} muteados · {warnedCount} con warns
+              </span>
+            )}
+          </div>
+        </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-              <div>
-                <label className="label">GRUPO</label>
-                <select className="select" value={fGroup} onChange={e=>setFGroup(e.target.value)}>
-                  <option value="">— Seleccionar grupo —</option>
-                  {groups.map(g => <option key={g.jid} value={g.jid}>{g.name||g.jid.split('@')[0]}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">NÚMERO DE USUARIO (sin +)</label>
-                <input className="input" placeholder="521234567890" value={fUser} onChange={e=>setFUser(e.target.value)} />
-              </div>
-              <div>
-                <label className="label">ACCIÓN</label>
-                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                  {ACTIONS.map(a => {
-                    const m = metaOf(a)
-                    return (
-                      <button key={a} onClick={()=>setFAction(a)}
-                        className={`btn btn-xs ${fAction===a?'btn-primary':'btn-ghost'}`}
-                        style={fAction===a ? {} : { color:m.color, borderColor:m.color+'33' }}>
-                        <m.icon size={11} />
-                        {m.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div>
-                <label className="label">RAZÓN (opcional)</label>
-                <input className="input" placeholder="Motivo de la acción…" value={fReason} onChange={e=>setFReason(e.target.value)} />
-              </div>
-            </div>
-
-            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:18, gap:10 }}>
-              <button className="btn btn-ghost btn-sm" onClick={()=>{ setForm(false); setSendMsg(null) }}>Cancelar</button>
-              <button className="btn btn-primary" onClick={sendAction} disabled={sending||!fUser.trim()||!fGroup}>
-                {sending ? <RefreshCw size={13} style={{ animation:'spin 1s linear infinite' }} /> : <Shield size={13} />}
-                {sending ? 'Ejecutando…' : `Ejecutar ${metaOf(fAction).label}`}
-              </button>
-            </div>
+        {/* ── No group selected ───────────────────────────────────────────────── */}
+        {!selectedJid && !loadingGroups && (
+          <div className="empty-state" style={{ height: 220 }}>
+            <div className="empty-state-icon"><Users size={28} color="var(--tx3)" /></div>
+            <div className="empty-state-title">Selecciona un grupo</div>
+            <div className="empty-state-sub">Elige un grupo arriba para ver y gestionar sus miembros</div>
           </div>
         )}
 
-        {/* Filters */}
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <div style={{ position:'relative', flex:1, minWidth:200, maxWidth:280 }}>
-            <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--tx3)', pointerEvents:'none' }} />
-            <input className="input" placeholder="Buscar usuario o grupo…" value={search}
-              onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:30 }} />
+        {/* ── Loading members ─────────────────────────────────────────────────── */}
+        {selectedJid && loadingMembers && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, gap: 10, color: 'var(--tx3)' }}>
+            <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: 13 }}>Cargando miembros…</span>
           </div>
-          <div style={{ display:'flex', gap:6 }}>
-            <button onClick={()=>setFA('all')} className={`btn btn-xs ${filterAct==='all'?'btn-primary':'btn-ghost'}`}>Todos</button>
-            {Object.keys(actionCounts).map(a => {
-              const m = metaOf(a)
-              return (
-                <button key={a} onClick={()=>setFA(f=>f===a?'all':a)}
-                  className={`btn btn-xs ${filterAct===a?'btn-primary':'btn-ghost'}`}
-                  style={filterAct===a?{}:{ color:m.color, borderColor:m.color+'33' }}>
-                  {m.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        )}
 
-        {/* History table */}
-        <div className="card">
-          {filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon"><Shield size={22} color="var(--tx3)" /></div>
-              <div className="empty-state-title">{search || filterAct!=='all' ? 'Sin resultados para el filtro' : 'Sin historial de moderación'}</div>
-              <div className="empty-state-sub">Las acciones de moderación aparecerán aquí</div>
+        {/* ── Stats mini cards ────────────────────────────────────────────────── */}
+        {selectedJid && modData && !loadingMembers && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10 }}>
+              {[
+                { label: 'Total miembros', val: memberCount, color: 'var(--blue)', icon: Users },
+                { label: 'Admins',          val: adminCount,  color: 'var(--gold)', icon: Crown },
+                { label: 'Muteados',        val: mutedCount,  color: '#3b82f6',     icon: VolumeX },
+                { label: 'Con advertencias',val: warnedCount, color: '#f59e0b',     icon: AlertTriangle },
+              ].map(({ label, val, color, icon: Icon }) => (
+                <div key={label} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="icon-badge" style={{ background: color + '20' }}>
+                    <Icon size={14} color={color} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1.35rem', color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 10, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.08em', marginTop: 2 }}>{label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div style={{ overflowX:'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr><th>Acción</th><th>Usuario</th><th>Grupo</th><th>Fecha</th></tr>
-                </thead>
-                <tbody>
-                  {filtered.slice(0,100).map((e,i) => {
-                    const m = metaOf(e.action)
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                            <div className="icon-badge" style={{ background:m.color+'18', width:28, height:28, borderRadius:7 }}>
-                              <m.icon size={13} color={m.color} />
-                            </div>
-                            <span style={{ fontWeight:700, color:m.color, fontSize:11, textTransform:'uppercase',
-                              background:m.color+'15', padding:'2px 8px', borderRadius:4 }}>
-                              {m.label}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ fontSize:12 }}>
-                          <div style={{ fontWeight:600 }}>{e.userName || '—'}</div>
-                          {e.userJid && <div style={{ fontSize:9, color:'var(--tx3)', fontFamily:"'JetBrains Mono',monospace" }}>+{e.userJid.split('@')[0]}</div>}
-                        </td>
-                        <td style={{ fontSize:12, color:'var(--tx2)' }}>{e.groupName || e.groupJid?.split('@')[0] || '—'}</td>
-                        <td>
-                          <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--tx3)' }}>
-                            <Clock size={10} />{fmtTs(e.ts)}
-                          </div>
-                        </td>
+
+            {/* ── Filter bar ─────────────────────────────────────────────────── */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 280 }}>
+                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
+                <input
+                  className="input" placeholder="Buscar miembro…"
+                  value={search} onChange={e => setSearch(e.target.value)}
+                  style={{ paddingLeft: 30 }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {(['all', 'muted', 'warned'] as const).map(f => (
+                  <button key={f} className={`btn btn-xs ${filterStatus === f ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setFilter(f)}>
+                    {f === 'all' ? 'Todos' : f === 'muted' ? 'Muteados' : 'Con warns'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Members table ──────────────────────────────────────────────── */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Shield size={14} color="var(--red)" />
+                <strong style={{ fontSize: 13 }}>Miembros del grupo</strong>
+                <span style={{ fontSize: 11, color: 'var(--tx3)', marginLeft: 4 }}>
+                  {filteredMembers.length} de {memberCount}
+                </span>
+              </div>
+              {filteredMembers.length === 0 ? (
+                <div className="empty-state" style={{ padding: '32px 0' }}>
+                  <div className="empty-state-icon"><Users size={22} color="var(--tx3)" /></div>
+                  <div className="empty-state-title">Sin resultados</div>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Miembro</th>
+                        <th>Estado</th>
+                        <th>Warns</th>
+                        <th>Acciones</th>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {filteredMembers.map((m: GroupMember) => (
+                        <MemberRow
+                          key={m.jid}
+                          member={m}
+                          muted={modData!.muted.includes(m.jid)}
+                          warns={modData!.warnings[m.jid] ?? 0}
+                          groupJid={selectedJid}
+                          onAction={handleAction}
+                          busy={busyJids.has(m.jid)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+          </>
+        )}
+
+        {/* ── History section ─────────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div
+            style={{ padding: '14px 20px', borderBottom: showHistory ? '1px solid var(--border)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+            onClick={() => setShowHistory(s => !s)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Clock size={14} color="var(--tx3)" />
+              <strong style={{ fontSize: 13 }}>Historial de acciones</strong>
+              <span className="badge badge-blue" style={{ fontSize: 10 }}>{history.length}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button className="btn btn-ghost btn-xs" onClick={e => { e.stopPropagation(); loadHistory() }} disabled={refreshingHistory}>
+                <RefreshCw size={11} style={{ animation: refreshingHistory ? 'spin 1s linear infinite' : 'none' }} />
+              </button>
+              {showHistory ? <ChevronDown size={14} color="var(--tx3)" /> : <ChevronRight size={14} color="var(--tx3)" />}
+            </div>
+          </div>
+
+          {showHistory && (
+            <>
+              {/* History filters */}
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button className={`btn btn-xs ${historyFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setHF('all')}>Todos</button>
+                {Object.entries(historyActionCounts).map(([action, count]) => {
+                  const m = metaOf(action)
+                  return (
+                    <button key={action}
+                      className={`btn btn-xs ${historyFilter === action ? 'btn-primary' : 'btn-ghost'}`}
+                      style={historyFilter === action ? {} : { color: m.color, borderColor: m.color + '33' }}
+                      onClick={() => setHF(f => f === action ? 'all' : action)}>
+                      <m.icon size={10} /> {m.label} ({count})
+                    </button>
+                  )
+                })}
+              </div>
+
+              {filteredHistory.length === 0 ? (
+                <div className="empty-state" style={{ padding: '28px 0' }}>
+                  <div className="empty-state-icon"><Clock size={20} color="var(--tx3)" /></div>
+                  <div className="empty-state-title">Sin historial</div>
+                  <div className="empty-state-sub">Las acciones de moderación aparecerán aquí</div>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr><th>Acción</th><th>Usuario</th><th>Grupo</th><th>Fecha</th></tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory.slice(0, 80).map((e, i) => {
+                        const m = metaOf(e.action)
+                        return (
+                          <tr key={i}>
+                            <td>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700,
+                                fontSize: 11, color: m.color, background: m.bg,
+                                border: `1px solid ${m.color}33`, padding: '3px 9px', borderRadius: 5,
+                                textTransform: 'uppercase', letterSpacing: '.06em'
+                              }}>
+                                <m.icon size={10} /> {m.label}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 12 }}>
+                              <div style={{ fontWeight: 600 }}>{e.userName || '—'}</div>
+                              {e.userJid && <div style={{ fontSize: 9, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>+{e.userJid.split('@')[0]}</div>}
+                            </td>
+                            <td style={{ fontSize: 12, color: 'var(--tx2)' }}>{e.groupName || e.groupJid?.split('@')[0] || '—'}</td>
+                            <td>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--tx3)' }}>
+                                <Zap size={10} />{fmtTs(e.ts)}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
