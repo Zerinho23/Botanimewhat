@@ -125,6 +125,8 @@ async function handleMessages(sock, { messages }) {
 
       if (isGroup) {
         const group = db.getGroup(from);
+        // Si el bot está desactivado en este grupo, ignorar todo
+        if (group.botEnabled === false) continue;
         if (group.mutedUsers?.includes(sender)) {
           try { await sock.sendMessage(from, { delete: msg.key }); } catch {}
           continue;
