@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { Link2, QrCode, Smartphone, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react'
+  import { QrCode, Smartphone, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react'
   import { getStatus, postPairingCode, postReset, getApiUrl, type BotStatus } from '../api'
 
   export default function Connect() {
