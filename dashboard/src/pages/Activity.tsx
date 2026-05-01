@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
   import { Wifi, WifiOff } from 'lucide-react'
-  import { getActivityHistory, getApiUrl } from '../api'
+  import { getActivityHistory, getApiUrl, isConfigured } from '../api'
   import type { ActivityEvent } from '../api'
   import { timeAgo } from '../lib/utils'
 
@@ -31,6 +31,12 @@ import { useEffect, useState, useRef } from 'react'
       }
       return () => { es.close(); setLive(false) }
     }, [])
+
+    if (!isConfigured()) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div className="sys-label" style={{color:'var(--amber)'}}>[ VITE_API_URL no configurada en Vercel ]</div>
+      </div>
+    )
 
     if (loading) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
