@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
   import { Search } from 'lucide-react'
-  import { getUsers } from '../api'
+  import { getUsers, isConfigured } from '../api'
   import type { User } from '../api'
   import { rankOf, shortJid, formatNumber } from '../lib/utils'
 
@@ -20,6 +20,12 @@ import { useEffect, useState } from 'react'
       .sort((a,b)=>(b.level??0)-(a.level??0))
 
     const top3 = filtered.slice(0,3)
+
+    if (!isConfigured()) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div className="sys-label" style={{color:'var(--amber)'}}>[ VITE_API_URL no configurada en Vercel ]</div>
+      </div>
+    )
 
     if (loading) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
