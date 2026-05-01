@@ -82,8 +82,16 @@ function handleGroupEvents(sock) {
           }
           if (isBotJid(sock, participant)) continue;
           if (!group.welcome) continue;
+
           await sock.sendMessage(id, {
-            text: `${config.emojis.warning} @${participant.split("@")[0]} salió del grupo. Sayonara ${config.emojis.cherry}`,
+            text:
+              `╔══════════════════════════╗\n` +
+              `║   💔 HASTA LUEGO, OTAKU   ║\n` +
+              `╚══════════════════════════╝\n\n` +
+              `@${participant.split("@")[0]} abandonó el grupo 😢\n\n` +
+              `Fue un honor compartir el mundo del anime contigo 🌸\n` +
+              `Que tu camino esté lleno de buenos animes 🎌\n\n` +
+              `_Sayonara... またね_ 👋`,
             mentions: [participant],
           });
         }
