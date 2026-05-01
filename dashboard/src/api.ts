@@ -1,5 +1,13 @@
 /// <reference types="vite/client" />
-  const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? '';
+  function normalizeUrl(raw?: string): string {
+    if (!raw) return '';
+    const trimmed = raw.trim().replace(/\/$/, '');
+    if (!trimmed) return '';
+    // Auto-add https:// if no protocol specified
+    if (!/^https?:\/\//i.test(trimmed)) return 'https://' + trimmed;
+    return trimmed;
+  }
+  const API_URL = normalizeUrl(import.meta.env.VITE_API_URL);
 
   export async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
     const res = await fetch(`${API_URL}${path}`, {
