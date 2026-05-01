@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
-  import { type LucideIcon, Users, MessagesSquare, Zap, Clock, TrendingUp, Activity, AlertTriangle } from 'lucide-react'
-  import { getStatus, getStats, getActivityHistory, getMaintenance, postMaintenance,
-    type BotStatus, type BotStats, type ActivityEvent, type MaintenanceState } from '../api'
+  import { Users, MessagesSquare, Zap, Clock, TrendingUp, Activity, AlertTriangle } from 'lucide-react'
+  import type { LucideProps } from 'lucide-react'
+  import type { ForwardRefExoticComponent, RefAttributes } from 'react'
+  import { getStatus, getStats, getActivityHistory, getMaintenance, postMaintenance } from '../api'
+  import type { BotStatus, BotStats, ActivityEvent, MaintenanceState } from '../api'
   import { formatUptime, formatNumber, timeAgo, cn } from '../lib/utils'
 
+  type LucideIcon = ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
+
   function StatCard({ label, value, icon: Icon, color = 'blue', sub }: {
-    label: string; value: string | number; icon: React.ComponentType<{ size?: number; className?: string }>;
-    color?: string; sub?: string
+    label: string
+    value: string | number
+    icon: LucideIcon
+    color?: string
+    sub?: string
   }) {
     const colors: Record<string, string> = {
       blue: 'text-blue', purple: 'text-purple', green: 'text-green', amber: 'text-amber', gold: 'text-gold'
@@ -23,7 +30,7 @@ import { useEffect, useState } from 'react'
             {sub && <p className="font-mono text-[10px] text-tx3 mt-1.5">{sub}</p>}
           </div>
           <div className={`p-2.5 rounded-md bg-current/10 ${colors[color] ?? 'text-blue'}`}>
-            <Icon size={18} className="current" />
+            <Icon size={18} />
           </div>
         </div>
       </div>
@@ -82,12 +89,9 @@ import { useEffect, useState } from 'react'
           </div>
         )}
 
-        {/* Status banner */}
         <div className={cn(
           'flex items-center gap-4 p-5 rounded-lg border',
-          status?.connected
-            ? 'bg-green/5 border-green/20'
-            : 'bg-red/5 border-red/20'
+          status?.connected ? 'bg-green/5 border-green/20' : 'bg-red/5 border-red/20'
         )}>
           <div className={cn(
             'w-3 h-3 rounded-full animate-pulse-slow',
@@ -109,41 +113,14 @@ import { useEffect, useState } from 'react'
           )}
         </div>
 
-        {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Usuarios totales"
-            value={formatNumber(stats?.totalUsers ?? 0)}
-            icon={Users}
-            color="blue"
-            sub="registrados"
-          />
-          <StatCard
-            label="Grupos activos"
-            value={formatNumber(stats?.totalGroups ?? 0)}
-            icon={MessagesSquare}
-            color="purple"
-            sub="en gestión"
-          />
-          <StatCard
-            label="Comandos hoy"
-            value={formatNumber(stats?.commandsToday ?? 0)}
-            icon={Zap}
-            color="amber"
-            sub="ejecutados"
-          />
-          <StatCard
-            label="Uptime"
-            value={formatUptime(uptime)}
-            icon={Clock}
-            color="green"
-            sub="tiempo activo"
-          />
+          <StatCard label="Usuarios totales" value={formatNumber(stats?.totalUsers ?? 0)} icon={Users} color="blue" sub="registrados" />
+          <StatCard label="Grupos activos" value={formatNumber(stats?.totalGroups ?? 0)} icon={MessagesSquare} color="purple" sub="en gestión" />
+          <StatCard label="Comandos hoy" value={formatNumber(stats?.commandsToday ?? 0)} icon={Zap} color="amber" sub="ejecutados" />
+          <StatCard label="Uptime" value={formatUptime(uptime)} icon={Clock} color="green" sub="tiempo activo" />
         </div>
 
-        {/* Activity feed + quick info */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Activity feed */}
           <div className="lg:col-span-2 card">
             <p className="section-title">Actividad reciente</p>
             {events.length === 0 ? (
@@ -172,7 +149,6 @@ import { useEffect, useState } from 'react'
             )}
           </div>
 
-          {/* Quick status */}
           <div className="card space-y-4">
             <p className="section-title">Estado del sistema</p>
             {[
@@ -188,14 +164,12 @@ import { useEffect, useState } from 'react'
                 </span>
               </div>
             ))}
-
             <div className="mt-4 pt-4 border-t border-border">
               <p className="label">Último update</p>
               <p className="font-mono text-xs text-tx2">
                 {status?.lastUpdate ? timeAgo(status.lastUpdate) : '—'}
               </p>
             </div>
-
             {maint !== null && (
               <div className="pt-2 border-t border-border">
                 <p className="label mb-2">Mantenimiento</p>
