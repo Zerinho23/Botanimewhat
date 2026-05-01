@@ -12,25 +12,15 @@ if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 function load(file, defaultValue = {}) {
   try {
-    if (!fs.existsSync(file)) {
-      fs.writeFileSync(file, JSON.stringify(defaultValue, null, 2));
-      return defaultValue;
-    }
+    if (!fs.existsSync(file)) { fs.writeFileSync(file, JSON.stringify(defaultValue, null, 2)); return defaultValue; }
     const raw = fs.readFileSync(file, "utf-8");
     return JSON.parse(raw || "{}");
-  } catch (err) {
-    console.error(`Error cargando ${file}:`, err.message);
-    return defaultValue;
-  }
+  } catch (err) { console.error(`Error cargando ${file}:`, err.message); return defaultValue; }
 }
 
 function save(file, data) {
-  try {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
-    scheduleDbBackup(DB_DIR);
-  } catch (err) {
-    console.error(`Error guardando ${file}:`, err.message);
-  }
+  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); scheduleDbBackup(DB_DIR); }
+  catch (err) { console.error(`Error guardando ${file}:`, err.message); }
 }
 
 let users   = load(USERS_FILE, {});
@@ -45,13 +35,12 @@ function reload() {
   pending = load(PENDING_FILE, {});
 }
 
-// ──────────────────────────────────────────────
-// USUARIOS
-// ──────────────────────────────────────────────
+// ── USUARIOS ──────────────────────────────────────────────────────────────────
 function getUser(jid) {
   if (!users[jid]) {
     users[jid] = {
       jid,
+      name: "",
       xp: 0,
       level: 1,
       coins: 0,
@@ -72,9 +61,7 @@ function updateUser(jid, data) {
   return users[jid];
 }
 
-// ──────────────────────────────────────────────
-// GRUPOS
-// ──────────────────────────────────────────────
+// ── GRUPOS ────────────────────────────────────────────────────────────────────
 function getGroup(jid) {
   if (!groups[jid]) {
     const now = Date.now();
@@ -102,16 +89,10 @@ function updateGroup(jid, data) {
   return groups[jid];
 }
 
-function getAllUsers() {
-  return Object.values(users);
-}
+function getAllUsers() { return Object.values(users); }
 
-// ──────────────────────────────────────────────
-// WAIFUS
-// ──────────────────────────────────────────────
-function getWaifuOwners() {
-  return waifus;
-}
+// ── WAIFUS ────────────────────────────────────────────────────────────────────
+function getWaifuOwners() { return waifus; }
 
 function assignWaifu(userJid, waifu) {
   const user = getUser(userJid);
@@ -119,19 +100,13 @@ function assignWaifu(userJid, waifu) {
   updateUser(userJid, { waifus: user.waifus });
 }
 
-// ──────────────────────────────────────────────
-// MIEMBROS PENDIENTES (ficha de presentación)
-// Estructura: pending[groupJid][userJid] = { joinedAt, deadline }
-// ──────────────────────────────────────────────
-const DEADLINE_MS = 24 * 60 * 60 * 1000; // 24 horas
+// ── PENDIENTES ────────────────────────────────────────────────────────────────
+const DEADLINE_MS = 24 * 60 * 60 * 1000;
 
 function addPending(groupJid, userJid) {
   if (!pending[groupJid]) pending[groupJid] = {};
   const now = Date.now();
-  pending[groupJid][userJid] = {
-    joinedAt: now,
-    deadline: now + DEADLINE_MS,
-  };
+  pending[groupJid][userJid] = { joinedAt: now, deadline: now + DEADLINE_MS };
   save(PENDING_FILE, pending);
 }
 
@@ -142,44 +117,22 @@ function removePending(groupJid, userJid) {
   save(PENDING_FILE, pending);
 }
 
-function isPending(groupJid, userJid) {
-  return !!(pending[groupJid] && pending[groupJid][userJid]);
-}
+function isPending(groupJid, userJid) { return !!(pending[groupJid] && pending[groupJid][userJid]); }
 
-// Devuelve lista de { groupJid, userJid, deadline } cuyo plazo ya venció.
 function getExpiredPending() {
-  const now = Date.now();
-  const expired = [];
+  const now = Date.now(), expired = [];
   for (const groupJid of Object.keys(pending)) {
     for (const userJid of Object.keys(pending[groupJid])) {
-      if (pending[groupJid][userJid].deadline <= now) {
-        expired.push({ groupJid, userJid, deadline: pending[groupJid][userJid].deadline });
-      }
+      if (pending[groupJid][userJid].deadline <= now) expired.push({ groupJid, userJid, deadline: pending[groupJid][userJid].deadline });
     }
   }
   return expired;
 }
 
-// Limpia entradas de grupos que ya no existen o usuarios ya expulsados.
-function removePendingBulk(entries) {
-  for (const { groupJid, userJid } of entries) {
-    removePending(groupJid, userJid);
-  }
-}
+function removePendingBulk(entries) { for (const { groupJid, userJid } of entries) removePending(groupJid, userJid); }
 
 module.exports = {
-  getUser,
-  updateUser,
-  getGroup,
-  updateGroup,
-  getAllUsers,
-  getWaifuOwners,
-  assignWaifu,
-  reload,
-  // Pendientes
-  addPending,
-  removePending,
-  isPending,
-  getExpiredPending,
-  removePendingBulk,
+  getUser, updateUser, getGroup, updateGroup, getAllUsers,
+  getWaifuOwners, assignWaifu, reload,
+  addPending, removePending, isPending, getExpiredPending, removePendingBulk,
 };
