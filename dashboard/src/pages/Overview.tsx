@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
   import { Users, MessagesSquare, Zap, Clock, Activity, AlertTriangle } from 'lucide-react'
   import type { LucideProps } from 'lucide-react'
   import type { ForwardRefExoticComponent, RefAttributes } from 'react'
-  import { getStatus, getStats, getActivityHistory, getMaintenance, postMaintenance } from '../api'
+  import { getStatus, getStats, getActivityHistory, getMaintenance, postMaintenance, isConfigured } from '../api'
   import type { BotStatus, BotStats, ActivityEvent, MaintenanceState } from '../api'
   import { formatUptime, formatNumber, timeAgo } from '../lib/utils'
 
@@ -52,6 +52,21 @@ import { useEffect, useState } from 'react'
       }
       load(); const id = setInterval(load, 12000); return () => clearInterval(id)
     }, [])
+
+    if (!isConfigured()) return (
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:320,gap:16,textAlign:'center'}}>
+        <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:'1rem',color:'var(--amber)',letterSpacing:'0.12em',textTransform:'uppercase',textShadow:'0 0 12px rgba(255,149,0,0.5)'}}>
+          [ VITE_API_URL NO CONFIGURADA ]
+        </div>
+        <div className="sys-label">
+          VE A VERCEL → SETTINGS → ENVIRONMENT VARIABLES Y AGREGA:
+        </div>
+        <div style={{padding:'12px 20px',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(0,195,255,0.2)',fontFamily:"'Share Tech Mono',monospace",fontSize:12,color:'var(--blue)',letterSpacing:'0.05em'}}>
+          VITE_API_URL = https://tu-bot.railway.app
+        </div>
+        <div className="sys-label">LUEGO REDEPLOY EN VERCEL</div>
+      </div>
+    )
 
     if (loading) return (
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:256 }}>
@@ -109,8 +124,8 @@ import { useEffect, useState } from 'react'
 
         {/* Stat grid */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(170px, 1fr))', gap:10 }}>
-          <StatCard label="[ USUARIOS ]" value={formatNumber(stats?.totalUsers ?? 0)} icon={Users} color="var(--blue)" />
-          <StatCard label="[ GRUPOS ]" value={formatNumber(stats?.totalGroups ?? 0)} icon={MessagesSquare} color="var(--violet)" />
+          <StatCard label="[ USUARIOS ]" value={formatNumber(stats?.users ?? 0)} icon={Users} color="var(--blue)" />
+          <StatCard label="[ GRUPOS ]" value={formatNumber(stats?.groups ?? 0)} icon={MessagesSquare} color="var(--violet)" />
           <StatCard label="[ COMANDOS HOY ]" value={formatNumber(stats?.commandsToday ?? 0)} icon={Zap} color="var(--amber)" />
           <StatCard label="[ UPTIME ]" value={formatUptime(uptime)} icon={Clock} color="var(--green)" />
         </div>
