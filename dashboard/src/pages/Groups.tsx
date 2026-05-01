@@ -1,63 +1,124 @@
 import { useEffect, useState } from 'react'
-  import { Search } from 'lucide-react'
-  import { getGroups } from '../api'
-  import type { Group } from '../api'
-  import { shortJid } from '../lib/utils'
+  import { Search, RefreshCw, Group as GroupIcon, Shield, Link, Bell, ToggleLeft, ToggleRight } from 'lucide-react'
+  import { getGroups, isConfigured, type Group } from '../api'
 
   export default function Groups() {
     const [groups, setGroups] = useState<Group[]>([])
+    const [loading, setLoad]  = useState(true)
     const [search, setSearch] = useState('')
-    const [loading, setLoading] = useState(true)
+    const [refreshing, setRef]= useState(false)
 
-    useEffect(() => {
-      getGroups().then(d=>setGroups(Array.isArray(d)?d:[])).catch(()=>{}).finally(()=>setLoading(false))
-    }, [])
+    const load = async (r=false) => {
+      if (!isConfigured()) { setLoad(false); return }
+      if (r) setRef(true)
+      try { setGroups(await getGroups()) } catch {}
+      setLoad(false); setRef(false)
+    }
+    useEffect(() => { load() }, [])
 
-    const filtered = groups.filter(g=>
-      (g.subject||'').toLowerCase().includes(search.toLowerCase())||shortJid(g.jid).includes(search)
-    )
-
-    if (loading) return (
+    if (!isConfigured()) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
-        <div style={{width:36,height:36,border:'2px solid rgba(0,195,255,0.1)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} />
+        <p style={{color:'var(--gold)',fontSize:13}}>VITE_API_URL no configurada en Vercel</p>
       </div>
     )
 
+    if (loading) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256,gap:10,color:'var(--tx3)'}}>
+        <RefreshCw size={16} style={{animation:'spin 1s linear infinite'}}/>
+        <span>Cargando grupos…</span>
+      </div>
+    )
+
+    const filtered = groups.filter(g => {
+      const s = search.toLowerCase()
+      return (g.name||'').toLowerCase().includes(s) || g.jid.includes(s)
+    })
+
     return (
-      <div style={{display:'flex',flexDirection:'column',gap:18}}>
-        <div className="panel panel-accent" style={{padding:'20px 22px',position:'relative'}}>
-          <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
-          <div style={{marginBottom:16}}>
-            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:2}}>SYS://GROUP_REGISTRY</div>
-            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:'0.75rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'white',marginBottom:12}}>
-              GRUPOS ACTIVOS ({filtered.length})
-            </div>
-            <div style={{position:'relative'}}>
-              <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--tx3)'}} />
-              <input className="input" style={{paddingLeft:34}} placeholder="BUSCAR GRUPO..." value={search} onChange={e=>setSearch(e.target.value)} />
-            </div>
+      <div style={{display:'flex',flexDirection:'column',gap:20}}>
+
+        {/* Header */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <div>
+            <h1 style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'1.4rem'}}>Grupos</h1>
+            <p style={{fontSize:12,color:'var(--tx3)',marginTop:2}}>{groups.length} grupos gestionados por el bot</p>
           </div>
-          {filtered.length===0 ? (
-            <div className="sys-label" style={{textAlign:'center',padding:'32px 0'}}>/// SIN GRUPOS REGISTRADOS ///</div>
-          ) : (
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:10}}>
-              {filtered.map(g=>(
-                <div key={g.id} style={{padding:'14px 16px',background:'rgba(0,5,20,0.6)',border:'1px solid rgba(0,195,255,0.1)',borderLeft:'2px solid var(--blue)'}}>
-                  <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'0.95rem',color:'white',letterSpacing:'0.04em',textTransform:'uppercase',marginBottom:4}}>{g.name||'SIN NOMBRE'}</div>
-                  <div className="sys-label" style={{marginBottom:10}}>{shortJid(g.jid)}</div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <div className="sys-label">MIEMBROS: <span style={{color:'var(--blue)'}}>{g.participants??'?'}</span></div>
-                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                      {g.welcome&&<span className="badge badge-blue" style={{fontSize:9}}>WELCOME</span>}
-                      {g.antiLink&&<span className="badge badge-red" style={{fontSize:9}}>ANTI-LINK</span>}
-                      {g.antiSpam&&<span className="badge badge-amber" style={{fontSize:9}}>FILTRO</span>}
+          <div style={{display:'flex',gap:10}}>
+            <div style={{position:'relative'}}>
+              <Search size={13} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--tx3)'}}/>
+              <input className="input" placeholder="Buscar grupo…"
+                value={search} onChange={e=>setSearch(e.target.value)}
+                style={{paddingLeft:30,width:220}}/>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>load(true)} disabled={refreshing}>
+              <RefreshCw size={13} style={{animation:refreshing?'spin 1s linear infinite':'none'}}/>
+            </button>
+          </div>
+        </div>
+
+        {/* Stat strip */}
+        <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          {[
+            {label:'Total grupos',val:groups.length,color:'var(--blue)'},
+            {label:'Anti-link activo',val:groups.filter(g=>g.antiLink).length,color:'var(--red)'},
+            {label:'Anti-spam activo',val:groups.filter(g=>g.antiSpam).length,color:'var(--gold)'},
+            {label:'Bienvenida activa',val:groups.filter(g=>g.welcome).length,color:'var(--green)'},
+          ].map(s=>(
+            <div key={s.label} className="card" style={{flex:1,minWidth:120,padding:'14px 16px'}}>
+              <div style={{fontWeight:700,fontSize:'1.4rem',color:s.color}}>{s.val}</div>
+              <div style={{fontSize:11,color:'var(--tx3)',marginTop:2}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Grid of group cards */}
+        {filtered.length === 0 ? (
+          <div className="card" style={{padding:32,textAlign:'center',color:'var(--tx3)',fontSize:12}}>
+            {search ? 'Sin resultados para esa búsqueda' : 'El bot no está en ningún grupo aún'}
+          </div>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+            {filtered.map(g=>{
+              const shortJid = g.jid.split('@')[0]
+              const activeCount = [g.antiLink,g.antiSpam,g.welcome].filter(Boolean).length
+              return (
+                <div key={g.jid} className="card" style={{padding:16,position:'relative',overflow:'hidden'}}>
+                  {/* accent */}
+                  <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',
+                    background:activeCount===3?'var(--green)':activeCount>=1?'var(--blue)':'var(--border)'}}/>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:14}}>
+                    <div className="icon-badge" style={{background:'rgba(59,130,246,.1)',flexShrink:0}}>
+                      <GroupIcon size={16} color="var(--blue)"/>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:600,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                        {g.name||'Sin nombre'}
+                      </div>
+                      <div style={{fontSize:10,color:'var(--tx3)',marginTop:2}}>{shortJid}</div>
                     </div>
                   </div>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                    {[
+                      {label:'Anti-Link', on:g.antiLink,  icon:Link,    color:'var(--red)'},
+                      {label:'Anti-Spam', on:g.antiSpam,  icon:Shield,  color:'var(--gold)'},
+                      {label:'Bienvenida',on:g.welcome,   icon:Bell,    color:'var(--green)'},
+                    ].map(feat=>(
+                      <div key={feat.label} style={{display:'flex',alignItems:'center',gap:5,
+                        padding:'4px 8px',borderRadius:6,
+                        background:feat.on?feat.color+'18':'rgba(255,255,255,.04)',
+                        border:`1px solid ${feat.on?feat.color+'33':'rgba(255,255,255,.08)'}`}}>
+                        {feat.on
+                          ? <ToggleRight size={12} color={feat.color}/>
+                          : <ToggleLeft size={12} color="rgba(240,240,245,.3)"/>}
+                        <span style={{fontSize:10,fontWeight:600,color:feat.on?feat.color:'var(--tx3)'}}>{feat.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
