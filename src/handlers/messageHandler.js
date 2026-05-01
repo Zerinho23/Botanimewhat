@@ -4,9 +4,7 @@ const logger = require("../utils/logger");
 const { getCommand } = require("./commandHandler");
 const { checkAntiSpam, checkAntiLink, checkStickerSpam } = require("./antiSpamHandler");
 
-// Cooldown por usuario: jid -> timestamp del último comando ejecutado
 const cooldowns = new Map();
-// Cooldown de XP por mensaje (anti-farmeo): jid -> timestamp último XP otorgado
 const xpCooldowns = new Map();
 
 function extractText(msg) {
@@ -19,8 +17,6 @@ function extractText(msg) {
   );
 }
 
-// Detecta si un mensaje contiene la ficha de presentación rellenada.
-// Requiere al menos 4 de los 9 campos conocidos para considerar la ficha válida.
 function isFichaRellena(text) {
   const lower = text.toLowerCase();
   const campos = [
@@ -53,7 +49,6 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
 
   const user = db.getUser(userJid);
   const xpGain = isCommand ? config.level.xpPerCommand : config.level.xpPerMessage;
-
   user.xp += xpGain;
   user.messages += isCommand ? 0 : 1;
   user.commands += isCommand ? 1 : 0;
@@ -91,7 +86,15 @@ async function handleMessages(sock, { messages }) {
           : from;
       if (!sender) continue;
 
-      // --- ANTI-SPAM DE STICKERS ---
+      // ── GUARDAR NOMBRE DEL USUARIO ────────────────────────────────
+      if (msg.pushName && !msg.key.fromMe) {
+        try {
+          const u = db.getUser(sender);
+          if (u.name !== msg.pushName) db.updateUser(sender, { name: msg.pushName });
+        } catch (_) {}
+      }
+      // ─────────────────────────────────────────────────────────────
+
       if (msg.message?.stickerMessage) {
         if (isGroup && !msg.key.fromMe) {
           const group = db.getGroup(from);
@@ -101,7 +104,6 @@ async function handleMessages(sock, { messages }) {
         }
         continue;
       }
-      // ----------------------------
 
       const text = extractText(msg).trim();
       if (!text) continue;
@@ -127,19 +129,11 @@ async function handleMessages(sock, { messages }) {
           if (await checkAntiLink(sock, msg, text, sender, from)) continue;
         }
 
-        // ── DETECCIÓN DE FICHA DE PRESENTACIÓN ──────────────────────
-        // Si el usuario está pendiente de presentación y manda un mensaje
-        // con al menos 4 de los campos de la ficha, se da por presentado.
         if (!msg.key.fromMe && db.isPending(from, sender) && isFichaRellena(text)) {
           try {
-            // Reaccionar al mensaje con ✅
-            await sock.sendMessage(from, {
-              react: { text: "✅", key: msg.key },
-            });
-            // Quitar de la lista de pendientes
+            await sock.sendMessage(from, { react: { text: "✅", key: msg.key } });
             db.removePending(from, sender);
             logger.info(`✅ Ficha recibida de ${sender.split("@")[0]} en ${from}`);
-            // Mensaje de bienvenida oficial al grupo
             await sock.sendMessage(from, {
               text:
                 `✅ ¡Gracias por presentarte, @${sender.split("@")[0]}! 🎉\n` +
@@ -150,11 +144,9 @@ async function handleMessages(sock, { messages }) {
           } catch (err) {
             logger.error(`Error aprobando ficha de ${sender.split("@")[0]}: ${err.message}`);
           }
-          // Aún así se da XP por el mensaje y se continúa
           await awardXp(sock, sender, from, false);
           continue;
         }
-        // ─────────────────────────────────────────────────────────────
 
         try {
           const lastMessageAt = group.lastMessageAt || {};
@@ -181,7 +173,6 @@ async function handleMessages(sock, { messages }) {
         continue;
       }
 
-      // --- COOLDOWN ---
       const isAdminCmd = command.category === "admin";
       if (!isAdminCmd && !msg.key.fromMe) {
         const cooldownMs = (config.commandCooldown ?? 10) * 1000;
@@ -189,14 +180,11 @@ async function handleMessages(sock, { messages }) {
         const remaining = cooldownMs - (Date.now() - lastUse);
         if (remaining > 0) {
           const secs = Math.ceil(remaining / 1000);
-          await sock.sendMessage(from, {
-            text: `⏳ Espera *${secs}s* antes de usar otro comando.`,
-          }, { quoted: msg });
+          await sock.sendMessage(from, { text: `⏳ Espera *${secs}s* antes de usar otro comando.` }, { quoted: msg });
           continue;
         }
         cooldowns.set(sender, Date.now());
       }
-      // ----------------
 
       logger.command(sender.split("@")[0], commandName, isGroup ? from : null);
 
