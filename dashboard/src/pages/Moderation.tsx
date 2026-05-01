@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { Shield, RefreshCw, Clock, UserX, Volume2, VolumeX, AlertTriangle, ChevronDown, Search, Check, X } from 'lucide-react'
+  import { Shield, RefreshCw, Clock, UserX, Volume2, VolumeX, AlertTriangle, Search, Check, X } from 'lucide-react'
   import { getModHistory, getGroups, postModAction, isConfigured, type ModEntry, type Group } from '../api'
 
   const ACTION_META: Record<string, { color: string; label: string; icon: React.ElementType }> = {
