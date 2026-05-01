@@ -64,6 +64,9 @@
       antiLink: boolean;
       antiSpam: boolean;
       welcome: boolean;
+      botEnabled: boolean;
+      memberCount?: number;
+      createdAt?: number | null;
     }
 
     export interface GroupMember {
@@ -114,6 +117,8 @@
     export const postReset          = () => apiFetch<{ok:boolean}>('/reset',{method:'POST'});
     export const postPairingCode    = (phone: string) => apiFetch<{code?:string;error?:string}>('/pairing-code',{method:'POST',body:JSON.stringify({phone})});
     export const postBroadcast      = (message: string, groups: string[]) => apiFetch<{ok:boolean}>('/api/broadcast',{method:'POST',body:JSON.stringify({message,groups})});
+    export const patchGroupEnabled = (jid: string, enabled: boolean) => apiFetch<{ok:boolean}>(`/api/groups/${encodeURIComponent(jid)}/enabled`,{method:'PATCH',body:JSON.stringify({enabled})});
+    export const deleteGroup       = (jid: string) => apiFetch<{ok:boolean}>(`/api/groups/${encodeURIComponent(jid)}`,{method:'DELETE'});
     export const postModAction      = (b: unknown) => apiFetch<{ok:boolean}>('/api/mod/action',{method:'POST',body:JSON.stringify(b)});
     export const getApiUrl          = () => API_URL;
     export const isConfigured       = () => API_URL.length > 0;
