@@ -72,21 +72,23 @@ async function checkAntiSpam(sock, msg, group, sender, from) {
   return false;
 }
 
-// Anti-spam de stickers: permite 1 sticker por usuario en una ventana de 10s,
-// borra los siguientes y avisa al usuario una sola vez.
+// Anti-spam de stickers: permite hasta 3 stickers por usuario en una ventana de 30s.
+// Al llegar al 4to avisa con un mensaje claro. A partir del 5to borra sin avisar.
 async function checkStickerSpam(sock, msg, group, sender, from) {
   const now = Date.now();
-  const WINDOW_MS = 10000;
-  const MAX_STICKERS = 1;
+  const WINDOW_MS = 30000; // ventana de 30 segundos
+  const MAX_STICKERS = 3;  // máximo permitido antes de actuar
 
   if (!group.stickerLog) group.stickerLog = {};
   if (!Array.isArray(group.stickerLog[sender])) group.stickerLog[sender] = [];
 
-  // Mantener solo stickers dentro de la ventana
+  // Mantener solo stickers dentro de la ventana de tiempo
   group.stickerLog[sender] = group.stickerLog[sender].filter((t) => now - t < WINDOW_MS);
   group.stickerLog[sender].push(now);
 
-  if (group.stickerLog[sender].length > MAX_STICKERS) {
+  const count = group.stickerLog[sender].length;
+
+  if (count > MAX_STICKERS) {
     if (await isAdmin(sock, from, sender)) {
       db.updateGroup(from, { stickerLog: group.stickerLog });
       return false;
@@ -94,14 +96,17 @@ async function checkStickerSpam(sock, msg, group, sender, from) {
     try {
       // Borrar el sticker excedente
       await sock.sendMessage(from, { delete: msg.key });
-      // Avisar solo en el primer exceso (cuando hay exactamente 2)
-      if (group.stickerLog[sender].length === 2) {
+
+      // Advertencia solo en el 4to sticker (primer exceso)
+      if (count === MAX_STICKERS + 1) {
         await sock.sendMessage(from, {
-          text: `${config.emojis.warning} @${sender.split("@")[0]} evita hacer spam de stickers.`,
+          text:
+            `${config.emojis.warning} @${sender.split("@")[0]} solo se permiten *3 stickers* cada 30 segundos.\n` +
+            `Los siguientes serán eliminados automáticamente. 🚫`,
           mentions: [sender],
         });
       }
-      logger.warn(`Sticker spam detectado de ${sender} en ${from}`);
+      logger.warn(`Sticker spam: ${sender.split("@")[0]} envió ${count} stickers en ${from}`);
     } catch {}
     db.updateGroup(from, { stickerLog: group.stickerLog });
     return true;
