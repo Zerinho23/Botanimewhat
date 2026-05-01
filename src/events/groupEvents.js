@@ -12,19 +12,24 @@ function isBotJid(sock, jid) {
   return _userPart(jid) === botPart;
 }
 
+// Mensaje 1: bienvenida con el tageo y las instrucciones
 function buildWelcomeMessage(participant) {
   const num = participant.split("@")[0];
   return (
     `╔══════════════════════════╗\n` +
     `║ 🌸✨ ¡BIENVENID@ OTAKU! ✨🌸 ║\n` +
     `╚══════════════════════════╝\n\n` +
-    `Hola @${num} 👋\n` +
-    `¡Nos alegra que estés aquí! 💖\n\n` +
-    `Para quedarte en el grupo, copia y rellena tu *ficha de presentación* con tus datos y mándala aquí en el grupo 📋\n\n` +
-    `⏰ Tienes *24 horas* para presentarte o serás expulsado automáticamente. 🚫\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `🧾 *FICHA DE PRESENTACIÓN ANIME*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Hola @${num} 👋 ¡Nos alegra que estés aquí! 💖\n\n` +
+    `Para quedarte en el grupo debes completar tu *ficha de presentación* 📋\n\n` +
+    `👇 Copia el siguiente mensaje, rellena cada campo con tus datos y mándalo aquí en el grupo.\n\n` +
+    `⏰ Tienes *24 horas* para presentarte o serás expulsado automáticamente. 🚫`
+  );
+}
+
+// Mensaje 2: solo la ficha limpia para que el usuario pueda copiarla fácilmente
+function buildFichaTemplate() {
+  return (
+    `🧾 *FICHA DE PRESENTACIÓN ANIME*\n\n` +
     `🌸 Nombre o apodo:\n` +
     `Tipo de género ♀️⚧️♂️:\n` +
     `🍥 País:\n` +
@@ -33,9 +38,7 @@ function buildWelcomeMessage(participant) {
     `🧙‍♂️ Personaje que más te representa:\n` +
     `🎵 Opening/Ending que nunca te cansas de escuchar:\n` +
     `🌟 Un dato curioso sobre ti:\n` +
-    `🥳 Fecha de cumpleaños:\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `¡Esperamos conocerte! 🎌`
+    `🥳 Fecha de cumpleaños:`
   );
 }
 
@@ -60,15 +63,20 @@ function handleGroupEvents(sock) {
           db.addPending(id, participant);
           logger.info(`📋 Pendiente de ficha: ${participant.split("@")[0]} — 24h para presentarse`);
 
+          // Mensaje 1: bienvenida con tag y aviso de 24h
           await sock.sendMessage(id, {
             text: buildWelcomeMessage(participant),
             mentions: [participant],
+          });
+
+          // Mensaje 2: ficha limpia para copiar (sin tag para que no estorbe)
+          await sock.sendMessage(id, {
+            text: buildFichaTemplate(),
           });
         }
 
       } else if (action === "remove") {
         for (const participant of participants) {
-          // Limpiar pendiente si el usuario sale antes de presentarse
           if (db.isPending(id, participant)) {
             db.removePending(id, participant);
           }
