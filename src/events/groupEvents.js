@@ -6,12 +6,37 @@ function _userPart(jid) {
   return (jid || "").split("@")[0].split(":")[0];
 }
 
-// ¿La JID corresponde al bot? Soporta formatos @s.whatsapp.net y @lid.
 function isBotJid(sock, jid) {
   if (!jid) return false;
-  const botRaw = sock.user?.id || "";
-  const botPart = _userPart(botRaw);
+  const botPart = _userPart(sock.user?.id || "");
   return _userPart(jid) === botPart;
+}
+
+function buildWelcomeMessage(participant) {
+  const num = participant.split("@")[0];
+  return (
+    `╔══════════════════════════╗\n` +
+    `║ 🌸✨ ¡BIENVENID@ OTAKU! ✨🌸 ║\n` +
+    `╚══════════════════════════╝\n\n` +
+    `Hola @${num} 👋\n` +
+    `¡Nos alegra que estés aquí! 💖\n\n` +
+    `Para quedarte en el grupo, copia y rellena tu *ficha de presentación* con tus datos y mándala aquí en el grupo 📋\n\n` +
+    `⏰ Tienes *24 horas* para presentarte o serás expulsado automáticamente. 🚫\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🧾 *FICHA DE PRESENTACIÓN ANIME*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `🌸 Nombre o apodo:\n` +
+    `Tipo de género ♀️⚧️♂️:\n` +
+    `🍥 País:\n` +
+    `💮 Edad:\n` +
+    `🎬 Animes favoritos:\n` +
+    `🧙‍♂️ Personaje que más te representa:\n` +
+    `🎵 Opening/Ending que nunca te cansas de escuchar:\n` +
+    `🌟 Un dato curioso sobre ti:\n` +
+    `🥳 Fecha de cumpleaños:\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `¡Esperamos conocerte! 🎌`
+  );
 }
 
 function handleGroupEvents(sock) {
@@ -20,8 +45,6 @@ function handleGroupEvents(sock) {
       const group = db.getGroup(id);
 
       if (action === "add") {
-        // Si el bot mismo fue agregado al grupo, registrar la fecha de entrada.
-        // Esto es lo que !purga y !fantasmas usan para esperar 30 días antes de actuar.
         const botWasAdded = participants.some((p) => isBotJid(sock, p));
         if (botWasAdded) {
           db.updateGroup(id, { botJoinedAt: Date.now() });
@@ -31,19 +54,26 @@ function handleGroupEvents(sock) {
         if (!group.welcome) return;
 
         for (const participant of participants) {
-          if (isBotJid(sock, participant)) continue; // no dar la bienvenida al bot mismo
+          if (isBotJid(sock, participant)) continue;
+
+          // Registrar como pendiente — tiene 24h para mandar su ficha
+          db.addPending(id, participant);
+          logger.info(`📋 Pendiente de ficha: ${participant.split("@")[0]} — 24h para presentarse`);
+
           await sock.sendMessage(id, {
-            text:
-              `${config.emojis.cherry}${config.emojis.sparkles} *¡Bienvenido otaku!* ${config.emojis.sparkles}${config.emojis.cherry}\n\n` +
-              `@${participant.split("@")[0]}, te uniste al mejor grupo de anime ${config.emojis.heart}\n\n` +
-              `Usa *${config.prefix}help* para ver los comandos disponibles.`,
+            text: buildWelcomeMessage(participant),
             mentions: [participant],
           });
         }
+
       } else if (action === "remove") {
-        if (!group.welcome) return;
         for (const participant of participants) {
+          // Limpiar pendiente si el usuario sale antes de presentarse
+          if (db.isPending(id, participant)) {
+            db.removePending(id, participant);
+          }
           if (isBotJid(sock, participant)) continue;
+          if (!group.welcome) continue;
           await sock.sendMessage(id, {
             text: `${config.emojis.warning} @${participant.split("@")[0]} salió del grupo. Sayonara ${config.emojis.cherry}`,
             mentions: [participant],

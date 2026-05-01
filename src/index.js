@@ -47,7 +47,6 @@ if (process.env.RESET_SESSION === "true") {
   logger.warn("");
 }
 
-// Handler que ejecuta el reset cuando el usuario presiona el botón en la web
 setResetHandler(async () => {
   logger.warn("Reset: borrando sesión local y backup remoto...");
   if (fs.existsSync(AUTH_DIR)) {
@@ -65,15 +64,57 @@ setResetHandler(async () => {
 startWebServer(PORT);
 
 let restoredFromBackup = false;
-
-// Persiste entre reconexiones para rastrear reintentos de mensajes
 const msgRetryCounterMap = {};
+
+// ────────────────────────────────────────────────────────────────
+// REVISOR DE FICHAS EXPIRADAS
+// Cada 5 minutos revisa si algún miembro nuevo no entregó su ficha
+// dentro de las 24 horas y lo expulsa automáticamente del grupo.
+// ────────────────────────────────────────────────────────────────
+function startKickChecker(sock) {
+  const INTERVAL_MS = 5 * 60 * 1000; // revisar cada 5 minutos
+
+  async function checkAndKick() {
+    const expired = db.getExpiredPending();
+    if (!expired.length) return;
+
+    logger.info(`⏰ Revisión de fichas: ${expired.length} miembro(s) con plazo vencido`);
+
+    for (const { groupJid, userJid } of expired) {
+      try {
+        // Intentar expulsar del grupo
+        await sock.groupParticipantsUpdate(groupJid, [userJid], "remove");
+        logger.info(`🚫 Expulsado por no presentarse: ${userJid.split("@")[0]} de ${groupJid}`);
+
+        // Avisar al grupo
+        await sock.sendMessage(groupJid, {
+          text:
+            `🚫 @${userJid.split("@")[0]} fue expulsado por no completar su ficha de presentación en 24 horas.`,
+          mentions: [userJid],
+        });
+      } catch (err) {
+        logger.warn(`No pude expulsar a ${userJid.split("@")[0]}: ${err.message}`);
+      } finally {
+        // Siempre quitar del pendiente, aunque la expulsión falle
+        db.removePending(groupJid, userJid);
+      }
+    }
+  }
+
+  // Primera verificación a los 2 minutos del arranque (para que el socket esté estable)
+  setTimeout(() => {
+    checkAndKick().catch((e) => logger.error(`kickChecker error: ${e.message}`));
+    setInterval(() => {
+      checkAndKick().catch((e) => logger.error(`kickChecker error: ${e.message}`));
+    }, INTERVAL_MS);
+  }, 2 * 60 * 1000);
+
+  logger.info("⏰ Revisor de fichas activo — verifica cada 5 minutos");
+}
 
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
 
-  // Restaurar base de datos local desde el backup en GitHub (Railway tiene fs efímero).
-  // Hacemos esto ANTES de cargar comandos para que los datos estén disponibles desde el inicio.
   try {
     await restoreDatabase(DB_DATA_DIR);
     db.reload();
@@ -124,7 +165,6 @@ async function startBot() {
     defaultQueryTimeoutMs: 60000,
   });
 
-  // Exponer el socket al webServer para que pueda generar códigos de vinculación bajo demanda
   setSocket(sock);
 
   const _origSend = sock.sendMessage.bind(sock);
@@ -190,6 +230,9 @@ async function startBot() {
   });
   handleGroupEvents(sock);
 
+  // Iniciar el revisor de fichas expiradas
+  startKickChecker(sock);
+
   async function ensureGroupMetadata(jid) {
     if (!jid?.endsWith("@g.us")) return;
     if (cachedGroupMetadata(jid)) return;
@@ -209,9 +252,7 @@ async function startBot() {
     for (const msg of m.messages || []) {
       try {
         saveMessage(msg);
-      } catch (_) {
-        // ignore
-      }
+      } catch (_) {}
       const from = msg.key?.remoteJid;
       if (from?.endsWith("@g.us")) {
         await ensureGroupMetadata(from);
@@ -222,8 +263,6 @@ async function startBot() {
     );
   });
 
-  // Si el usuario configuró PAIRING_NUMBER, generar automáticamente un código
-  // (compatibilidad hacia atrás; el método preferido ahora es la web).
   if (USE_PAIRING_CODE && !sock.authState.creds.registered) {
     setTimeout(async () => {
       try {

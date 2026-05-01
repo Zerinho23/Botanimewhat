@@ -3,9 +3,10 @@ const path = require("path");
 const { scheduleDbBackup } = require("../utils/dbBackup");
 
 const DB_DIR = path.join(__dirname, "data");
-const USERS_FILE = path.join(DB_DIR, "users.json");
-const GROUPS_FILE = path.join(DB_DIR, "groups.json");
-const WAIFUS_FILE = path.join(DB_DIR, "waifus.json");
+const USERS_FILE   = path.join(DB_DIR, "users.json");
+const GROUPS_FILE  = path.join(DB_DIR, "groups.json");
+const WAIFUS_FILE  = path.join(DB_DIR, "waifus.json");
+const PENDING_FILE = path.join(DB_DIR, "pending.json");
 
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
@@ -26,24 +27,27 @@ function load(file, defaultValue = {}) {
 function save(file, data) {
   try {
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
-    // Programa un respaldo en GitHub (debounced) para que sobreviva a reinicios de Railway
     scheduleDbBackup(DB_DIR);
   } catch (err) {
     console.error(`Error guardando ${file}:`, err.message);
   }
 }
 
-let users = load(USERS_FILE, {});
-let groups = load(GROUPS_FILE, {});
-let waifus = load(WAIFUS_FILE, {});
+let users   = load(USERS_FILE, {});
+let groups  = load(GROUPS_FILE, {});
+let waifus  = load(WAIFUS_FILE, {});
+let pending = load(PENDING_FILE, {});
 
-// Recarga los datos desde disco. Útil después de restaurar archivos desde el backup remoto.
 function reload() {
-  users = load(USERS_FILE, {});
-  groups = load(GROUPS_FILE, {});
-  waifus = load(WAIFUS_FILE, {});
+  users   = load(USERS_FILE, {});
+  groups  = load(GROUPS_FILE, {});
+  waifus  = load(WAIFUS_FILE, {});
+  pending = load(PENDING_FILE, {});
 }
 
+// ──────────────────────────────────────────────
+// USUARIOS
+// ──────────────────────────────────────────────
 function getUser(jid) {
   if (!users[jid]) {
     users[jid] = {
@@ -68,20 +72,23 @@ function updateUser(jid, data) {
   return users[jid];
 }
 
+// ──────────────────────────────────────────────
+// GRUPOS
+// ──────────────────────────────────────────────
 function getGroup(jid) {
   if (!groups[jid]) {
     const now = Date.now();
     groups[jid] = {
       jid,
       name: "",
-      antiSpam: true,   // antispam activo por defecto
-      antiLink: false,  // antilink desactivado por defecto; el admin lo activa con !antilink on
+      antiSpam: true,
+      antiLink: false,
       welcome: true,
       mutedUsers: [],
       warnings: {},
       messageLog: {},
       lastMessageAt: {},
-      botJoinedAt: now, // cuándo el bot empezó a observar este grupo (para !purga / !fantasmas)
+      botJoinedAt: now,
       createdAt: now,
     };
     save(GROUPS_FILE, groups);
@@ -99,6 +106,9 @@ function getAllUsers() {
   return Object.values(users);
 }
 
+// ──────────────────────────────────────────────
+// WAIFUS
+// ──────────────────────────────────────────────
 function getWaifuOwners() {
   return waifus;
 }
@@ -107,6 +117,54 @@ function assignWaifu(userJid, waifu) {
   const user = getUser(userJid);
   user.waifus.push(waifu);
   updateUser(userJid, { waifus: user.waifus });
+}
+
+// ──────────────────────────────────────────────
+// MIEMBROS PENDIENTES (ficha de presentación)
+// Estructura: pending[groupJid][userJid] = { joinedAt, deadline }
+// ──────────────────────────────────────────────
+const DEADLINE_MS = 24 * 60 * 60 * 1000; // 24 horas
+
+function addPending(groupJid, userJid) {
+  if (!pending[groupJid]) pending[groupJid] = {};
+  const now = Date.now();
+  pending[groupJid][userJid] = {
+    joinedAt: now,
+    deadline: now + DEADLINE_MS,
+  };
+  save(PENDING_FILE, pending);
+}
+
+function removePending(groupJid, userJid) {
+  if (!pending[groupJid]) return;
+  delete pending[groupJid][userJid];
+  if (Object.keys(pending[groupJid]).length === 0) delete pending[groupJid];
+  save(PENDING_FILE, pending);
+}
+
+function isPending(groupJid, userJid) {
+  return !!(pending[groupJid] && pending[groupJid][userJid]);
+}
+
+// Devuelve lista de { groupJid, userJid, deadline } cuyo plazo ya venció.
+function getExpiredPending() {
+  const now = Date.now();
+  const expired = [];
+  for (const groupJid of Object.keys(pending)) {
+    for (const userJid of Object.keys(pending[groupJid])) {
+      if (pending[groupJid][userJid].deadline <= now) {
+        expired.push({ groupJid, userJid, deadline: pending[groupJid][userJid].deadline });
+      }
+    }
+  }
+  return expired;
+}
+
+// Limpia entradas de grupos que ya no existen o usuarios ya expulsados.
+function removePendingBulk(entries) {
+  for (const { groupJid, userJid } of entries) {
+    removePending(groupJid, userJid);
+  }
 }
 
 module.exports = {
@@ -118,4 +176,10 @@ module.exports = {
   getWaifuOwners,
   assignWaifu,
   reload,
+  // Pendientes
+  addPending,
+  removePending,
+  isPending,
+  getExpiredPending,
+  removePendingBulk,
 };

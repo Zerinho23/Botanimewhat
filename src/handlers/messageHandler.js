@@ -19,13 +19,30 @@ function extractText(msg) {
   );
 }
 
+// Detecta si un mensaje contiene la ficha de presentación rellenada.
+// Requiere al menos 4 de los 9 campos conocidos para considerar la ficha válida.
+function isFichaRellena(text) {
+  const lower = text.toLowerCase();
+  const campos = [
+    /nombre\s*(o\s*apodo)?:/i,
+    /g[eé]nero\s*[♀️⚧♂️:]/i,
+    /pa[íi]s\s*:/i,
+    /edad\s*:/i,
+    /anime[s]?\s*(favorito[s]?)?\s*:/i,
+    /personaje\s*(que\s*m[aá]s\s*te\s*(representa)?)?\s*:/i,
+    /(opening|ending)\s*(que\s*nunca)?\s*(te\s*cansas)?\s*:/i,
+    /dato\s*curioso\s*:/i,
+    /(cumplea[ñn]os|fecha\s*de\s*cumplea[ñn]os)\s*:/i,
+  ];
+  const hits = campos.filter((re) => re.test(lower)).length;
+  return hits >= 4;
+}
+
 async function awardXp(sock, userJid, groupJid, isCommand) {
-  // Cooldown solo aplica a XP por mensaje (no comandos)
   if (!isCommand) {
     const cooldownMs = (config.level.xpCooldownSeconds ?? 30) * 1000;
     const last = xpCooldowns.get(userJid) || 0;
     if (Date.now() - last < cooldownMs) {
-      // Aún se cuenta el mensaje pero no se da XP
       const u = db.getUser(userJid);
       u.messages += 1;
       db.updateUser(userJid, u);
@@ -42,8 +59,6 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
   user.commands += isCommand ? 1 : 0;
 
   let leveledUp = false;
-  // Permitir múltiples niveles de subida si acumuló mucho XP, restando el requerido
-  // en lugar de poner XP a 0 (así no se pierde el progreso al subir).
   let required = user.level * config.level.levelMultiplier;
   while (user.xp >= required) {
     user.xp -= required;
@@ -77,8 +92,6 @@ async function handleMessages(sock, { messages }) {
       if (!sender) continue;
 
       // --- ANTI-SPAM DE STICKERS ---
-      // Los stickers no llevan texto, así que se procesan ANTES del filtro de texto.
-      // Permitimos 1 sticker por usuario en una ventana de tiempo y borramos el resto.
       if (msg.message?.stickerMessage) {
         if (isGroup && !msg.key.fromMe) {
           const group = db.getGroup(from);
@@ -86,7 +99,7 @@ async function handleMessages(sock, { messages }) {
             await checkStickerSpam(sock, msg, group, sender, from);
           }
         }
-        continue; // los stickers no generan XP ni comandos
+        continue;
       }
       // ----------------------------
 
@@ -113,20 +126,44 @@ async function handleMessages(sock, { messages }) {
         if (config.antiSpam.deleteLinks && group.antiLink) {
           if (await checkAntiLink(sock, msg, text, sender, from)) continue;
         }
-      }
 
-      const isCommand = text.startsWith(config.prefix);
+        // ── DETECCIÓN DE FICHA DE PRESENTACIÓN ──────────────────────
+        // Si el usuario está pendiente de presentación y manda un mensaje
+        // con al menos 4 de los campos de la ficha, se da por presentado.
+        if (!msg.key.fromMe && db.isPending(from, sender) && isFichaRellena(text)) {
+          try {
+            // Reaccionar al mensaje con ✅
+            await sock.sendMessage(from, {
+              react: { text: "✅", key: msg.key },
+            });
+            // Quitar de la lista de pendientes
+            db.removePending(from, sender);
+            logger.info(`✅ Ficha recibida de ${sender.split("@")[0]} en ${from}`);
+            // Mensaje de bienvenida oficial al grupo
+            await sock.sendMessage(from, {
+              text:
+                `✅ ¡Gracias por presentarte, @${sender.split("@")[0]}! 🎉\n` +
+                `Ya formas parte oficial del grupo ${config.emojis.cherry}\n` +
+                `Usa *${config.prefix}help* para ver todo lo que puedes hacer 🌸`,
+              mentions: [sender],
+            });
+          } catch (err) {
+            logger.error(`Error aprobando ficha de ${sender.split("@")[0]}: ${err.message}`);
+          }
+          // Aún así se da XP por el mensaje y se continúa
+          await awardXp(sock, sender, from, false);
+          continue;
+        }
+        // ─────────────────────────────────────────────────────────────
 
-      if (isGroup) {
         try {
-          const group = db.getGroup(from);
           const lastMessageAt = group.lastMessageAt || {};
           lastMessageAt[sender] = Date.now();
           db.updateGroup(from, { lastMessageAt });
-        } catch (_) {
-          // ignore
-        }
+        } catch (_) {}
       }
+
+      const isCommand = text.startsWith(config.prefix);
 
       if (!isCommand) {
         await awardXp(sock, sender, isGroup ? from : null, false);
@@ -145,8 +182,6 @@ async function handleMessages(sock, { messages }) {
       }
 
       // --- COOLDOWN ---
-      // Los comandos de admin no tienen cooldown (ban, kick, mute, etc.)
-      // Los comandos de usuarios (anime, user) tienen cooldown configurable
       const isAdminCmd = command.category === "admin";
       if (!isAdminCmd && !msg.key.fromMe) {
         const cooldownMs = (config.commandCooldown ?? 10) * 1000;
@@ -165,11 +200,7 @@ async function handleMessages(sock, { messages }) {
 
       logger.command(sender.split("@")[0], commandName, isGroup ? from : null);
 
-      try {
-        await sock.sendPresenceUpdate("composing", from);
-      } catch (_) {
-        // ignore
-      }
+      try { await sock.sendPresenceUpdate("composing", from); } catch (_) {}
 
       awardXp(sock, sender, isGroup ? from : null, true).catch(() => {});
 
@@ -181,16 +212,11 @@ async function handleMessages(sock, { messages }) {
           await sock.sendMessage(from, {
             text: `${config.emojis.error} Hubo un error al ejecutar el comando. Intenta de nuevo.`,
           }, { quoted: msg });
-        } catch (_) {
-          // ignore
-        }
+        } catch (_) {}
       }
 
-      try {
-        await sock.sendPresenceUpdate("paused", from);
-      } catch (_) {
-        // ignore
-      }
+      try { await sock.sendPresenceUpdate("paused", from); } catch (_) {}
+
     } catch (err) {
       logger.error(`Error procesando mensaje: ${err.message}`);
     }
