@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
   import { QrCode, Smartphone, RefreshCcw, LogOut, AlertTriangle } from 'lucide-react'
-  import { getStatus, postPairingCode, postReset, getApiUrl } from '../api'
+  import { getStatus, postPairingCode, postReset, getApiUrl, isConfigured } from '../api'
   import type { BotStatus } from '../api'
 
   export default function Connect() {
@@ -36,6 +36,15 @@ import { useEffect, useState } from 'react'
     }
 
     const apiUrl = getApiUrl()
+    if (!isConfigured()) return (
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:320,gap:14,textAlign:'center'}}>
+        <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:'0.9rem',color:'var(--amber)',letterSpacing:'0.1em',textTransform:'uppercase'}}>[ VITE_API_URL NO CONFIGURADA ]</div>
+        <div className="sys-label">Agrega en Vercel → Settings → Environment Variables:</div>
+        <div style={{padding:'10px 18px',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(0,195,255,0.2)',fontFamily:"'Share Tech Mono',monospace",fontSize:12,color:'var(--blue)'}}>VITE_API_URL = https://tu-bot.railway.app</div>
+        <div className="sys-label">Después haz Redeploy en Vercel</div>
+      </div>
+    )
+  
     const connected = status?.connected ?? false
 
     return (
