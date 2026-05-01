@@ -1,232 +1,206 @@
 import { useState, useEffect } from 'react'
   import { NavLink, Outlet, useLocation } from 'react-router-dom'
   import {
-    LayoutDashboard, Users, MessageSquare, Settings, Shield, Activity,
-    Wifi, Menu, X, Bot, ChevronRight, Cpu, Bell, Radio
+    LayoutDashboard, Users, MessageSquare, Settings,
+    Shield, Activity, Wifi, Menu, X, Bot, Radio
   } from 'lucide-react'
-  import { getStatus, getStats, isConfigured } from '../api'
+  import { getStatus, getStats, isConfigured, type BotStatus, type BotStats } from '../api'
 
-  const SECTIONS = [
-    {
-      label: 'OPERACIONES',
-      links: [
-        { to: '/',           icon: LayoutDashboard, label: 'Dashboard',      color: '#e53935' },
-        { to: '/users',      icon: Users,           label: 'Usuarios',       color: '#8b5cf6' },
-        { to: '/groups',     icon: MessageSquare,   label: 'Grupos',         color: '#3b82f6' },
-        { to: '/activity',   icon: Activity,        label: 'Actividad',      color: '#10b981' },
-      ],
-    },
-    {
-      label: 'SISTEMA · OWNER',
-      links: [
-        { to: '/moderation', icon: Shield,          label: 'Moderación',     color: '#f59e0b' },
-        { to: '/config',     icon: Settings,        label: 'Configuración',  color: '#6366f1' },
-        { to: '/connect',    icon: Wifi,            label: 'Conexión',       color: '#06b6d4' },
-      ],
-    },
+  const NAV = [
+    { to: '/',           icon: LayoutDashboard, label: 'Inicio',       exact: true },
+    { to: '/users',      icon: Users,           label: 'Usuarios' },
+    { to: '/groups',     icon: MessageSquare,   label: 'Grupos' },
+    { to: '/moderation', icon: Shield,          label: 'Moderación' },
+    { to: '/activity',   icon: Activity,        label: 'Actividad' },
+    { to: '/config',     icon: Settings,        label: 'Configuración' },
+    { to: '/connect',    icon: Wifi,            label: 'Conexión' },
   ]
 
-  function formatTime() {
-    return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+  const PAGE_LABELS: Record<string, string> = {
+    '/':           'Inicio',
+    '/users':      'Usuarios',
+    '/groups':     'Grupos',
+    '/moderation': 'Moderación',
+    '/activity':   'Actividad',
+    '/config':     'Configuración',
+    '/connect':    'Conexión',
+  }
+
+  function Clock() {
+    const [time, setTime] = useState(new Date())
+    useEffect(() => { const id = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(id) }, [])
+    const hh = time.getHours().toString().padStart(2, '0')
+    const mm = time.getMinutes().toString().padStart(2, '0')
+    const ss = time.getSeconds().toString().padStart(2, '0')
+    const date = time.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
+    return (
+      <div className="sidebar-footer">
+        <div className="sidebar-clock">{hh}<span style={{ opacity: time.getSeconds() % 2 === 0 ? 1 : .3, transition: 'opacity .15s' }}>:</span>{mm}<span style={{ fontSize: 12, color: 'var(--tx3)', marginLeft: 3 }}>{ss}</span></div>
+        <div className="sidebar-date">{date.toUpperCase()}</div>
+      </div>
+    )
+  }
+
+  function StatusChip({ status, stats }: { status: BotStatus | null; stats: BotStats | null }) {
+    if (!isConfigured()) return (
+      <div className="sidebar-status loading">
+        <div className="live-dot" style={{ color: 'var(--tx3)' }} />
+        <span style={{ fontSize: 10 }}>API sin configurar</span>
+      </div>
+    )
+    if (!status) return (
+      <div className="sidebar-status loading">
+        <div className="live-dot" style={{ color: 'var(--tx3)' }} />
+        <span style={{ fontSize: 10 }}>Conectando…</span>
+      </div>
+    )
+    return (
+      <div className={`sidebar-status ${status.connected ? 'online' : 'offline'}`}>
+        <div className="live-dot" />
+        <span>{status.connected ? 'BOT EN LÍNEA' : 'DESCONECTADO'}</span>
+        {stats && status.connected && (
+          <span style={{ marginLeft: 'auto', fontSize: 9, opacity: .7 }}>
+            {stats.users}u · {stats.groups}g
+          </span>
+        )}
+      </div>
+    )
   }
 
   export default function Layout() {
-    const [open, setOpen]     = useState(false)
-    const [online, setOnline] = useState<boolean | null>(null)
-    const [users, setUsers]   = useState<number | null>(null)
-    const [groups, setGroups] = useState<number | null>(null)
-    const [time, setTime]     = useState(formatTime())
-    const location            = useLocation()
-
-    useEffect(() => { setOpen(false) }, [location])
-
-    useEffect(() => {
-      const tick = setInterval(() => setTime(formatTime()), 30000)
-      return () => clearInterval(tick)
-    }, [])
+    const [open, setOpen]   = useState(false)
+    const [status, setStat] = useState<BotStatus | null>(null)
+    const [stats,  setStats]= useState<BotStats | null>(null)
+    const location          = useLocation()
 
     useEffect(() => {
       if (!isConfigured()) return
-      const poll = async () => {
+      const load = async () => {
         try {
-          const [st, stats] = await Promise.all([getStatus(), getStats()])
-          setOnline(st.connected)
-          setUsers(stats.users)
-          setGroups(stats.groups)
-        } catch { setOnline(false) }
+          const [s, st] = await Promise.allSettled([
+            getStatus(),
+            getStats(),
+          ])
+          if (s.status === 'fulfilled')  setStat(s.value)
+          if (st.status === 'fulfilled') setStats(st.value)
+        } catch {}
       }
-      poll()
-      const id = setInterval(poll, 15000)
+      load()
+      const id = setInterval(load, 12000)
       return () => clearInterval(id)
     }, [])
 
-    const currentPage = SECTIONS.flatMap(s => s.links).find(l =>
-      l.to === location.pathname || (l.to !== '/' && location.pathname.startsWith(l.to))
-    )
+    useEffect(() => { setOpen(false) }, [location])
+
+    const pageLabel = PAGE_LABELS[location.pathname] ?? ''
 
     return (
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        {/* Mobile overlay */}
-        {open && (
-          <div onClick={() => setOpen(false)} style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,.7)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 40,
-            animation: 'fadeIn .2s ease'
-          }} />
-        )}
+      <div className="app-layout">
+        {/* ── Sidebar overlay (mobile) ── */}
+        <div
+          className={`sidebar-overlay${open ? ' show' : ''}`}
+          onClick={() => setOpen(false)}
+        />
 
         {/* ── Sidebar ── */}
-        <aside className={`sidebar ${open ? 'open' : ''}`} style={{
-          position: 'fixed', top: 0, left: 0, height: '100vh',
-          display: 'flex', flexDirection: 'column', zIndex: 50,
-          width: 'var(--sidebar-w)'
-        }}>
-          {/* Logo */}
-          <div style={{ padding: '18px 14px 14px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="sidebar-logo-ring">
-                <Bot size={17} color="white" style={{ position: 'relative', zIndex: 1 }} />
-              </div>
+        <aside className={`sidebar${open ? ' open' : ''}`}>
+          {/* Header / brand */}
+          <div className="sidebar-header">
+            <div className="sidebar-logo">
+              <div className="sidebar-logo-icon">🤖</div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: 'white', lineHeight: 1.2 }}>Panel Admin</div>
-                <div style={{ fontSize: 10, color: 'rgba(240,240,245,.35)', fontFamily: "'JetBrains Mono',monospace" }}>BotAnime · v2</div>
+                <div className="sidebar-brand-name">BotAnime</div>
+                <div className="sidebar-brand-sub">Dashboard v2</div>
               </div>
-              <button onClick={() => setOpen(false)} className="btn btn-ghost btn-xs"
-                style={{ marginLeft: 'auto', padding: '4px', display: 'none' }}>
-                <X size={14} />
-              </button>
             </div>
+            <StatusChip status={status} stats={stats} />
           </div>
 
           {/* Nav */}
-          <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 8 }}>
-            {SECTIONS.map(sec => (
-              <div key={sec.label}>
-                <div className="nav-section-label">{sec.label}</div>
-                {sec.links.map(l => (
-                  <NavLink key={l.to} to={l.to} end={l.to === '/'}
-                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                    style={({ isActive }) => isActive ? { borderColor: `${l.color}22` } : {}}>
-                    <span className="nav-icon" style={{ color: 'inherit' }}>
-                      <l.icon size={15} />
-                    </span>
-                    <span style={{ flex: 1 }}>{l.label}</span>
-                    <ChevronRight size={11} style={{ opacity: .25 }} />
-                  </NavLink>
-                ))}
-              </div>
+          <nav style={{ flex: 1, paddingTop: 8 }}>
+            <div className="nav-section-label">Navegación</div>
+
+            {NAV.map(({ to, icon: Icon, label, exact }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={exact}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <span className="nav-icon"><Icon size={16} /></span>
+                {label}
+              </NavLink>
             ))}
           </nav>
 
-          {/* Bottom: quick stats + status */}
-          <div style={{ padding: '10px 12px 14px', borderTop: '1px solid rgba(255,255,255,.05)' }}>
-            {/* Mini stats */}
-            {(users !== null || groups !== null) && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                {users !== null && (
-                  <div style={{ flex: 1, background: 'rgba(139,92,246,.08)', border: '1px solid rgba(139,92,246,.15)',
-                    borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#8b5cf6' }}>{users}</div>
-                    <div style={{ fontSize: 9, color: 'rgba(240,240,245,.3)', marginTop: 1 }}>usuarios</div>
+          {/* Stats mini */}
+          {stats && (
+            <div style={{ margin: '0 8px 4px', padding: '10px 12px', borderRadius: 10, background: 'rgba(229,57,53,.05)', border: '1px solid rgba(229,57,53,.1)' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.14em', color: 'rgba(229,57,53,.6)', textTransform: 'uppercase', marginBottom: 8, fontFamily: "'JetBrains Mono',monospace" }}>Stats globales</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {[
+                  { label: 'Usuarios', val: stats.users, color: 'var(--blue)' },
+                  { label: 'Grupos',   val: stats.groups, color: 'var(--purple)' },
+                ].map(({ label, val, color }) => (
+                  <div key={label} style={{ textAlign: 'center', padding: '6px 4px', borderRadius: 7, background: 'rgba(0,0,0,.2)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 9, color: 'var(--tx3)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
                   </div>
-                )}
-                {groups !== null && (
-                  <div style={{ flex: 1, background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.15)',
-                    borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6' }}>{groups}</div>
-                    <div style={{ fontSize: 9, color: 'rgba(240,240,245,.3)', marginTop: 1 }}>grupos</div>
-                  </div>
-                )}
+                ))}
               </div>
-            )}
-
-            {/* Status indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(255,255,255,.04)', borderRadius: 9, padding: '8px 10px',
-              border: '1px solid rgba(255,255,255,.06)' }}>
-              <Cpu size={13} color={online === true ? '#10b981' : online === false ? '#e53935' : 'rgba(255,255,255,.3)'} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(240,240,245,.7)' }}>
-                  {!isConfigured() ? 'Sin conexión' : online === null ? 'Conectando…' : online ? 'Bot Online' : 'Bot Offline'}
-                </div>
-                <div style={{ fontSize: 9, color: 'rgba(240,240,245,.3)', fontFamily: "'JetBrains Mono',monospace" }}>{time}</div>
-              </div>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: online ? '#10b981' : online === false ? '#e53935' : '#333',
-                boxShadow: online ? '0 0 8px #10b981' : 'none',
-                animation: online ? 'glow 2.5s ease-in-out infinite' : 'none' }} />
             </div>
-          </div>
+          )}
+
+          <Clock />
         </aside>
 
-        {/* ── Main area ── */}
-        <div className="main-area" style={{ flex: 1, marginLeft: 'var(--sidebar-w)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-
-          {/* Top bar */}
-          <header style={{ height: 54, borderBottom: '1px solid rgba(255,255,255,.06)',
-            display: 'flex', alignItems: 'center', gap: 12, padding: '0 22px',
-            background: 'rgba(7,7,11,.9)', backdropFilter: 'blur(10px)',
-            position: 'sticky', top: 0, zIndex: 30 }}>
-
-            {/* Hamburger (mobile) */}
-            <button onClick={() => setOpen(!open)} className="btn btn-ghost btn-sm"
-              style={{ padding: '6px 8px' }}>
-              {open ? <X size={15} /> : <Menu size={15} />}
+        {/* ── Main ── */}
+        <div className="main-content">
+          {/* Topbar */}
+          <header className="topbar">
+            <button className="mobile-menu-btn" onClick={() => setOpen(o => !o)} aria-label="menu">
+              {open ? <X size={18} /> : <Menu size={18} />}
             </button>
 
-            {/* Live indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Radio size={11} color={online ? '#10b981' : '#555'} style={{ animation: online ? 'pulse 2s infinite' : 'none' }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: online ? '#10b981' : '#555', letterSpacing: '.06em' }}>
-                {online ? 'LIVE' : 'OFFLINE'}
-              </span>
-            </div>
-
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(240,240,245,.3)' }}>
-              <span style={{ color: 'rgba(240,240,245,.45)' }}>BotAnime</span>
-              <ChevronRight size={11} />
-              <span style={{ color: 'white', fontWeight: 600 }}>
-                {currentPage?.label ?? 'Dashboard'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Bot size={16} color="var(--red)" style={{ flexShrink: 0 }} />
+              <span className="topbar-title">BotAnime</span>
+              <span className="topbar-breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ opacity: .3 }}>/</span>
+                {pageLabel}
               </span>
             </div>
 
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Notification icon */}
-              <div style={{ position: 'relative' }}>
-                <button className="btn btn-ghost btn-sm" style={{ padding: '6px 8px' }}>
-                  <Bell size={14} color="var(--tx3)" />
-                </button>
-              </div>
+              {/* Live pill */}
+              {isConfigured() && status?.connected && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,.08)', border: '1px solid rgba(16,185,129,.18)', fontSize: 10, fontWeight: 700, color: 'var(--green)', letterSpacing: '.08em' }}>
+                  <Radio size={10} style={{ animation: 'pulse 1.8s ease-in-out infinite' }} />
+                  LIVE
+                </div>
+              )}
 
-              <span className="badge badge-red">OWNER</span>
+              {/* Uptime */}
+              {stats?.uptime !== undefined && (
+                <div style={{ fontSize: 11, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
+                  ↑ {Math.floor(stats.uptime / 3600)}h {Math.floor((stats.uptime % 3600) / 60)}m
+                </div>
+              )}
 
               {/* Avatar */}
-              <div style={{ width: 30, height: 30, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#e53935,#8b5cf6)',
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'linear-gradient(135deg,#e53935,#7b1fa2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: 'white', flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(229,57,53,.3)' }}>Z</div>
+                fontSize: 14, boxShadow: '0 0 12px rgba(229,57,53,.25)',
+              }}>🤖</div>
             </div>
           </header>
 
           {/* Page content */}
-          <main style={{ flex: 1, padding: '24px', minWidth: 0, maxWidth: 1440, width: '100%' }}>
+          <main className="page-content">
             <Outlet />
           </main>
-
-          {/* Footer */}
-          <footer style={{ borderTop: '1px solid rgba(255,255,255,.04)', padding: '10px 22px',
-            display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
-              BotAnime Dashboard · Panel de Administración · {new Date().getFullYear()}
-            </span>
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--tx3)' }}>
-              {isConfigured() ? '🟢 API conectada' : '🔴 API no configurada'}
-            </span>
-          </footer>
         </div>
       </div>
     )
