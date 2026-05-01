@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
   import { Search, Trophy, Star } from 'lucide-react'
-  import { getUsers, type User } from '../api'
+  import { getUsers } from '../api'
+  import type { User } from '../api'
   import { rankOf, shortJid, formatNumber } from '../lib/utils'
 
   export default function Users() {
@@ -20,7 +21,6 @@ import { useEffect, useState } from 'react'
       .sort((a, b) => (b.level ?? 0) - (a.level ?? 0))
 
     const top3 = filtered.slice(0, 3)
-    const rest = filtered.slice(3)
 
     if (loading) return (
       <div className="flex items-center justify-center h-64">
@@ -30,7 +30,6 @@ import { useEffect, useState } from 'react'
 
     return (
       <div className="space-y-6">
-        {/* Podium */}
         {top3.length >= 3 && (
           <div className="card">
             <p className="section-title">Top Usuarios</p>
@@ -43,8 +42,8 @@ import { useEffect, useState } from 'react'
                   <div key={u.jid} className="flex flex-col items-center gap-1">
                     <div className="font-mono text-[10px] text-tx3 mb-1">{shortJid(u.jid).slice(-8)}</div>
                     <div className="font-display font-bold text-sm" style={{ color: r.color }}>{r.l}</div>
-                    <div className={`${heights[i]} w-16 flex items-center justify-center rounded-t-md border border-current/30`}
-                         style={{ background: `${r.color}18`, borderColor: `${r.color}40` }}>
+                    <div className={`${heights[i]} w-16 flex items-center justify-center rounded-t-md border`}
+                         style={{ background: r.color + '18', borderColor: r.color + '40' }}>
                       <span className="font-display font-bold text-2xl" style={{ color: r.color }}>#{pos}</span>
                     </div>
                     <div className="font-mono text-[10px] text-tx2">Lv.{u.level ?? 0}</div>
@@ -55,7 +54,6 @@ import { useEffect, useState } from 'react'
           </div>
         )}
 
-        {/* Table */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <p className="section-title mb-0">Todos los usuarios ({filtered.length})</p>
@@ -93,7 +91,7 @@ import { useEffect, useState } from 'react'
                     const xpForNext = ((u.level ?? 0) + 1) * 100
                     const xpPct = Math.min(100, ((u.xp ?? 0) % xpForNext) / xpForNext * 100)
                     return (
-                      <tr key={u.jid} className="hover:bg-blue/3 transition group">
+                      <tr key={u.jid} className="hover:bg-blue/3 transition">
                         <td className="py-3 pr-4 font-mono text-xs text-tx3">{i + 1}</td>
                         <td className="py-3 pr-4">
                           <div className="font-mono text-sm text-tx">{shortJid(u.jid)}</div>
@@ -106,15 +104,15 @@ import { useEffect, useState } from 'react'
                           </span>
                         </td>
                         <td className="py-3 pr-4">
-                          <div className="font-display font-bold text-base" style={{ color: r.color }}>
-                            {u.level ?? 0}
-                          </div>
+                          <div className="font-display font-bold text-base" style={{ color: r.color }}>{u.level ?? 0}</div>
                           <div className="w-20 h-1 bg-blue/10 rounded-full mt-1 overflow-hidden">
                             <div className="h-full rounded-full transition-all" style={{ width: `${xpPct}%`, background: r.color }} />
                           </div>
                         </td>
                         <td className="py-3 pr-4 font-mono text-xs text-tx2">{formatNumber(u.xp ?? 0)}</td>
-                        <td className="py-3 font-mono text-xs text-amber">{formatNumber(u.coins ?? 0)} <Star size={10} className="inline text-gold" /></td>
+                        <td className="py-3 font-mono text-xs text-amber flex items-center gap-1">
+                          {formatNumber(u.coins ?? 0)} <Star size={10} className="text-gold" />
+                        </td>
                       </tr>
                     )
                   })}
