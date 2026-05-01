@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
     }, [])
 
     const filtered = groups.filter(g=>
-      (g.subject||'').toLowerCase().includes(search.toLowerCase())||shortJid(g.id).includes(search)
+      (g.subject||'').toLowerCase().includes(search.toLowerCase())||shortJid(g.jid).includes(search)
     )
 
     if (loading) return (
@@ -43,14 +43,14 @@ import { useEffect, useState } from 'react'
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:10}}>
               {filtered.map(g=>(
                 <div key={g.id} style={{padding:'14px 16px',background:'rgba(0,5,20,0.6)',border:'1px solid rgba(0,195,255,0.1)',borderLeft:'2px solid var(--blue)'}}>
-                  <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'0.95rem',color:'white',letterSpacing:'0.04em',textTransform:'uppercase',marginBottom:4}}>{g.subject||'SIN NOMBRE'}</div>
-                  <div className="sys-label" style={{marginBottom:10}}>{shortJid(g.id)}</div>
+                  <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'0.95rem',color:'white',letterSpacing:'0.04em',textTransform:'uppercase',marginBottom:4}}>{g.name||'SIN NOMBRE'}</div>
+                  <div className="sys-label" style={{marginBottom:10}}>{shortJid(g.jid)}</div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <div className="sys-label">MIEMBROS: <span style={{color:'var(--blue)'}}>{g.participants??'?'}</span></div>
                     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                       {g.welcome&&<span className="badge badge-blue" style={{fontSize:9}}>WELCOME</span>}
                       {g.antiLink&&<span className="badge badge-red" style={{fontSize:9}}>ANTI-LINK</span>}
-                      {g.antiBad&&<span className="badge badge-amber" style={{fontSize:9}}>FILTRO</span>}
+                      {g.antiSpam&&<span className="badge badge-amber" style={{fontSize:9}}>FILTRO</span>}
                     </div>
                   </div>
                 </div>
