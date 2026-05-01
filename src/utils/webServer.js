@@ -1145,7 +1145,7 @@ function startWebServer(port) {
     try{
       const gf=path.join(__dirname,"..","database","data","groups.json");
       const groups=fs.existsSync(gf)?JSON.parse(fs.readFileSync(gf,"utf-8")):{};
-      res.json(Object.values(groups).map(g=>({jid:g.jid,name:g.name||"",antiLink:g.antiLink??false,antiSpam:g.antiSpam??true,welcome:g.welcome??true})));
+      res.json(Object.values(groups).map(g=>({jid:g.jid,name:g.name||"",antiLink:g.antiLink??false,antiSpam:g.antiSpam??true,welcome:g.welcome??true,botEnabled:g.botEnabled??true,memberCount:g.memberCount??0,createdAt:g.createdAt??null})));
     }catch(e){res.status(500).json({error:e.message});}
   });
 
@@ -1153,7 +1153,32 @@ function startWebServer(port) {
     try{
       const db=require("../database/db");const jid=decodeURIComponent(req.params.jid);const safe={};
       for(const k of["antiLink","antiSpam","welcome"])if(req.body[k]!==undefined)safe[k]=!!req.body[k];
+      if(req.body.botEnabled!==undefined)safe.botEnabled=!!req.body.botEnabled;
       db.updateGroup(jid,safe);res.json({ok:true});
+    }catch(e){res.status(500).json({error:e.message});}
+  });
+
+  // Activar/desactivar bot en un grupo
+  app.patch("/api/groups/:jid/enabled",(req,res)=>{
+    try{
+      const db=require("../database/db");
+      const jid=decodeURIComponent(req.params.jid);
+      const enabled=req.body.enabled!==false;
+      db.updateGroup(jid,{botEnabled:enabled});
+      res.json({ok:true,jid,botEnabled:enabled});
+    }catch(e){res.status(500).json({error:e.message});}
+  });
+
+  // Eliminar grupo del bot (queda como número normal)
+  app.delete("/api/groups/:jid",(req,res)=>{
+    try{
+      const gf=path.join(__dirname,"..","database","data","groups.json");
+      const groups=fs.existsSync(gf)?JSON.parse(fs.readFileSync(gf,"utf-8")):{};
+      const jid=decodeURIComponent(req.params.jid);
+      if(!groups[jid]) return res.status(404).json({error:"Grupo no encontrado"});
+      delete groups[jid];
+      fs.writeFileSync(gf,JSON.stringify(groups,null,2));
+      res.json({ok:true,jid});
     }catch(e){res.status(500).json({error:e.message});}
   });
 
