@@ -1,99 +1,99 @@
 import { useEffect, useState } from 'react'
-  import { Save, RotateCcw } from 'lucide-react'
-  import { getConfig, postConfig, isConfigured } from '../api'
-  import type { BotConfig } from '../api'
-
-  function Toast({ msg, ok }: { msg: string; ok: boolean }) {
-    return (
-      <div style={{position:'fixed',bottom:20,right:20,display:'flex',alignItems:'center',gap:10,padding:'12px 18px',
-                   background: ok ? 'rgba(0,255,170,0.07)' : 'rgba(255,26,60,0.07)',
-                   border: `1px solid ${ok ? 'rgba(0,255,170,0.3)' : 'rgba(255,26,60,0.3)'}`,
-                   color: ok ? 'var(--green)' : 'var(--red)',
-                   fontFamily:"'Share Tech Mono',monospace",fontSize:12,letterSpacing:'0.05em',
-                   zIndex:9999,backdropFilter:'blur(12px)'}}>
-        {ok ? '[ OK ]' : '[ ERROR ]'} {msg}
-      </div>
-    )
-  }
+  import { Settings, Save, RefreshCw, AlertCircle } from 'lucide-react'
+  import { getConfig, postConfig, isConfigured, type BotConfig } from '../api'
 
   export default function Config() {
-    const [config, setConfig] = useState<BotConfig | null>(null)
-    const [form, setForm] = useState<Partial<BotConfig>>({})
-    const [saving, setSaving] = useState(false)
-    const [toast, setToast] = useState<{msg:string;ok:boolean}|null>(null)
-    const [loading, setLoading] = useState(true)
+    const [cfg,    setCfg]    = useState<BotConfig | null>(null)
+    const [form,   setForm]   = useState<Partial<BotConfig>>({})
+    const [loading,setLoad]   = useState(true)
+    const [saving, setSave]   = useState(false)
+    const [msg,    setMsg]    = useState<{type:'ok'|'err',text:string}|null>(null)
 
-    const showToast = (msg: string, ok: boolean) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000) }
-
-    useEffect(() => {
-      getConfig().then(c=>{setConfig(c);setForm(c)}).catch(()=>{}).finally(()=>setLoading(false))
-    }, [])
-
-    const handleSave = async () => {
-      setSaving(true)
-      try { await postConfig(form); setConfig(prev=>prev?{...prev,...form}:null); showToast('Configuración actualizada',true) }
-      catch { showToast('Error al guardar',false) }
-      finally { setSaving(false) }
-    }
-
-    const set = (k: keyof BotConfig) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm(prev=>({...prev,[k]:e.target.value}))
+    useEffect(()=>{
+      if (!isConfigured()) { setLoad(false); return }
+      getConfig().then(c=>{ setCfg(c); setForm(c); setLoad(false) }).catch(()=>setLoad(false))
+    },[])
 
     if (!isConfigured()) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
-        <div className="sys-label" style={{color:'var(--amber)'}}>[ VITE_API_URL no configurada en Vercel ]</div>
+        <p style={{color:'var(--gold)',fontSize:13}}>VITE_API_URL no configurada en Vercel</p>
       </div>
     )
 
+    const save = async () => {
+      setSave(true); setMsg(null)
+      try {
+        await postConfig(form)
+        setMsg({type:'ok',text:'Configuración guardada correctamente'})
+      } catch (e:unknown) {
+        setMsg({type:'err',text:e instanceof Error ? e.message : 'Error al guardar'})
+      }
+      setSave(false)
+    }
+
     if (loading) return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
-        <div style={{width:36,height:36,border:'2px solid rgba(0,195,255,0.1)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} />
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256,gap:10,color:'var(--tx3)'}}>
+        <RefreshCw size={16} style={{animation:'spin 1s linear infinite'}}/><span>Cargando config…</span>
       </div>
     )
 
     return (
-      <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:680}}>
-        {toast && <Toast {...toast} />}
-        <div className="panel panel-accent" style={{padding:'22px 24px',position:'relative'}}>
-          <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
-          <div style={{marginBottom:18}}>
-            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:2}}>SYS://CONFIG_MODULE</div>
-            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:'0.75rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'white'}}>CONFIGURACIÓN GENERAL</div>
-            <div className="hud-divider" style={{marginTop:12}} />
+      <div style={{display:'flex',flexDirection:'column',gap:20,maxWidth:700}}>
+        <div>
+          <h1 style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'1.4rem'}}>Configuración</h1>
+          <p style={{fontSize:12,color:'var(--tx3)',marginTop:2}}>Ajusta el comportamiento del bot en tiempo real</p>
+        </div>
+
+        {msg && (
+          <div style={{padding:'10px 14px',borderRadius:8,fontSize:12,fontWeight:600,
+            background:msg.type==='ok'?'rgba(16,185,129,.1)':'rgba(229,57,53,.1)',
+            border:`1px solid ${msg.type==='ok'?'rgba(16,185,129,.25)':'rgba(229,57,53,.25)'}`,
+            color:msg.type==='ok'?'var(--green)':'var(--red2)',display:'flex',alignItems:'center',gap:8}}>
+            <AlertCircle size={14}/>{msg.text}
+          </div>
+        )}
+
+        <div className="card" style={{padding:24}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
+            <Settings size={15} color="var(--blue)"/>
+            <strong style={{fontSize:14}}>Parámetros generales</strong>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
             {[
-              {k:'prefix' as keyof BotConfig,label:'PREFIJO DE COMANDOS',ph:'!'},
-              {k:'botName' as keyof BotConfig,label:'NOMBRE DEL BOT',ph:'BotAnime'},
-              {k:'ownerNumber' as keyof BotConfig,label:'NÚMERO DEL OWNER',ph:'549XXXXXXXXXX'},
-              {k:'commandCooldown' as keyof BotConfig,label:'COOLDOWN (ms)',ph:'3000'},
-            ].map(({k,label,ph})=>(
-              <div key={k}>
-                <label className="label">{label}</label>
-                <input className="input" value={(form[k]??'') as string} onChange={set(k)} placeholder={ph} />
+              {key:'botName',    label:'Nombre del bot', ph:'BotAnime'},
+              {key:'prefix',     label:'Prefijo de comandos', ph:'!'},
+              {key:'ownerNumber',label:'Número del owner', ph:'521234567890'},
+              {key:'commandCooldown',label:'Cooldown (segundos)', ph:'3'},
+            ].map(f=>(
+              <div key={f.key}>
+                <label className="label">{f.label.toUpperCase()}</label>
+                <input className="input" placeholder={f.ph}
+                  value={(form[f.key as keyof BotConfig] as string)||''}
+                  onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))}/>
               </div>
             ))}
           </div>
-          <div style={{display:'flex',gap:10,marginTop:20}}>
-            <button className="btn btn-primary" style={{flex:1}} onClick={handleSave} disabled={saving}>
-              {saving ? <div style={{width:14,height:14,border:'2px solid rgba(0,195,255,0.2)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} /> : <Save size={13} />}
-              {saving ? 'GUARDANDO...' : 'GUARDAR CONFIG'}
-            </button>
-            <button className="btn btn-ghost" onClick={()=>config&&setForm(config)}>
-              <RotateCcw size={13} /> REVERTIR
+
+          {cfg && (
+            <div style={{marginTop:20}}>
+              <div className="divider"/>
+              <div style={{fontSize:11,color:'var(--tx3)',marginBottom:10,fontWeight:600,letterSpacing:'.05em'}}>MÓDULOS AVANZADOS (solo lectura)</div>
+              <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,
+                background:'var(--card2)',padding:12,borderRadius:6,
+                border:'1px solid var(--border)',color:'var(--tx2)',
+                overflowX:'auto',whiteSpace:'pre-wrap',wordBreak:'break-all',
+                maxHeight:200,overflow:'auto'}}>
+                {JSON.stringify({level:cfg.level,economy:cfg.economy,antiSpam:cfg.antiSpam},null,2)}
+              </div>
+            </div>
+          )}
+
+          <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>
+              <Save size={14}/>{saving?'Guardando…':'Guardar cambios'}
             </button>
           </div>
         </div>
-
-        {config && (
-          <div className="panel panel-accent" style={{padding:'22px 24px',position:'relative'}}>
-            <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
-            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:10}}>SYS://CURRENT_CONFIG</div>
-            <pre style={{fontFamily:"'Share Tech Mono',monospace",fontSize:11,color:'var(--tx2)',background:'rgba(0,0,0,0.5)',border:'1px solid var(--border)',padding:16,overflowX:'auto',lineHeight:1.7}}>
-              {JSON.stringify(config,null,2)}
-            </pre>
-          </div>
-        )}
       </div>
     )
   }
