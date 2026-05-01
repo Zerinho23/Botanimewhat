@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
-  import { Save, RotateCcw, Settings } from 'lucide-react'
-  import { getConfig, postConfig, type BotConfig } from '../api'
+  import { Save, RotateCcw } from 'lucide-react'
+  import { getConfig, postConfig } from '../api'
+  import type { BotConfig } from '../api'
 
   function Toast({ msg, ok }: { msg: string; ok: boolean }) {
     return (
-      <div className={`fixed bottom-5 right-5 flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-display font-semibold z-50 shadow-2xl backdrop-blur-xl ${ok ? 'bg-green/10 border-green/30 text-green' : 'bg-red/10 border-red/30 text-red'}`}>
-        {msg}
+      <div style={{position:'fixed',bottom:20,right:20,display:'flex',alignItems:'center',gap:10,padding:'12px 18px',
+                   background: ok ? 'rgba(0,255,170,0.07)' : 'rgba(255,26,60,0.07)',
+                   border: `1px solid ${ok ? 'rgba(0,255,170,0.3)' : 'rgba(255,26,60,0.3)'}`,
+                   color: ok ? 'var(--green)' : 'var(--red)',
+                   fontFamily:"'Share Tech Mono',monospace",fontSize:12,letterSpacing:'0.05em',
+                   zIndex:9999,backdropFilter:'blur(12px)'}}>
+        {ok ? '[ OK ]' : '[ ERROR ]'} {msg}
       </div>
     )
   }
@@ -14,100 +20,74 @@ import { useEffect, useState } from 'react'
     const [config, setConfig] = useState<BotConfig | null>(null)
     const [form, setForm] = useState<Partial<BotConfig>>({})
     const [saving, setSaving] = useState(false)
-    const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+    const [toast, setToast] = useState<{msg:string;ok:boolean}|null>(null)
     const [loading, setLoading] = useState(true)
 
-    const showToast = (msg: string, ok: boolean) => {
-      setToast({ msg, ok })
-      setTimeout(() => setToast(null), 3000)
-    }
+    const showToast = (msg: string, ok: boolean) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000) }
 
     useEffect(() => {
-      getConfig()
-        .then(c => { setConfig(c); setForm(c) })
-        .catch(() => {})
-        .finally(() => setLoading(false))
+      getConfig().then(c=>{setConfig(c);setForm(c)}).catch(()=>{}).finally(()=>setLoading(false))
     }, [])
 
     const handleSave = async () => {
       setSaving(true)
-      try {
-        await postConfig(form)
-        setConfig(prev => prev ? { ...prev, ...form } : null)
-        showToast('Configuración guardada correctamente', true)
-      } catch {
-        showToast('Error al guardar configuración', false)
-      } finally {
-        setSaving(false)
-      }
-    }
-
-    const handleReset = () => {
-      if (config) setForm(config)
+      try { await postConfig(form); setConfig(prev=>prev?{...prev,...form}:null); showToast('Configuración actualizada',true) }
+      catch { showToast('Error al guardar',false) }
+      finally { setSaving(false) }
     }
 
     const set = (k: keyof BotConfig) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm(prev => ({ ...prev, [k]: e.target.value }))
+      setForm(prev=>({...prev,[k]:e.target.value}))
 
     if (loading) return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-blue/20 border-t-blue animate-spin" />
-      </div>
-    )
-
-    if (!config) return (
-      <div className="text-center py-16 text-tx3 font-mono text-xs uppercase tracking-widest">
-        <Settings size={32} className="mx-auto mb-4 opacity-30" />
-        No se pudo cargar la configuración
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div style={{width:36,height:36,border:'2px solid rgba(0,195,255,0.1)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} />
       </div>
     )
 
     return (
-      <div className="space-y-5 max-w-2xl">
+      <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:680}}>
         {toast && <Toast {...toast} />}
-
-        <div className="card">
-          <p className="section-title">Configuración general</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="label">Prefijo de comandos</label>
-              <input className="input" value={form.prefix ?? ''} onChange={set('prefix')} placeholder="!" />
-            </div>
-            <div>
-              <label className="label">Nombre del bot</label>
-              <input className="input" value={form.botName ?? ''} onChange={set('botName')} placeholder="BotAnime" />
-            </div>
-            <div>
-              <label className="label">Número del dueño</label>
-              <input className="input" value={form.ownerNumber ?? ''} onChange={set('ownerNumber')} placeholder="549XXXXXXXXXX" />
-            </div>
-            <div>
-              <label className="label">Cooldown de comandos (ms)</label>
-              <input className="input" type="number" value={form.commandCooldown ?? ''} onChange={set('commandCooldown')} placeholder="3000" />
-            </div>
+        <div className="panel panel-accent" style={{padding:'22px 24px',position:'relative'}}>
+          <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
+          <div style={{marginBottom:18}}>
+            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:2}}>SYS://CONFIG_MODULE</div>
+            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:'0.75rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'white'}}>CONFIGURACIÓN GENERAL</div>
+            <div className="hud-divider" style={{marginTop:12}} />
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            {[
+              {k:'prefix' as keyof BotConfig,label:'PREFIJO DE COMANDOS',ph:'!'},
+              {k:'botName' as keyof BotConfig,label:'NOMBRE DEL BOT',ph:'BotAnime'},
+              {k:'ownerNumber' as keyof BotConfig,label:'NÚMERO DEL OWNER',ph:'549XXXXXXXXXX'},
+              {k:'commandCooldown' as keyof BotConfig,label:'COOLDOWN (ms)',ph:'3000'},
+            ].map(({k,label,ph})=>(
+              <div key={k}>
+                <label className="label">{label}</label>
+                <input className="input" value={(form[k]??'') as string} onChange={set(k)} placeholder={ph} />
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:10,marginTop:20}}>
+            <button className="btn btn-primary" style={{flex:1}} onClick={handleSave} disabled={saving}>
+              {saving ? <div style={{width:14,height:14,border:'2px solid rgba(0,195,255,0.2)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} /> : <Save size={13} />}
+              {saving ? 'GUARDANDO...' : 'GUARDAR CONFIG'}
+            </button>
+            <button className="btn btn-ghost" onClick={()=>config&&setForm(config)}>
+              <RotateCcw size={13} /> REVERTIR
+            </button>
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button className="btn-primary flex-1 justify-center" onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <div className="w-4 h-4 rounded-full border-2 border-blue/20 border-t-blue animate-spin" />
-            ) : <Save size={14} />}
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-          <button className="btn-ghost" onClick={handleReset}>
-            <RotateCcw size={14} />
-            Revertir
-          </button>
-        </div>
-
-        {/* Read-only config preview */}
-        <div className="card">
-          <p className="section-title">Configuración actual</p>
-          <pre className="font-mono text-xs text-tx2 bg-bg2 rounded-md p-4 overflow-x-auto border border-border leading-relaxed">
-            {JSON.stringify(config, null, 2)}
-          </pre>
-        </div>
+        {config && (
+          <div className="panel panel-accent" style={{padding:'22px 24px',position:'relative'}}>
+            <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
+            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:10}}>SYS://CURRENT_CONFIG</div>
+            <pre style={{fontFamily:"'Share Tech Mono',monospace",fontSize:11,color:'var(--tx2)',background:'rgba(0,0,0,0.5)',border:'1px solid var(--border)',padding:16,overflowX:'auto',lineHeight:1.7}}>
+              {JSON.stringify(config,null,2)}
+            </pre>
+          </div>
+        )}
       </div>
     )
   }
