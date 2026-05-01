@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
   import {
     RefreshCw, Users, Group, Activity, MessageSquare, TrendingUp,
-    Zap, Star, Shield, Clock, BarChart2, Wifi, WifiOff, AlertCircle
+    Zap, Star, Shield, Clock, BarChart2, Wifi, AlertCircle
   } from 'lucide-react'
   import {
     getStatus, getStats, getUsers, getActivityHistory, isConfigured,
