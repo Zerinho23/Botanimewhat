@@ -95,7 +95,7 @@ import { useEffect, useState } from 'react'
           </div>
           {error && (
             <div style={{marginTop:10,display:'flex',alignItems:'center',gap:6,color:'var(--red)',fontFamily:"'Share Tech Mono',monospace",fontSize:11}}>
-              <AlertTriangle size:11 />{error}
+              <AlertTriangle size={11} />{error}
             </div>
           )}
           {pairingCode && (
