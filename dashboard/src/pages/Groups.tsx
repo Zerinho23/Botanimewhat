@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
     X, Check, Power, PowerOff, Trash2, AlertTriangle, ToggleLeft, ToggleRight
   } from 'lucide-react'
   import {
-    getGroups, postBroadcast, patchGroupEnabled, deleteGroup, isConfigured, type Group
+    getGroups, postBroadcast, patchGroupEnabled, deleteGroup, postGroupSettings, isConfigured, type Group
   } from '../api'
 
   // ── Toast ───────────────────────────────────────────────────────────────────
