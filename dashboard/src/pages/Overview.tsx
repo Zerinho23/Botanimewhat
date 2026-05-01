@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { Users, MessagesSquare, Zap, Clock, TrendingUp, Activity, AlertTriangle } from 'lucide-react'
+  import { type LucideIcon, Users, MessagesSquare, Zap, Clock, TrendingUp, Activity, AlertTriangle } from 'lucide-react'
   import { getStatus, getStats, getActivityHistory, getMaintenance, postMaintenance,
     type BotStatus, type BotStats, type ActivityEvent, type MaintenanceState } from '../api'
   import { formatUptime, formatNumber, timeAgo, cn } from '../lib/utils'
