@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-  import { MessagesSquare, Users, Search } from 'lucide-react'
-  import { getGroups, type Group } from '../api'
+  import { Search } from 'lucide-react'
+  import { getGroups } from '../api'
+  import type { Group } from '../api'
   import { shortJid } from '../lib/utils'
 
   export default function Groups() {
@@ -9,63 +10,48 @@ import { useEffect, useState } from 'react'
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-      getGroups()
-        .then(data => setGroups(Array.isArray(data) ? data : []))
-        .catch(() => {})
-        .finally(() => setLoading(false))
+      getGroups().then(d=>setGroups(Array.isArray(d)?d:[])).catch(()=>{}).finally(()=>setLoading(false))
     }, [])
 
-    const filtered = groups.filter(g =>
-      (g.subject || '').toLowerCase().includes(search.toLowerCase()) ||
-      shortJid(g.id).includes(search)
+    const filtered = groups.filter(g=>
+      (g.subject||'').toLowerCase().includes(search.toLowerCase())||shortJid(g.id).includes(search)
     )
 
     if (loading) return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-blue/20 border-t-blue animate-spin" />
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div style={{width:36,height:36,border:'2px solid rgba(0,195,255,0.1)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.7s linear infinite'}} />
       </div>
     )
 
     return (
-      <div className="space-y-6">
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <p className="section-title mb-0">Grupos ({filtered.length})</p>
-          </div>
-          <div className="relative mb-4">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx3" />
-            <input
-              className="input pl-9 text-sm"
-              placeholder="Buscar por nombre o ID..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          {filtered.length === 0 ? (
-            <div className="text-center py-12 text-tx3 font-mono text-xs uppercase tracking-widest">
-              <MessagesSquare size={28} className="mx-auto mb-3 opacity-30" />
-              Sin grupos registrados
+      <div style={{display:'flex',flexDirection:'column',gap:18}}>
+        <div className="panel panel-accent" style={{padding:'20px 22px',position:'relative'}}>
+          <span className="br-bl" style={{position:'absolute'}} /><span className="br-br" style={{position:'absolute'}} />
+          <div style={{marginBottom:16}}>
+            <div className="sys-label" style={{color:'var(--blue)',opacity:0.7,marginBottom:2}}>SYS://GROUP_REGISTRY</div>
+            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:'0.75rem',fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'white',marginBottom:12}}>
+              GRUPOS ACTIVOS ({filtered.length})
             </div>
+            <div style={{position:'relative'}}>
+              <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--tx3)'}} />
+              <input className="input" style={{paddingLeft:34}} placeholder="BUSCAR GRUPO..." value={search} onChange={e=>setSearch(e.target.value)} />
+            </div>
+          </div>
+          {filtered.length===0 ? (
+            <div className="sys-label" style={{textAlign:'center',padding:'32px 0'}}>/// SIN GRUPOS REGISTRADOS ///</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filtered.map(g => (
-                <div key={g.id} className="group relative p-4 rounded-lg bg-surface border border-border
-                                          hover:border-blue/30 hover:bg-blue/3 transition-all cursor-default">
-                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue opacity-50 rounded-l-lg" />
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-display font-semibold text-sm text-tx truncate">{g.subject || 'Sin nombre'}</p>
-                      <p className="font-mono text-[10px] text-tx3 mt-0.5 truncate">{shortJid(g.id)}</p>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:10}}>
+              {filtered.map(g=>(
+                <div key={g.id} style={{padding:'14px 16px',background:'rgba(0,5,20,0.6)',border:'1px solid rgba(0,195,255,0.1)',borderLeft:'2px solid var(--blue)'}}>
+                  <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:'0.95rem',color:'white',letterSpacing:'0.04em',textTransform:'uppercase',marginBottom:4}}>{g.subject||'SIN NOMBRE'}</div>
+                  <div className="sys-label" style={{marginBottom:10}}>{shortJid(g.id)}</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div className="sys-label">MIEMBROS: <span style={{color:'var(--blue)'}}>{g.participants??'?'}</span></div>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      {g.welcome&&<span className="badge badge-blue" style={{fontSize:9}}>WELCOME</span>}
+                      {g.antiLink&&<span className="badge badge-red" style={{fontSize:9}}>ANTI-LINK</span>}
+                      {g.antiBad&&<span className="badge badge-amber" style={{fontSize:9}}>FILTRO</span>}
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-xs text-tx2">
-                      <Users size={12} />
-                      {g.participants ?? '?'}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3 flex-wrap">
-                    {g.welcome && <span className="badge badge-blue text-[9px]">Welcome</span>}
-                    {g.antiLink && <span className="badge badge-red text-[9px]">Anti-Link</span>}
-                    {g.antiBad && <span className="badge badge-amber text-[9px]">Anti-Bad</span>}
                   </div>
                 </div>
               ))}
