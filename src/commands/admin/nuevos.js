@@ -12,6 +12,7 @@ const config = require("../../config/config");
     const mins  = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days  = Math.floor(diff / 86400000);
+    if (mins  < 1)   return "recién";
     if (mins  < 60)  return `hace ${mins}min`;
     if (hours < 24)  return `hace ${hours}h`;
     if (days  < 7)   return `hace ${days}d`;
@@ -68,39 +69,75 @@ const config = require("../../config/config");
 
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
       const group  = db.getGroup(from);
-      const recentJoins = group.recentJoins || {};
 
-      // Obtener participantes actuales para filtrar los que ya salieron
-      let currentParticipants = new Set();
-      let groupName = group.name || from.split("@")[0];
+      // Obtener metadatos del grupo (participantes actuales + timestamps lb)
+      let metadata;
       try {
-        const metadata = await sock.groupMetadata(from);
-        for (const p of metadata.participants) currentParticipants.add(p.id);
-        groupName = metadata.subject || groupName;
+        metadata = await sock.groupMetadata(from);
       } catch {
         return sock.sendMessage(from, {
           text: `${config.emojis.error} No pude obtener la lista de miembros. ¿Soy admin?`,
         }, { quoted: msg });
       }
 
-      // Filtrar: unidos dentro del rango Y todavía en el grupo
-      const entries = Object.entries(recentJoins)
+      const groupName = metadata.subject || group.name || from.split("@")[0];
+      const currentParticipants = new Set(metadata.participants.map(p => p.id));
+
+      // ── Construir mapa de timestamps de ingreso ─────────────────────────────
+      // Prioridad:
+      //   1. recentJoins (registrado por el evento group-participants.update)
+      //   2. Campo "lb" de los metadatos de WhatsApp (timestamp de ingreso real)
+      // Así funciona aunque el miembro haya entrado antes de que existiera el comando.
+
+      const recentJoins = group.recentJoins || {};
+
+      // Construir mapa combinado: jid → timestamp
+      const joinMap = {};
+
+      // Primero, volcar los datos del campo lb de WhatsApp (más histórico)
+      for (const p of metadata.participants) {
+        const lb = p.lb; // timestamp en segundos en Baileys
+        if (lb && typeof lb === "number" && lb > 0) {
+          // lb puede venir en segundos (epoch unix) o milisegundos
+          const ts = lb > 1e12 ? lb : lb * 1000;
+          joinMap[p.id] = ts;
+        }
+      }
+
+      // Después, sobrescribir con recentJoins (más preciso cuando existe)
+      for (const [jid, ts] of Object.entries(recentJoins)) {
+        joinMap[jid] = ts;
+      }
+
+      // ── Filtrar: dentro del rango Y todavía en el grupo ─────────────────────
+      const entries = Object.entries(joinMap)
         .filter(([jid, ts]) => ts >= cutoff && currentParticipants.has(jid))
         .sort(([, a], [, b]) => b - a); // más recientes primero
 
-      // Sin resultados
+      // ── Sin resultados ───────────────────────────────────────────────────────
       if (entries.length === 0) {
-        const label = onlyPending
-          ? "No hay usuarios pendientes de presentación en las últimas 24h."
-          : `No hay nuevos miembros registrados en los últimos ${days} día${days !== 1 ? "s" : ""}.\n${config.emojis.info} _Solo se registran ingresos cuando el bot está activo en el grupo._`;
+        // Si no hay datos lb ni recentJoins, ofrecer listar todos los participantes
+        const hasAnyData = Object.keys(joinMap).length > 0;
+        let label;
+        if (onlyPending) {
+          label = "No hay usuarios pendientes de presentación en las últimas 24h.";
+        } else if (!hasAnyData) {
+          label = [
+            `No hay datos de ingreso para los últimos ${days} día${days !== 1 ? "s" : ""}.`,
+            `${config.emojis.info} _WhatsApp no reportó timestamps de ingreso para este grupo._`,
+            `Tip: usa *${config.prefix}nuevos 30* para ampliar el rango, o el bot irá registrando nuevos ingresos automáticamente.`,
+          ].join("\n");
+        } else {
+          label = `No hay nuevos miembros en los últimos ${days} día${days !== 1 ? "s" : ""}. Prueba con un número mayor, ej: *${config.prefix}nuevos 14*`;
+        }
         return sock.sendMessage(from, {
           text: `${config.emojis.sparkles} ${label}`,
         }, { quoted: msg });
       }
 
-      const mentions  = entries.map(([jid]) => jid);
+      const mentions = entries.map(([jid]) => jid);
 
-      // Mensaje personalizado (todo lo que no sea número ni modo especial)
+      // Mensaje personalizado
       const customMsg = args
         .filter(a => !specialModes.includes(a) && isNaN(parseInt(a)))
         .join(" ").trim();
@@ -133,6 +170,14 @@ const config = require("../../config/config");
         `${config.emojis.fire} ¡Bienvenidos! Usa *${config.prefix}help* para ver todos los comandos.`,
         `✨ _AnimeBot by zerinho23_`
       );
+
+      // Guardar en recentJoins los que venían de lb (para futuras consultas más rápidas)
+      const updatedJoins = { ...recentJoins };
+      let changed = false;
+      for (const [jid, ts] of entries) {
+        if (!updatedJoins[jid]) { updatedJoins[jid] = ts; changed = true; }
+      }
+      if (changed) db.updateGroup(from, { recentJoins: updatedJoins });
 
       logger.info(`!nuevos: ${entries.length} miembro(s) en ${from.split("@")[0]} (${days}d)`);
 
