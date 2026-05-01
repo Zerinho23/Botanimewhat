@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
   import { Save, RotateCcw } from 'lucide-react'
-  import { getConfig, postConfig } from '../api'
+  import { getConfig, postConfig, isConfigured } from '../api'
   import type { BotConfig } from '../api'
 
   function Toast({ msg, ok }: { msg: string; ok: boolean }) {
@@ -38,6 +38,12 @@ import { useEffect, useState } from 'react'
 
     const set = (k: keyof BotConfig) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(prev=>({...prev,[k]:e.target.value}))
+
+    if (!isConfigured()) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div className="sys-label" style={{color:'var(--amber)'}}>[ VITE_API_URL no configurada en Vercel ]</div>
+      </div>
+    )
 
     if (loading) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
