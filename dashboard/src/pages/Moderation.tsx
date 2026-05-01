@@ -12,14 +12,15 @@ import { useEffect, useState, useCallback } from 'react'
 
   // ─── helpers ────────────────────────────────────────────────────────────────
   const ACTION_META: Record<string, { color: string; bg: string; label: string; icon: React.ElementType }> = {
-    ban:        { color: '#ff3355', bg: 'rgba(255,51,85,.15)',   label: 'Ban',         icon: UserX },
-    kick:       { color: '#ff5252', bg: 'rgba(255,82,82,.12)',   label: 'Expulsado',   icon: UserX },
-    warn:       { color: '#f59e0b', bg: 'rgba(245,158,11,.12)',  label: 'Advertencia', icon: AlertTriangle },
-    clearwarns: { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Warns borr.', icon: Trash2 },
-    mute:       { color: '#3b82f6', bg: 'rgba(59,130,246,.12)',  label: 'Muteado',     icon: VolumeX },
-    unmute:     { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Desmuteado',  icon: Volume2 },
+    ban:        { color: '#ff3355', bg: 'rgba(255,51,85,.15)',   label: 'Ban',          icon: UserX },
+    kick:       { color: '#ff5252', bg: 'rgba(255,82,82,.12)',   label: 'Expulsado',    icon: UserX },
+    warn:       { color: '#f59e0b', bg: 'rgba(245,158,11,.12)',  label: 'Advertencia',  icon: AlertTriangle },
+    clearwarns: { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Warns borr.',  icon: Trash2 },
+    mute:       { color: '#3b82f6', bg: 'rgba(59,130,246,.12)',  label: 'Muteado',      icon: VolumeX },
+    unmute:     { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Desmuteado',   icon: Volume2 },
   }
-  const metaOf = (a: string) => ACTION_META[a] ?? { color: 'var(--tx3)', bg: 'rgba(255,255,255,.06)', label: a, icon: Shield }
+  const metaOf = (a: string) =>
+    ACTION_META[a] ?? { color: 'var(--tx3)', bg: 'rgba(255,255,255,.06)', label: a, icon: Shield }
 
   function fmtTs(ts: number) {
     return new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -31,7 +32,7 @@ import { useEffect, useState, useCallback } from 'react'
     return `hsl(${hues[n % hues.length]}, 70%, 55%)`
   }
 
-  // ─── toast hook ─────────────────────────────────────────────────────────────
+  // ─── toast hook ──────────────────────────────────────────────────────────────
   type Toast = { id: number; text: string; ok: boolean }
   function useToasts() {
     const [toasts, setToasts] = useState<Toast[]>([])
@@ -45,12 +46,11 @@ import { useEffect, useState, useCallback } from 'react'
 
   // ─── MemberRow ───────────────────────────────────────────────────────────────
   function MemberRow({
-    member, muted, warns, groupJid, onAction, busy
+    member, muted, warns, onAction, busy,
   }: {
     member: GroupMember
     muted: boolean
     warns: number
-    groupJid: string
     onAction: (jid: string, action: string) => Promise<void>
     busy: boolean
   }) {
@@ -59,14 +59,14 @@ import { useEffect, useState, useCallback } from 'react'
     const color = avatarColor(member.jid)
 
     return (
-      <tr style={{ opacity: busy ? .6 : 1, transition: 'opacity .2s' }}>
+      <tr style={{ opacity: busy ? .55 : 1, transition: 'opacity .2s' }}>
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 9, background: color + '22',
-              border: `1px solid ${color}55`, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', flexShrink: 0,
-              fontSize: 12, fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif"
+              width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+              background: color + '1a', border: `1px solid ${color}44`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif",
             }}>
               {displayName[0]?.toUpperCase()}
             </div>
@@ -77,7 +77,7 @@ import { useEffect, useState, useCallback } from 'react'
                   <span style={{
                     fontSize: 9, fontWeight: 800, letterSpacing: '.1em', color: 'var(--gold)',
                     background: 'rgba(255,200,0,.1)', border: '1px solid rgba(255,200,0,.3)',
-                    padding: '1px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 3
+                    padding: '1px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
                   }}>
                     <Crown size={8} /> ADMIN
                   </span>
@@ -91,39 +91,35 @@ import { useEffect, useState, useCallback } from 'react'
         <td>
           {muted
             ? <span className="badge badge-red"><VolumeX size={10} /> Muteado</span>
-            : <span className="badge badge-green"><Volume2 size={10} /> Activo</span>
-          }
+            : <span className="badge badge-green"><Volume2 size={10} /> Activo</span>}
         </td>
 
         <td>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {warns > 0 && (
-              <span style={{
+          {warns > 0
+            ? <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
                 background: warns >= 3 ? 'rgba(255,51,85,.15)' : 'rgba(245,158,11,.12)',
                 color: warns >= 3 ? '#ff3355' : '#f59e0b',
                 border: `1px solid ${warns >= 3 ? 'rgba(255,51,85,.3)' : 'rgba(245,158,11,.25)'}`,
-                padding: '2px 8px', borderRadius: 5, fontSize: 12, fontWeight: 800,
-                display: 'flex', alignItems: 'center', gap: 4
+                padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 800,
               }}>
                 <AlertTriangle size={10} /> {warns}
               </span>
-            )}
-            {warns === 0 && <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
-          </div>
+            : <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
         </td>
 
         <td>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-            {!member.isAdmin && (
-              <>
+          {member.isAdmin
+            ? <span style={{ fontSize: 11, color: 'var(--tx3)', fontStyle: 'italic' }}>Sin acciones disponibles</span>
+            : (
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-ghost btn-xs"
                   style={{ color: muted ? '#10b981' : '#3b82f6', borderColor: muted ? 'rgba(16,185,129,.3)' : 'rgba(59,130,246,.3)' }}
                   onClick={() => onAction(member.jid, muted ? 'unmute' : 'mute')}
                   disabled={busy}
-                  title={muted ? 'Desmutear' : 'Mutear'}
                 >
-                  {muted ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                  {muted ? <Volume2 size={11} /> : <VolumeX size={11} />}
                   {muted ? 'Desmutear' : 'Mutear'}
                 </button>
 
@@ -132,9 +128,8 @@ import { useEffect, useState, useCallback } from 'react'
                   style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,.3)' }}
                   onClick={() => onAction(member.jid, 'warn')}
                   disabled={busy}
-                  title="Agregar advertencia"
                 >
-                  <AlertTriangle size={12} /> Warn
+                  <AlertTriangle size={11} /> +Warn
                 </button>
 
                 {warns > 0 && (
@@ -143,9 +138,8 @@ import { useEffect, useState, useCallback } from 'react'
                     style={{ color: '#10b981', borderColor: 'rgba(16,185,129,.3)' }}
                     onClick={() => onAction(member.jid, 'clearwarns')}
                     disabled={busy}
-                    title="Borrar advertencias"
                   >
-                    <Trash2 size={12} /> Borrar warns
+                    <Trash2 size={11} /> Borrar warns
                   </button>
                 )}
 
@@ -153,80 +147,79 @@ import { useEffect, useState, useCallback } from 'react'
                   className="btn btn-ghost btn-xs"
                   style={{ color: 'var(--red)', borderColor: 'rgba(229,57,53,.25)' }}
                   onClick={() => {
-                    if (confirm(`¿Expulsar a ${displayName} (+${num}) del grupo?`)) onAction(member.jid, 'kick')
+                    if (confirm(`¿Expulsar a ${displayName} (+${num}) del grupo?`)) {
+                      void onAction(member.jid, 'kick')
+                    }
                   }}
                   disabled={busy}
-                  title="Expulsar del grupo"
                 >
-                  <UserX size={12} /> Expulsar
+                  <UserX size={11} /> Expulsar
                 </button>
-              </>
+              </div>
             )}
-            {member.isAdmin && (
-              <span style={{ fontSize: 11, color: 'var(--tx3)', fontStyle: 'italic' }}>Sin acciones sobre admins</span>
-            )}
-          </div>
         </td>
       </tr>
     )
   }
 
-  // ─── main page ───────────────────────────────────────────────────────────────
-  export default function Moderation() {
-    const [groups,      setGroups]      = useState<Group[]>([])
-    const [selectedJid, setSelectedJid] = useState<string>('')
-    const [modData,     setModData]     = useState<GroupModData | null>(null)
-    const [history,     setHistory]     = useState<ModEntry[]>([])
-    const [loadingGroups, setLoadingGroups] = useState(true)
-    const [loadingMembers, setLoadingMembers] = useState(false)
-    const [refreshingHistory, setRefreshingHistory] = useState(false)
-    const [search,      setSearch]      = useState('')
-    const [filterStatus, setFilter]     = useState<'all' | 'muted' | 'warned'>('all')
-    const [busyJids,    setBusy]        = useState<Set<string>>(new Set())
-    const [showHistory, setShowHistory] = useState(true)
-    const [historyFilter, setHF]        = useState<string>('all')
-    const { toasts, add: addToast }     = useToasts()
-
-    if (!isConfigured()) return (
+  // ─── NotConfigured ────────────────────────────────────────────────────────────
+  function NotConfigured() {
+    return (
       <div className="empty-state" style={{ height: 360 }}>
         <div className="empty-state-icon"><AlertTriangle size={28} color="var(--gold)" /></div>
         <div className="empty-state-title" style={{ color: 'var(--gold)' }}>VITE_API_URL no configurada</div>
         <div className="empty-state-sub">Ve a Vercel → Settings → Environment Variables</div>
       </div>
     )
+  }
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+  // ─── Main page ────────────────────────────────────────────────────────────────
+  export default function Moderation() {
+    const [groups,          setGroups]          = useState<Group[]>([])
+    const [selectedJid,     setSelectedJid]     = useState<string>('')
+    const [modData,         setModData]         = useState<GroupModData | null>(null)
+    const [history,         setHistory]         = useState<ModEntry[]>([])
+    const [loadingGroups,   setLoadingGroups]   = useState(true)
+    const [loadingMembers,  setLoadingMembers]  = useState(false)
+    const [refreshingHist,  setRefreshingHist]  = useState(false)
+    const [search,          setSearch]          = useState('')
+    const [filterStatus,    setFilter]          = useState<'all' | 'muted' | 'warned'>('all')
+    const [busyJids,        setBusy]            = useState<Set<string>>(new Set())
+    const [showHistory,     setShowHistory]     = useState(true)
+    const [historyFilter,   setHF]              = useState<string>('all')
+    const { toasts, add: addToast }             = useToasts()
+
+    const configured = isConfigured()
+
     const loadGroups = useCallback(async () => {
+      if (!configured) { setLoadingGroups(false); return }
       try { setGroups(await getGroups()) }
       catch { addToast('Error cargando grupos', false) }
       setLoadingGroups(false)
-    }, [addToast])
+    }, [configured, addToast])
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const loadMembers = useCallback(async (jid: string) => {
-      if (!jid) return
+      if (!jid || !configured) return
       setLoadingMembers(true); setModData(null)
       try { setModData(await getModGroup(jid)) }
       catch { addToast('Error cargando miembros del grupo', false) }
       setLoadingMembers(false)
-    }, [addToast])
+    }, [configured, addToast])
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const loadHistory = useCallback(async (silent = false) => {
-      if (!silent) setRefreshingHistory(true)
+      if (!configured) return
+      if (!silent) setRefreshingHist(true)
       try { setHistory(await getModHistory()) } catch {}
-      setRefreshingHistory(false)
-    }, [])
+      setRefreshingHist(false)
+    }, [configured])
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       loadGroups()
       loadHistory()
     }, [loadGroups, loadHistory])
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
-      if (selectedJid) loadMembers(selectedJid)
+      if (selectedJid) void loadMembers(selectedJid)
     }, [selectedJid, loadMembers])
 
     const handleAction = async (userJid: string, action: string) => {
@@ -235,12 +228,11 @@ import { useEffect, useState, useCallback } from 'react'
       try {
         await postModAction({ groupJid: selectedJid, userJid, action })
         const labels: Record<string, string> = {
-          mute: 'Usuario muteado', unmute: 'Usuario desmuteado',
-          warn: 'Advertencia agregada', clearwarns: 'Warns eliminados',
-          kick: 'Usuario expulsado'
+          mute: 'Usuario muteado ✓', unmute: 'Usuario desmuteado ✓',
+          warn: 'Advertencia agregada ✓', clearwarns: 'Warns eliminados ✓',
+          kick: 'Usuario expulsado ✓',
         }
-        addToast(labels[action] || `Acción "${action}" ejecutada`, true)
-        // Refresh members & history
+        addToast(labels[action] ?? `"${action}" ejecutado`, true)
         await Promise.all([loadMembers(selectedJid), loadHistory(true)])
       } catch (e: unknown) {
         addToast(e instanceof Error ? e.message : 'Error al ejecutar acción', false)
@@ -248,43 +240,44 @@ import { useEffect, useState, useCallback } from 'react'
       setBusy(prev => { const s = new Set(prev); s.delete(userJid); return s })
     }
 
-    // Stats
-    const mutedCount  = modData ? modData.muted.length : 0
+    // ── Derived data ───────────────────────────────────────────────────────────
+    const mutedCount  = modData?.muted.length ?? 0
     const warnedCount = modData ? Object.values(modData.warnings).filter(w => w > 0).length : 0
-    const memberCount = modData ? modData.members.length : 0
-    const adminCount  = modData ? modData.members.filter(m => m.isAdmin).length : 0
+    const memberCount = modData?.members.length ?? 0
+    const adminCount  = modData?.members.filter(m => m.isAdmin).length ?? 0
 
-    // Filter members
     const filteredMembers = (modData?.members ?? []).filter((m: GroupMember) => {
       const s = search.toLowerCase()
-      const matchSearch = (m.name || '').toLowerCase().includes(s) || m.jid.includes(s)
-      const isMuted  = modData!.muted.includes(m.jid)
-      const hasWarns = (modData!.warnings[m.jid] ?? 0) > 0
-      if (filterStatus === 'muted'  && !isMuted)  return false
-      if (filterStatus === 'warned' && !hasWarns) return false
+      const matchSearch = (m.name ?? '').toLowerCase().includes(s) || m.jid.includes(s)
+      if (filterStatus === 'muted'  && !modData!.muted.includes(m.jid))           return false
+      if (filterStatus === 'warned' && !(modData!.warnings[m.jid] ?? 0))          return false
       return matchSearch
     })
+
+    const historyActionCounts: Record<string, number> = {}
+    history.forEach(e => { historyActionCounts[e.action] = (historyActionCounts[e.action] ?? 0) + 1 })
 
     const filteredHistory = history.filter(e =>
       historyFilter === 'all' || e.action === historyFilter
     )
 
-    const historyActionCounts: Record<string, number> = {}
-    history.forEach(e => { historyActionCounts[e.action] = (historyActionCounts[e.action] || 0) + 1 })
+    // ── Render ─────────────────────────────────────────────────────────────────
+    if (!configured) return <NotConfigured />
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-up">
 
-        {/* ── Toast stack ─────────────────────────────────────────────────────── */}
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Toast stack */}
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column-reverse', gap: 8 }}>
           {toasts.map(t => (
             <div key={t.id} className="animate-scale-in" style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 16px', borderRadius: 10, minWidth: 220, maxWidth: 320,
+              padding: '11px 16px', borderRadius: 10, minWidth: 220, maxWidth: 340,
               background: t.ok ? 'rgba(16,185,129,.15)' : 'rgba(229,57,53,.15)',
               border: `1px solid ${t.ok ? 'rgba(16,185,129,.35)' : 'rgba(229,57,53,.35)'}`,
-              boxShadow: '0 8px 32px rgba(0,0,0,.4)', backdropFilter: 'blur(12px)',
-              fontSize: 13, fontWeight: 600, color: t.ok ? '#10b981' : 'var(--red)'
+              boxShadow: '0 8px 32px rgba(0,0,0,.5)', backdropFilter: 'blur(12px)',
+              fontSize: 13, fontWeight: 600,
+              color: t.ok ? '#10b981' : 'var(--red)',
             }}>
               {t.ok ? <CheckCircle size={14} /> : <X size={14} />}
               {t.text}
@@ -292,38 +285,38 @@ import { useEffect, useState, useCallback } from 'react'
           ))}
         </div>
 
-        {/* ── Header ──────────────────────────────────────────────────────────── */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: '1.6rem' }}>
-              <Shield size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8, color: 'var(--red)' }} />
-              Moderación
+            <h1 style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Shield size={20} color="var(--red)" /> Moderación
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 3 }}>
-              Gestiona usuarios directamente desde el panel
-            </p>
+            <p style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 3 }}>Gestiona usuarios directamente desde el panel</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => { if (selectedJid) loadMembers(selectedJid); loadHistory() }} disabled={loadingMembers}>
-              <RefreshCw size={13} style={{ animation: loadingMembers ? 'spin 1s linear infinite' : 'none' }} />
-              Actualizar
-            </button>
-          </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => { if (selectedJid) void loadMembers(selectedJid); void loadHistory() }}
+            disabled={loadingMembers}
+          >
+            <RefreshCw size={13} style={{ animation: loadingMembers ? 'spin 1s linear infinite' : 'none' }} />
+            Actualizar
+          </button>
         </div>
 
-        {/* ── Group selector ──────────────────────────────────────────────────── */}
+        {/* Group selector */}
         <div className="card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <Users size={14} color="var(--tx3)" />
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', color: 'var(--tx3)', textTransform: 'uppercase' }}>Grupo</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: 'var(--tx3)', textTransform: 'uppercase' }}>Grupo</span>
             </div>
+
             {loadingGroups ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--tx3)', fontSize: 12 }}>
                 <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Cargando grupos…
               </div>
             ) : (
-              <div style={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 420 }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 400 }}>
                 <select
                   className="select"
                   value={selectedJid}
@@ -335,9 +328,13 @@ import { useEffect, useState, useCallback } from 'react'
                     <option key={g.jid} value={g.jid}>{g.name || g.jid.split('@')[0]}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
+                <ChevronDown size={14} style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--tx3)', pointerEvents: 'none',
+                }} />
               </div>
             )}
+
             {selectedJid && modData && (
               <span style={{ fontSize: 12, color: 'var(--tx3)' }}>
                 {memberCount} miembros · {adminCount} admins · {mutedCount} muteados · {warnedCount} con warns
@@ -346,52 +343,55 @@ import { useEffect, useState, useCallback } from 'react'
           </div>
         </div>
 
-        {/* ── No group selected ───────────────────────────────────────────────── */}
+        {/* No group selected */}
         {!selectedJid && !loadingGroups && (
-          <div className="empty-state" style={{ height: 220 }}>
-            <div className="empty-state-icon"><Users size={28} color="var(--tx3)" /></div>
+          <div className="empty-state" style={{ height: 200 }}>
+            <div className="empty-state-icon"><Users size={26} color="var(--tx3)" /></div>
             <div className="empty-state-title">Selecciona un grupo</div>
             <div className="empty-state-sub">Elige un grupo arriba para ver y gestionar sus miembros</div>
           </div>
         )}
 
-        {/* ── Loading members ─────────────────────────────────────────────────── */}
+        {/* Loading members */}
         {selectedJid && loadingMembers && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, gap: 10, color: 'var(--tx3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, gap: 10, color: 'var(--tx3)' }}>
             <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
             <span style={{ fontSize: 13 }}>Cargando miembros…</span>
           </div>
         )}
 
-        {/* ── Stats mini cards ────────────────────────────────────────────────── */}
+        {/* Stats + table */}
         {selectedJid && modData && !loadingMembers && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10 }}>
+            {/* Mini stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(145px,1fr))', gap: 10 }}>
               {[
-                { label: 'Total miembros', val: memberCount, color: 'var(--blue)', icon: Users },
-                { label: 'Admins',          val: adminCount,  color: 'var(--gold)', icon: Crown },
-                { label: 'Muteados',        val: mutedCount,  color: '#3b82f6',     icon: VolumeX },
-                { label: 'Con advertencias',val: warnedCount, color: '#f59e0b',     icon: AlertTriangle },
-              ].map(({ label, val, color, icon: Icon }) => (
+                { label: 'Total miembros',    val: memberCount, color: 'var(--blue)',  Icon: Users },
+                { label: 'Admins',            val: adminCount,  color: 'var(--gold)',  Icon: Crown },
+                { label: 'Muteados',          val: mutedCount,  color: '#3b82f6',      Icon: VolumeX },
+                { label: 'Con advertencias',  val: warnedCount, color: '#f59e0b',      Icon: AlertTriangle },
+              ].map(({ label, val, color, Icon }) => (
                 <div key={label} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className="icon-badge" style={{ background: color + '20' }}>
                     <Icon size={14} color={color} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '1.35rem', color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
-                    <div style={{ fontSize: 10, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.08em', marginTop: 2 }}>{label}</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.4rem', color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 10, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.07em', marginTop: 2 }}>{label}</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ── Filter bar ─────────────────────────────────────────────────── */}
+            {/* Filters */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 280 }}>
                 <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
                 <input
-                  className="input" placeholder="Buscar miembro…"
-                  value={search} onChange={e => setSearch(e.target.value)}
+                  className="input"
+                  placeholder="Buscar miembro…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
                   style={{ paddingLeft: 30 }}
                 />
               </div>
@@ -405,15 +405,18 @@ import { useEffect, useState, useCallback } from 'react'
               </div>
             </div>
 
-            {/* ── Members table ──────────────────────────────────────────────── */}
+            {/* Members table */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Shield size={14} color="var(--red)" />
-                <strong style={{ fontSize: 13 }}>Miembros del grupo</strong>
+                <strong style={{ fontSize: 13 }}>
+                  {modData.groupName || selectedJid.split('@')[0]}
+                </strong>
                 <span style={{ fontSize: 11, color: 'var(--tx3)', marginLeft: 4 }}>
-                  {filteredMembers.length} de {memberCount}
+                  {filteredMembers.length} de {memberCount} miembros
                 </span>
               </div>
+
               {filteredMembers.length === 0 ? (
                 <div className="empty-state" style={{ padding: '32px 0' }}>
                   <div className="empty-state-icon"><Users size={22} color="var(--tx3)" /></div>
@@ -437,7 +440,6 @@ import { useEffect, useState, useCallback } from 'react'
                           member={m}
                           muted={modData!.muted.includes(m.jid)}
                           warns={modData!.warnings[m.jid] ?? 0}
-                          groupJid={selectedJid}
                           onAction={handleAction}
                           busy={busyJids.has(m.jid)}
                         />
@@ -450,11 +452,15 @@ import { useEffect, useState, useCallback } from 'react'
           </>
         )}
 
-        {/* ── History section ─────────────────────────────────────────────────── */}
+        {/* History */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div
-            style={{ padding: '14px 20px', borderBottom: showHistory ? '1px solid var(--border)' : 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+            style={{
+              padding: '14px 20px',
+              borderBottom: showHistory ? '1px solid var(--border)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer',
+            }}
             onClick={() => setShowHistory(s => !s)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -463,18 +469,25 @@ import { useEffect, useState, useCallback } from 'react'
               <span className="badge badge-blue" style={{ fontSize: 10 }}>{history.length}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button className="btn btn-ghost btn-xs" onClick={e => { e.stopPropagation(); loadHistory() }} disabled={refreshingHistory}>
-                <RefreshCw size={11} style={{ animation: refreshingHistory ? 'spin 1s linear infinite' : 'none' }} />
+              <button
+                className="btn btn-ghost btn-xs"
+                onClick={e => { e.stopPropagation(); void loadHistory() }}
+                disabled={refreshingHist}
+              >
+                <RefreshCw size={11} style={{ animation: refreshingHist ? 'spin 1s linear infinite' : 'none' }} />
               </button>
-              {showHistory ? <ChevronDown size={14} color="var(--tx3)" /> : <ChevronRight size={14} color="var(--tx3)" />}
+              {showHistory
+                ? <ChevronDown size={14} color="var(--tx3)" />
+                : <ChevronRight size={14} color="var(--tx3)" />}
             </div>
           </div>
 
           {showHistory && (
             <>
-              {/* History filters */}
               <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button className={`btn btn-xs ${historyFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setHF('all')}>Todos</button>
+                <button className={`btn btn-xs ${historyFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setHF('all')}>
+                  Todos
+                </button>
                 {Object.entries(historyActionCounts).map(([action, count]) => {
                   const m = metaOf(action)
                   return (
@@ -491,7 +504,7 @@ import { useEffect, useState, useCallback } from 'react'
               {filteredHistory.length === 0 ? (
                 <div className="empty-state" style={{ padding: '28px 0' }}>
                   <div className="empty-state-icon"><Clock size={20} color="var(--tx3)" /></div>
-                  <div className="empty-state-title">Sin historial</div>
+                  <div className="empty-state-title">Sin historial aún</div>
                   <div className="empty-state-sub">Las acciones de moderación aparecerán aquí</div>
                 </div>
               ) : (
@@ -507,19 +520,26 @@ import { useEffect, useState, useCallback } from 'react'
                           <tr key={i}>
                             <td>
                               <span style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700,
-                                fontSize: 11, color: m.color, background: m.bg,
-                                border: `1px solid ${m.color}33`, padding: '3px 9px', borderRadius: 5,
-                                textTransform: 'uppercase', letterSpacing: '.06em'
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                fontWeight: 700, fontSize: 11, color: m.color,
+                                background: m.bg, border: `1px solid ${m.color}33`,
+                                padding: '3px 9px', borderRadius: 5,
+                                textTransform: 'uppercase', letterSpacing: '.06em',
                               }}>
                                 <m.icon size={10} /> {m.label}
                               </span>
                             </td>
                             <td style={{ fontSize: 12 }}>
                               <div style={{ fontWeight: 600 }}>{e.userName || '—'}</div>
-                              {e.userJid && <div style={{ fontSize: 9, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>+{e.userJid.split('@')[0]}</div>}
+                              {e.userJid && (
+                                <div style={{ fontSize: 9, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
+                                  +{e.userJid.split('@')[0]}
+                                </div>
+                              )}
                             </td>
-                            <td style={{ fontSize: 12, color: 'var(--tx2)' }}>{e.groupName || e.groupJid?.split('@')[0] || '—'}</td>
+                            <td style={{ fontSize: 12, color: 'var(--tx2)' }}>
+                              {e.groupName || e.groupJid?.split('@')[0] || '—'}
+                            </td>
                             <td>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--tx3)' }}>
                                 <Zap size={10} />{fmtTs(e.ts)}
