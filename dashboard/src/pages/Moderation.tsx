@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { getModHistory } from '../api'
+  import { getModHistory, isConfigured } from '../api'
   import type { ModEntry } from '../api'
   import { shortJid, timeAgo } from '../lib/utils'
 
@@ -19,6 +19,12 @@ import { useEffect, useState } from 'react'
     useEffect(() => {
       getModHistory().then(d=>setHistory(Array.isArray(d)?d:[])).catch(()=>{}).finally(()=>setLoading(false))
     }, [])
+
+    if (!isConfigured()) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
+        <div className="sys-label" style={{color:'var(--amber)'}}>[ VITE_API_URL no configurada en Vercel ]</div>
+      </div>
+    )
 
     if (loading) return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:256}}>
