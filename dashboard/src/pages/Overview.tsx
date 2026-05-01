@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { RefreshCw, Users, MessageSquare, Activity, Zap, Star, Shield, Clock, Wifi, AlertCircle, TrendingUp, BarChart2, Award, ArrowUpRight } from 'lucide-react'
+  import { RefreshCw, Users, MessageSquare, Activity, Zap, Star, Shield, Clock, AlertCircle, BarChart2, Award, ArrowUpRight } from 'lucide-react'
   import { getStatus, getStats, getUsers, getActivityHistory, isConfigured, type BotStats, type BotStatus, type User, type ActivityEvent } from '../api'
 
   function fmtUptime(s: number) {
