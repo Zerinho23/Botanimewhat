@@ -12,6 +12,10 @@ import { useEffect, useState } from 'react'
     const [resetting,setReset]  = useState(false)
     const [resetMsg, setResetMsg]= useState<string|null>(null)
     const apiUrl = getApiUrl()
+    const urlMissingProtocol = apiUrl && !/^https?:\/\//i.test(import.meta.env.VITE_API_URL ?? '')
+    const urlWarning = urlMissingProtocol
+      ? `URL auto-corregida a: ${apiUrl} (tenías sin https://)`
+      : null
 
     if (!isConfigured()) return (
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:320,gap:14,textAlign:'center'}}>
@@ -81,6 +85,15 @@ import { useEffect, useState } from 'react'
               <RefreshCw size={13}/>
             </button>
           </div>
+
+          {urlWarning && (
+            <div style={{marginTop:14,padding:'10px 14px',borderRadius:8,
+              background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',
+              fontSize:12,color:'var(--gold)',display:'flex',alignItems:'center',gap:8}}>
+              <AlertTriangle size={13}/>
+              {urlWarning}
+            </div>
+          )}
 
           {status && !connected && (
             <div style={{marginTop:14,padding:'10px 14px',borderRadius:8,
