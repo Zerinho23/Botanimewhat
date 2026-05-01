@@ -321,15 +321,13 @@ import { useEffect, useState } from 'react'
     }
 
     const handleToggleFeat = async (g: Group, key: 'antiLink' | 'antiSpam' | 'welcome', val: boolean) => {
+      setGroups(prev => prev.map(x => x.jid === g.jid ? { ...x, [key]: val } : x))
       try {
-        const { postGroupSettings } = await import('../api').catch(() => ({ postGroupSettings: null }))
-        await (postGroupSettings as ((j:string,d:Record<string,unknown>)=>Promise<void>) | null)?.(g.jid, { [key]: val })
-        setGroups(prev => prev.map(x => x.jid === g.jid ? { ...x, [key]: val } : x))
+        await postGroupSettings(g.jid, { [key]: val })
         showToast(`${key} ${val ? 'activado' : 'desactivado'}`)
-      } catch {
-        // fallback: update locally optimistically
-        setGroups(prev => prev.map(x => x.jid === g.jid ? { ...x, [key]: val } : x))
-        showToast(`${key} ${val ? 'activado' : 'desactivado'}`)
+      } catch (err) {
+        setGroups(prev => prev.map(x => x.jid === g.jid ? { ...x, [key]: !val } : x))
+        showToast(err instanceof Error ? err.message : 'Error al actualizar', false)
       }
     }
 
