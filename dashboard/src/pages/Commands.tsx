@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
   import {
     Terminal, Search, Copy, Check, Shield, Users, Star,
-    BookOpen, ChevronDown, ChevronRight, Filter, Zap
+    BookOpen, ChevronDown, ChevronRight
   } from 'lucide-react'
 
   interface Command {
