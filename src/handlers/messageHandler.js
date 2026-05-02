@@ -110,7 +110,13 @@ async function handleMessages(sock, { messages }) {
       if (!text) continue;
       if (msg.key.fromMe && !text.startsWith(config.prefix)) continue;
 
-      // ── Emitir evento de mensaje para el log ─────────────────────
+      // ── Grupos con bot desactivado: ignorar antes de emitir nada ─────
+        if (isGroup) {
+          const _g = db.getGroup(from);
+          if (_g.botEnabled === false) continue;
+        }
+
+        // ── Emitir evento de mensaje para el log ─────────────────────
       try {
         ws().emitEvent("msg", {
           sender: sender.split("@")[0],
@@ -125,8 +131,6 @@ async function handleMessages(sock, { messages }) {
 
       if (isGroup) {
         const group = db.getGroup(from);
-        // Si el bot está desactivado en este grupo, ignorar todo
-        if (group.botEnabled === false) continue;
         if (group.mutedUsers?.includes(sender)) {
           try { await sock.sendMessage(from, { delete: msg.key }); } catch {}
           continue;
