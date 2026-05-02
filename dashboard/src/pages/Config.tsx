@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-  import { Settings, Save, RefreshCw, AlertCircle, Check,
+  import { Save, RefreshCw, AlertCircle, Check,
            Shield, DollarSign, Wrench, Power, PowerOff } from 'lucide-react'
   import { getConfig, postConfig, getMaintenance, postMaintenance,
            isConfigured, type BotConfig } from '../api'
