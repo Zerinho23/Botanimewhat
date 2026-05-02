@@ -1172,12 +1172,9 @@ function startWebServer(port) {
   // Eliminar grupo del bot (queda como número normal)
   app.delete("/api/groups/:jid",(req,res)=>{
     try{
-      const gf=path.join(__dirname,"..","database","data","groups.json");
-      const groups=fs.existsSync(gf)?JSON.parse(fs.readFileSync(gf,"utf-8")):{};
+      const db=require("../database/db");
       const jid=decodeURIComponent(req.params.jid);
-      if(!groups[jid]) return res.status(404).json({error:"Grupo no encontrado"});
-      delete groups[jid];
-      fs.writeFileSync(gf,JSON.stringify(groups,null,2));
+      db.deleteGroup(jid);
       res.json({ok:true,jid});
     }catch(e){res.status(500).json({error:e.message});}
   });
