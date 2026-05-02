@@ -267,7 +267,17 @@ import { useEffect, useState, useCallback } from 'react'
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }} className="animate-fade-up">
 
-        {/* Toast stack */}
+        {/* SL Page Header */}
+          <div>
+            <div className="page-title">
+              <span className="page-title-bracket">◈</span>
+              PENALTY RECORD
+              <span className="page-title-bracket">◈</span>
+            </div>
+            <div className="page-subtitle">HISTORIAL DE MODERACIÓN · CONTROL DE SHADOW ARMY</div>
+          </div>
+
+          {/* Toast stack */}
         <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column-reverse', gap: 8 }}>
           {toasts.map(t => (
             <div key={t.id} className="animate-scale-in" style={{
