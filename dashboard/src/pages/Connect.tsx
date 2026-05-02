@@ -1,240 +1,211 @@
 import { useEffect, useState } from 'react'
-  import { Wifi, WifiOff, RefreshCw, Smartphone, Key, AlertTriangle, CheckCircle, RotateCcw, Copy, ExternalLink } from 'lucide-react'
+  import { RefreshCw, Key, AlertTriangle, CheckCircle, RotateCcw, Copy, ExternalLink, Radio, Wifi } from 'lucide-react'
   import { getStatus, postPairingCode, postReset, getApiUrl, isConfigured, type BotStatus } from '../api'
 
-  function StepCard({ num, title, desc, active, done }: { num: number; title: string; desc: string; active?: boolean; done?: boolean }) {
+  function StepCard({num,title,desc,active,done}:{num:number;title:string;desc:string;active?:boolean;done?:boolean}) {
+    const color=done?'var(--green2)':active?'var(--blue)':'var(--tx3)'
     return (
-      <div style={{ display:'flex', gap:14, padding:'14px 0',
-        borderBottom:'1px solid rgba(255,255,255,.05)', opacity: done||active ? 1 : .5 }}>
-        <div style={{ width:32, height:32, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-          background: done?'rgba(16,185,129,.15)':active?'rgba(229,57,53,.15)':'rgba(255,255,255,.06)',
-          border: `1px solid ${done?'rgba(16,185,129,.3)':active?'rgba(229,57,53,.3)':'rgba(255,255,255,.08)'}`,
-          fontSize:12, fontWeight:800, color:done?'var(--green)':active?'var(--red)':'var(--tx3)' }}>
-          {done ? '✓' : num}
+      <div style={{display:'flex',gap:14,padding:'12px 0',borderBottom:'1px solid var(--border)',opacity:done||active?1:.4,transition:'opacity .2s'}}>
+        <div style={{width:32,height:32,borderRadius:2,flexShrink:0,background:color+'15',border:'1px solid '+color+'30',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Orbitron',sans-serif",fontWeight:800,fontSize:12,color}}>
+          {done?<CheckCircle size={14}/>:num}
         </div>
         <div>
-          <div style={{ fontWeight:700, fontSize:13, color:done?'var(--green)':active?'white':'var(--tx2)', marginBottom:3 }}>{title}</div>
-          <div style={{ fontSize:11, color:'var(--tx3)' }}>{desc}</div>
+          <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:13,letterSpacing:'.06em',color:active?'var(--tx1)':'var(--tx2)',marginBottom:3}}>{title}</div>
+          <div style={{fontSize:11,color:'var(--tx3)',lineHeight:1.6}}>{desc}</div>
         </div>
       </div>
     )
   }
 
   export default function Connect() {
-    const [status,   setStatus]  = useState<BotStatus | null>(null)
-    const [loading,  setLoad]    = useState(true)
+    const [status,   setStatus]  = useState<BotStatus|null>(null)
     const [phone,    setPhone]   = useState('')
     const [code,     setCode]    = useState<string|null>(null)
-    const [codeErr,  setCodeErr] = useState<string|null>(null)
-    const [loadCode, setLoadCode]= useState(false)
+    const [loading,  setLoad]    = useState(true)
+    const [sending,  setSend]    = useState(false)
     const [resetting,setReset]   = useState(false)
-    const [resetMsg, setResetMsg]= useState<{type:'ok'|'err'; text:string}|null>(null)
+    const [toast,    setToast]   = useState<{msg:string;ok:boolean}|null>(null)
     const [copied,   setCopied]  = useState(false)
     const apiUrl = getApiUrl()
 
-    if (!isConfigured()) return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:360, gap:16, textAlign:'center' }}>
-        <div className="icon-badge-lg" style={{ background:'rgba(245,158,11,.1)', width:64, height:64, borderRadius:18 }}>
-          <AlertTriangle size={30} color="var(--gold)" />
+    const showToast=(msg:string,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),4000)}
+
+    const fetchStatus=async()=>{
+      if(!isConfigured()){setLoad(false);return}
+      try{setStatus(await getStatus())}catch{}
+      setLoad(false)
+    }
+    useEffect(()=>{fetchStatus();const id=setInterval(fetchStatus,8000);return()=>clearInterval(id)},[])
+
+    const requestCode=async()=>{
+      if(!phone.trim())return
+      setSend(true);setCode(null)
+      try{
+        const res=await postPairingCode(phone.trim())
+        setCode((res as {code?:string}).code??JSON.stringify(res))
+        showToast('CÓDIGO GENERADO — ingresa en tu WhatsApp')
+      }catch(e){showToast(e instanceof Error?e.message:'Error al solicitar código',false)}
+      setSend(false)
+    }
+    const resetBot=async()=>{
+      if(!confirm('¿Confirmas reiniciar la sesión? El bot se desconectará.'))return
+      setReset(true)
+      try{await postReset();setStatus(null);setCode(null);showToast('SESIÓN REINICIADA')}
+      catch(e){showToast(e instanceof Error?e.message:'Error',false)}
+      setReset(false)
+    }
+    const copyCode=()=>{
+      if(code){navigator.clipboard.writeText(code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000)}
+    }
+
+    if(!isConfigured()) return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:300}}>
+        <div className="card animate-scale-in" style={{padding:32,textAlign:'center',maxWidth:400}}>
+          <div className="sys-header" style={{margin:'-32px -32px 24px',borderRadius:'var(--radius-lg) var(--radius-lg) 0 0'}}>
+            <AlertTriangle size={12} color="var(--gold)"/>
+            <span className="sys-header-title" style={{color:'var(--gold)'}}>PORTAL SIN CONFIGURAR</span>
+          </div>
+          <p style={{fontSize:12,color:'var(--tx2)',lineHeight:1.8,marginBottom:16}}>
+            Define <span style={{color:'var(--blue)',fontFamily:"'JetBrains Mono',monospace"}}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
+          </p>
+          <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'rgba(30,144,255,.05)',border:'1px solid var(--border)',borderRadius:'var(--radius)'}}>
+            <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'var(--tx3)'}}>VITE_API_URL = https://tu-bot.railway.app</span>
+          </div>
         </div>
-        <div style={{ fontWeight:700, fontSize:'1rem', color:'var(--gold)', textTransform:'uppercase', letterSpacing:'.08em' }}>VITE_API_URL no configurada</div>
-        <div style={{ fontSize:12, color:'var(--tx3)', maxWidth:360 }}>Ve a Vercel → Settings → Environment Variables y agrega:</div>
-        <div className="code-block" style={{ fontSize:13 }}>VITE_API_URL = https://tu-bot.railway.app</div>
       </div>
     )
 
-    const fetchStatus = async () => {
-      try { setStatus(await getStatus()) } catch {}
-      setLoad(false)
-    }
-    useEffect(() => { fetchStatus(); const id=setInterval(fetchStatus,8000); return()=>clearInterval(id) }, [])
-
-    const requestCode = async () => {
-      if (!phone.trim()) return
-      setLoadCode(true); setCode(null); setCodeErr(null)
-      try {
-        const r = await postPairingCode(phone.trim())
-        if (r.code) setCode(r.code)
-        else setCodeErr(r.error||'No se recibió código')
-      } catch (e: unknown) { setCodeErr(e instanceof Error?e.message:'Error al solicitar código') }
-      setLoadCode(false)
-    }
-
-    const reset = async () => {
-      if (!confirm('¿Reiniciar la sesión del bot? Necesitarás volver a vincular WhatsApp.')) return
-      setReset(true); setResetMsg(null)
-      try { await postReset(); setResetMsg({ type:'ok', text:'Sesión reiniciada correctamente. El bot solicitará re-vinculación.' }) }
-      catch (e: unknown) { setResetMsg({ type:'err', text: e instanceof Error?e.message:'Error al reiniciar' }) }
-      setReset(false)
-    }
-
-    const copyCode = () => {
-      if (code) { navigator.clipboard.writeText(code); setCopied(true); setTimeout(()=>setCopied(false), 2000) }
-    }
-
-    const connected = status?.connected
+    const connected=status?.connected??false
 
     return (
-      <div style={{ display:'flex', flexDirection:'column', gap:22, maxWidth:720 }} className="animate-fade-up">
-        <div>
-          <h1 style={{ fontFamily:"'Rajdhani',sans-serif", fontWeight:700, fontSize:'1.6rem' }}>Conexión WhatsApp</h1>
-          <p style={{ fontSize:12, color:'var(--tx3)', marginTop:3 }}>Gestiona la sesión y vinculación del bot</p>
-        </div>
-
-        {/* ── Main status card ── */}
-        <div className="card" style={{ padding:24 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:18 }}>
-            {/* Connection ring */}
-            <div className={`conn-ring ${loading?'loading':connected?'online':'offline'}`}>
-              {loading
-                ? <RefreshCw size={26} color="var(--blue)" style={{ animation:'spin 1s linear infinite' }} />
-                : connected
-                  ? <Wifi size={26} color="var(--green)" />
-                  : <WifiOff size={26} color="var(--red2)" />}
+      <div style={{display:'flex',flexDirection:'column',gap:18}} className="animate-fade-up">
+        {toast&&(
+          <div style={{position:'fixed',bottom:24,right:24,zIndex:999}} className="animate-fade-up">
+            <div className={`alert ${toast.ok?'alert-ok':'alert-err'}`} style={{boxShadow:'0 8px 32px rgba(0,0,0,.5)'}}>
+              {toast.ok?<CheckCircle size={14}/>:<AlertTriangle size={14}/>}{toast.msg}
             </div>
-
-            <div style={{ flex:1 }}>
-              <div style={{ fontWeight:800, fontSize:'1.25rem',
-                color:connected?'var(--green)':loading?'var(--tx3)':'var(--red2)', marginBottom:4 }}>
-                {loading ? 'Verificando conexión…' : connected ? '✅ Bot conectado' : '❌ Bot desconectado'}
-              </div>
-              <div style={{ fontSize:12, color:'var(--tx3)', display:'flex', alignItems:'center', gap:6 }}>
-                <ExternalLink size={11} />
-                {apiUrl || 'Sin URL configurada'}
-              </div>
-              {connected && status && (
-                <div style={{ marginTop:8, display:'flex', gap:8, flexWrap:'wrap' }}>
-                  <span className="badge badge-green">Sesión activa</span>
-                  {status.hasPairingCode && <span className="badge badge-blue">Código solicitado</span>}
-                </div>
-              )}
-            </div>
-
-            <button onClick={fetchStatus} className="btn btn-ghost btn-sm">
-              <RefreshCw size={13} /> Verificar
-            </button>
-          </div>
-
-          {/* Status messages */}
-          {!loading && !connected && status && (
-            <div className="alert alert-warn" style={{ marginTop:16 }}>
-              <AlertTriangle size={14} />
-              {status.hasQR
-                ? 'QR disponible — escanéalo desde la URL del bot en Railway'
-                : status.hasPairingCode
-                  ? 'Código de vinculación solicitado — ingresa el código en WhatsApp'
-                  : 'El bot no tiene sesión activa. Vincula WhatsApp abajo.'}
-            </div>
-          )}
-          {!loading && connected && (
-            <div className="alert alert-ok" style={{ marginTop:16 }}>
-              <CheckCircle size={14} />
-              Sesión WhatsApp activa y funcionando correctamente
-            </div>
-          )}
-        </div>
-
-        {/* ── Connection guide (only when disconnected) ── */}
-        {!loading && !connected && (
-          <div className="card" style={{ padding:22 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-              <Key size={14} color="var(--blue)" />
-              <strong style={{ fontSize:14 }}>Pasos para vincular WhatsApp</strong>
-            </div>
-            <div style={{ marginBottom:18 }}>
-              <StepCard num={1} title="Ingresa el número del bot" desc="El número de teléfono SIN +, guiones ni espacios (ej: 521234567890)" active={!code} done={!!code} />
-              <StepCard num={2} title="Solicita el código de vinculación" desc="Haz clic en 'Obtener código' y espera el código de 8 dígitos" active={false} done={!!code} />
-              <StepCard num={3} title="Ingresa el código en WhatsApp" desc="Abre WhatsApp → Dispositivos vinculados → Vincular dispositivo → Código de vinculación" active={!!code} done={false} />
-            </div>
-
-            <div style={{ display:'flex', gap:10 }}>
-              <div style={{ position:'relative', flex:1 }}>
-                <Smartphone size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--tx3)', pointerEvents:'none' }} />
-                <input className="input" placeholder="521234567890" value={phone}
-                  onChange={e=>setPhone(e.target.value.replace(/[^0-9]/g,''))}
-                  onKeyDown={e=>e.key==='Enter'&&requestCode()}
-                  style={{ paddingLeft:30 }} />
-              </div>
-              <button className="btn btn-primary" onClick={requestCode} disabled={loadCode||!phone.trim()}>
-                {loadCode ? <RefreshCw size={13} style={{ animation:'spin 1s linear infinite' }} /> : <Key size={13} />}
-                {loadCode ? 'Solicitando…' : 'Obtener código'}
-              </button>
-            </div>
-
-            {/* Code display */}
-            {code && (
-              <div style={{ marginTop:18, padding:'20px 24px', borderRadius:12, textAlign:'center',
-                background:'linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08))',
-                border:'1px solid rgba(99,102,241,.3)' }}>
-                <div style={{ fontSize:10, color:'var(--tx3)', marginBottom:8, letterSpacing:'.1em', textTransform:'uppercase' }}>
-                  CÓDIGO DE VINCULACIÓN — válido por 60 segundos
-                </div>
-                <div className="pairing-code">{code}</div>
-                <button onClick={copyCode} className="btn btn-ghost btn-sm" style={{ marginTop:12 }}>
-                  {copied ? <><CheckCircle size={12} /> ¡Copiado!</> : <><Copy size={12} /> Copiar código</>}
-                </button>
-                <div style={{ fontSize:11, color:'var(--tx3)', marginTop:10 }}>
-                  Ingresa este código en WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresar código manualmente
-                </div>
-              </div>
-            )}
-
-            {codeErr && (
-              <div className="alert alert-err" style={{ marginTop:14 }}>
-                <AlertTriangle size={14} />{codeErr}
-              </div>
-            )}
           </div>
         )}
 
-        {/* ── Reset session ── */}
-        <div className="card" style={{ padding:22, borderColor:'rgba(229,57,53,.12)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-            <div className="icon-badge" style={{ background:'rgba(229,57,53,.1)' }}>
-              <RotateCcw size={15} color="var(--red)" />
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <div>
+            <div className="page-title">
+              <span className="page-title-bracket">◈</span>CONNECTION PORTAL<span className="page-title-bracket">◈</span>
             </div>
-            <div>
-              <strong style={{ fontSize:14 }}>Reiniciar sesión</strong>
-              <div style={{ fontSize:11, color:'var(--tx3)', marginTop:1 }}>Úsalo solo si el bot no puede conectarse o está en un estado inválido</div>
-            </div>
+            <div className="page-subtitle">VINCULACIÓN DE WHATSAPP · BOT SESSION</div>
           </div>
-
-          <div className="alert alert-warn" style={{ marginBottom:16 }}>
-            <AlertTriangle size={14} />
-            Al reiniciar la sesión, el bot se desconectará y necesitarás volver a vincular WhatsApp con un código nuevo.
-          </div>
-
-          {resetMsg && (
-            <div className={`alert ${resetMsg.type==='ok'?'alert-ok':'alert-err'}`} style={{ marginBottom:14 }}>
-              {resetMsg.type==='ok' ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-              {resetMsg.text}
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div className={`sidebar-status ${connected?'online':loading?'loading':'offline'}`} style={{padding:'6px 12px',borderRadius:'var(--radius)',margin:0}}>
+              <div className="live-dot"/>
+              <span style={{fontSize:11,fontWeight:700,fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.08em'}}>
+                {loading?'VERIFICANDO…':connected?'SESIÓN ACTIVA':'SIN SESIÓN'}
+              </span>
             </div>
-          )}
-
-          <button className="btn btn-red btn-sm" onClick={reset} disabled={resetting}>
-            <RotateCcw size={13} style={{ animation:resetting?'spin 1s linear infinite':'none' }} />
-            {resetting ? 'Reiniciando sesión…' : 'Cerrar sesión y re-vincular'}
-          </button>
+            <button className="btn btn-ghost btn-sm" onClick={fetchStatus} disabled={loading}>
+              <RefreshCw size={12} style={{animation:loading?'spin 1s linear infinite':'none'}}/>
+            </button>
+          </div>
         </div>
 
-        {/* ── API info ── */}
-        <div className="card" style={{ padding:22 }}>
-          <div style={{ fontWeight:700, fontSize:13, marginBottom:12, display:'flex', alignItems:'center', gap:7 }}>
-            <Wifi size={14} color="var(--tx3)" /> Información de la API
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          {/* Steps */}
+          <div className="card" style={{padding:0}}>
+            <div className="sys-header">
+              <Radio size={12} color="var(--blue)"/>
+              <span className="sys-header-title">PROTOCOLO DE CONEXIÓN</span>
+            </div>
+            <div style={{padding:'8px 18px 18px'}}>
+              <StepCard num={1} title="BOT EN RAILWAY" desc="El bot debe estar desplegado y corriendo en Railway." done active={!connected}/>
+              <StepCard num={2} title="SOLICITAR CÓDIGO" desc="Ingresa tu número de WhatsApp y solicita el código de vinculación." active={!connected} done={connected}/>
+              <StepCard num={3} title="INGRESAR CÓDIGO EN WA" desc="WhatsApp → Dispositivos vinculados → Vincular dispositivo → Ingresar código manualmente." active={!!code&&!connected} done={connected}/>
+              <StepCard num={4} title="SESIÓN ACTIVA" desc="El bot comenzará a responder comandos en todos los grupos configurados." active={connected} done={connected}/>
+            </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            {[
-              { label:'URL del bot', val: apiUrl || 'No configurada', mono:true },
-              { label:'Estado', val: loading?'Verificando…':connected?'✅ Conectado':'❌ Desconectado' },
-              { label:'QR disponible', val: status?.hasQR?'Sí':'No' },
-              { label:'Código activo', val: status?.hasPairingCode?'Sí':'No' },
-            ].map(item => (
-              <div key={item.label} style={{ background:'var(--card2)', borderRadius:8, padding:'10px 14px', border:'1px solid var(--border)' }}>
-                <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', marginBottom:4 }}>{item.label}</div>
-                <div style={{ fontSize:12, color:'var(--tx2)', fontFamily:item.mono?"'JetBrains Mono',monospace":undefined,
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.val}</div>
+
+          {/* Action panel */}
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            {!connected&&(
+              <div className="card" style={{padding:0}}>
+                <div className="sys-header">
+                  <Key size={12} color="var(--blue)"/>
+                  <span className="sys-header-title">CÓDIGO DE VINCULACIÓN</span>
+                </div>
+                <div style={{padding:18}}>
+                  <label className="label">NÚMERO DE WHATSAPP</label>
+                  <div style={{display:'flex',gap:8,marginBottom:10}}>
+                    <input className="input" placeholder="521234567890" value={phone}
+                      onChange={e=>setPhone(e.target.value.replace(/[^0-9]/g,''))}
+                      style={{fontFamily:"'JetBrains Mono',monospace"}}
+                      onKeyDown={e=>e.key==='Enter'&&requestCode()}/>
+                    <button className="btn btn-primary" onClick={requestCode} disabled={sending||!phone.trim()}>
+                      {sending?<RefreshCw size={12} style={{animation:'spin 1s linear infinite'}}/>:<Key size={12}/>}
+                      {sending?'…':'PEDIR'}
+                    </button>
+                  </div>
+                  <p style={{fontSize:10,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.04em',lineHeight:1.6,marginBottom:code?14:0}}>
+                    Sin + ni espacios. Ej: 521234567890 (MX) · 541234567890 (AR)
+                  </p>
+                  {code&&(
+                    <div style={{padding:20,background:'rgba(30,144,255,.05)',border:'1px solid var(--border3)',borderRadius:'var(--radius)',textAlign:'center'}} className="animate-scale-in">
+                      <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:9,fontWeight:700,letterSpacing:'.2em',color:'var(--tx3)',marginBottom:10}}>CÓDIGO DE ACCESO</div>
+                      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'.1em',color:'var(--blue)',textShadow:'0 0 24px rgba(30,144,255,.55)',marginBottom:10}}>
+                        {code}
+                      </div>
+                      <button className="btn btn-ghost btn-sm" onClick={copyCode} style={{color:copied?'var(--green2)':'var(--tx2)'}}>
+                        <Copy size={11}/>{copied?'COPIADO ✓':'COPIAR'}
+                      </button>
+                      <p style={{fontSize:10,color:'var(--tx3)',marginTop:10,fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.04em',lineHeight:1.6}}>
+                        WhatsApp → ⋮ → Dispositivos vinculados → Vincular dispositivo → Código
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
+            )}
+
+            {connected&&(
+              <div className="card animate-scale-in" style={{padding:0}}>
+                <div className="sys-header">
+                  <CheckCircle size={12} color="var(--green2)"/>
+                  <span className="sys-header-title" style={{color:'var(--green2)'}}>SESIÓN ACTIVA</span>
+                </div>
+                <div style={{padding:20,textAlign:'center'}}>
+                  <div style={{width:56,height:56,borderRadius:'var(--radius)',background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 0 20px rgba(16,185,129,.12)'}}>
+                    <Wifi size={22} color="var(--green2)"/>
+                  </div>
+                  <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:12,letterSpacing:'.14em',color:'var(--green2)',marginBottom:6}}>BOT CONECTADO</div>
+                  <div style={{fontSize:11,color:'var(--tx3)',marginBottom:18,fontFamily:"'Rajdhani',sans-serif"}}>La sesión está activa y procesando mensajes</div>
+                </div>
+              </div>
+            )}
+
+            <div className="card" style={{padding:0}}>
+              <div className="sys-header">
+                <ExternalLink size={12} color="var(--tx3)"/>
+                <span className="sys-header-title">API ENDPOINT</span>
+              </div>
+              <div style={{padding:14}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--bg2)',borderRadius:'var(--radius)',border:'1px solid var(--border)'}}>
+                  <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'var(--tx2)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{apiUrl||'Sin configurar'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{padding:0,border:'1px solid rgba(239,68,68,.15)'}}>
+              <div className="sys-header">
+                <RotateCcw size={12} color="var(--red2)"/>
+                <span className="sys-header-title" style={{color:'var(--red2)'}}>ZONA PELIGROSA</span>
+              </div>
+              <div style={{padding:14}}>
+                <p style={{fontSize:11,color:'var(--tx3)',lineHeight:1.7,marginBottom:12,fontFamily:"'Rajdhani',sans-serif"}}>
+                  Reiniciar la sesión desconecta el bot de WhatsApp. Deberás vincular el dispositivo nuevamente.
+                </p>
+                <button className="btn btn-red btn-sm" onClick={resetBot} disabled={resetting} style={{width:'100%',justifyContent:'center'}}>
+                  {resetting?<RefreshCw size={12} style={{animation:'spin 1s linear infinite'}}/>:<RotateCcw size={12}/>}
+                  {resetting?'REINICIANDO…':'REINICIAR SESIÓN'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
