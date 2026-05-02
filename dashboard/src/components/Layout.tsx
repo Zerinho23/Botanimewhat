@@ -69,7 +69,6 @@ import { useState, useEffect } from 'react'
     const [status, setStatus] = useState<BotStatus|null>(null)
     const [stats,  setStats]  = useState<BotStats|null>(null)
     const [open,   setOpen]   = useState(false)
-    const [tick,   setTick]   = useState(0)
     const location = useLocation()
 
     useEffect(() => {
