@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
   import { NavLink, Outlet, useLocation } from 'react-router-dom'
   import {
     LayoutDashboard, Users, MessageSquare, Settings,
-    Shield, Activity, Wifi, Menu, X, Bot
+    Shield, Activity, Wifi, Menu, X, Bot, Terminal
   } from 'lucide-react'
   import { getStatus, getStats, isConfigured, type BotStatus, type BotStats } from '../api'
 
@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react'
     { to: '/activity',   icon: Activity,        label: 'ACTIVIDAD',                    num: '05' },
     { to: '/config',     icon: Settings,        label: 'CONFIG',                       num: '06' },
     { to: '/connect',    icon: Wifi,            label: 'CONEXIÓN',                     num: '07' },
+    { to: '/commands',   icon: Terminal,        label: 'COMANDOS',                     num: '08' },
   ]
 
   const PAGE_LABELS: Record<string, string> = {
