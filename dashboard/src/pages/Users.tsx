@@ -1,191 +1,185 @@
-import { useEffect, useState } from 'react'
-  import { Search, RefreshCw, Users as UsersIcon, Star, Zap, DollarSign, Trophy, MessageSquare } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+  import { Search, RefreshCw, Users as UsersIcon, Zap, DollarSign, Trophy,
+           MessageSquare, ChevronUp, ChevronDown, Filter } from 'lucide-react'
   import { getUsers, isConfigured, type User } from '../api'
 
-  const RANKS = [
-    { label:'S · MONARCA',  minLv:20, color:'#f59e0b', bg:'rgba(245,158,11,.1)',  glow:'rgba(245,158,11,.35)' },
-    { label:'A · NACIONAL', minLv:15, color:'#a78bfa', bg:'rgba(167,139,250,.1)', glow:'rgba(167,139,250,.35)' },
-    { label:'B · AVANZADO', minLv:10, color:'#60a5fa', bg:'rgba(96,165,250,.1)',  glow:'rgba(96,165,250,.35)' },
-    { label:'C · RANGO B',  minLv:5,  color:'#34d399', bg:'rgba(52,211,153,.1)',  glow:'rgba(52,211,153,.35)' },
-    { label:'E · INICIADO', minLv:0,  color:'rgba(240,240,245,.45)', bg:'rgba(255,255,255,.05)', glow:'transparent' },
+  const RANK_TIERS = [
+    { min:30, rank:'SS', label:'MONARCA',  color:'var(--orange)',  },
+    { min:20, rank:'S',  label:'NACIONAL', color:'var(--gold)',    },
+    { min:15, rank:'A',  label:'HÉROE',    color:'var(--red2)',    },
+    { min:10, rank:'B',  label:'AVANZADO', color:'var(--purple2)', },
+    { min: 5, rank:'C',  label:'INTER.',   color:'var(--blue)',    },
+    { min: 1, rank:'D',  label:'NOVATO',   color:'var(--green2)',  },
+    { min: 0, rank:'E',  label:'RANGO E',  color:'var(--tx3)',     },
   ]
-  function rankOf(lv:number) { return RANKS.find(r=>lv>=r.minLv) ?? RANKS[RANKS.length-1] }
-
-  function avatarColor(jid: string): string {
-    const colors = ['#e53935','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ec4899','#06b6d4','#6366f1']
-    let h = 0; for (const c of jid) h = (h * 31 + c.charCodeAt(0)) >>> 0
-    return colors[h % colors.length]
+  function getTier(level: number) { return RANK_TIERS.find(t=>level>=t.min)??RANK_TIERS[RANK_TIERS.length-1] }
+  function timeAgo(ts?: number) {
+    if(!ts) return '—'
+    const d=Math.floor((Date.now()-ts)/86400000)
+    return d===0?'hoy':d===1?'ayer':d+'d atrás'
   }
 
-  function xpToNextLevel(level: number, xp: number, multiplier = 250) {
-    const required = level * multiplier
-    return { current: xp, required, pct: Math.min(100, Math.round(xp / required * 100)) }
+  function XPBar({xp,level,color}:{xp:number;level:number;color:string}) {
+    const needed=(level+1)*100; const pct=Math.min((xp/needed)*100,100)
+    return (
+      <div>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+          <span style={{fontSize:9,color:'var(--tx3)',fontFamily:"'Orbitron',sans-serif",letterSpacing:'.08em'}}>XP {xp.toLocaleString()}</span>
+          <span style={{fontSize:9,color:'var(--tx3)',fontFamily:"'Orbitron',sans-serif"}}>LV {level}</span>
+        </div>
+        <div className="stat-bar">
+          <div className="stat-fill" style={{width:pct+'%',background:`linear-gradient(90deg,${color},${color}99)`,boxShadow:`0 0 6px ${color}66`}} />
+        </div>
+      </div>
+    )
   }
+
+  function UserCard({user,pos}:{user:User;pos:number}) {
+    const [exp,setExp]=useState(false)
+    const t=getTier(user.level)
+    const jidShort=user.jid.split('@')[0]
+    const name=user.name||jidShort
+    return (
+      <div className="dungeon-card animate-fade-up" style={{padding:14,cursor:'pointer'}} onClick={()=>setExp(e=>!e)}>
+        <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${t.color},transparent)`}} />
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+          <div style={{width:38,height:38,borderRadius:'var(--radius)',flexShrink:0,background:t.color+'15',border:`1px solid ${t.color}35`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Orbitron',sans-serif",fontWeight:800,fontSize:14,color:t.color,textShadow:`0 0 10px ${t.color}66`}}>
+            {name.slice(0,2).toUpperCase()}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              <span style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:120}}>{name}</span>
+              <span className={`rank rank-${t.rank.toLowerCase()}`}>{t.rank}</span>
+            </div>
+            <div style={{fontSize:9,color:'var(--tx3)',fontFamily:"'JetBrains Mono',monospace",marginTop:2}}>{jidShort.slice(0,22)}</div>
+          </div>
+          <div style={{textAlign:'right',flexShrink:0}}>
+            {pos<=3?(
+              <span style={{fontFamily:"'Orbitron',sans-serif",fontSize:16,fontWeight:800,color:pos===1?'var(--gold)':pos===2?'var(--tx2)':'#cd7f32',textShadow:pos===1?'0 0 12px rgba(251,191,36,.5)':'none'}}>#{pos}</span>
+            ):(
+              <span style={{fontFamily:"'Orbitron',sans-serif",fontSize:12,color:'var(--tx3)',fontWeight:700}}>#{pos}</span>
+            )}
+          </div>
+        </div>
+        <XPBar xp={user.xp} level={user.level} color={t.color} />
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginTop:10}}>
+          {([
+            {icon:MessageSquare,val:user.messages??0,label:'MSG',  color:'var(--blue)'   },
+            {icon:Zap,          val:user.commands??0,label:'CMDS', color:'var(--purple2)'},
+            {icon:DollarSign,   val:user.coins??0,   label:'COINS',color:'var(--gold)'   },
+          ] as {icon:React.ElementType;val:number;label:string;color:string}[]).map(s=>(
+            <div key={s.label} style={{background:s.color+'08',border:'1px solid '+s.color+'20',borderRadius:'var(--radius)',padding:'5px 8px',textAlign:'center'}}>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:12,color:s.color}}>{s.val.toLocaleString()}</div>
+              <div style={{fontSize:8,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",fontWeight:700,letterSpacing:'.1em',marginTop:2}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        {exp&&(
+          <div style={{marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)',fontSize:11}}>
+            {[
+              {label:'RANGO',    val:`${t.rank} · ${t.label}`,    color:t.color},
+              {label:'DAILY',    val:timeAgo(user.lastDaily),         color:'var(--tx3)'},
+              {label:'REGISTRADO',val:timeAgo(user.createdAt),        color:'var(--tx3)'},
+            ].map(row=>(
+              <div key={row.label} style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                <span style={{color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.06em',fontWeight:700,fontSize:10}}>{row.label}</span>
+                <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:row.color}}>{row.val}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {exp&&<ChevronUp size={12} color="var(--tx3)" style={{display:'block',margin:'6px auto 0'}}/>}
+      </div>
+    )
+  }
+
+  type SortKey='xp'|'level'|'commands'|'messages'|'coins'
 
   export default function Users() {
-    const [users,     setUsers]  = useState<User[]>([])
-    const [loading,   setLoad]   = useState(true)
-    const [search,    setSearch] = useState('')
-    const [refreshing,setRef]    = useState(false)
-    const [sortKey,   setSort]   = useState<'xp'|'level'|'coins'|'messages'|'commands'>('level')
+    const [users,   setUsers]  =useState<User[]>([])
+    const [loading, setLoad]   =useState(true)
+    const [search,  setSearch] =useState('')
+    const [sortBy,  setSort]   =useState<SortKey>('xp')
+    const [sortAsc, setAsc]    =useState(false)
+    const [refreshing,setRef]  =useState(false)
 
-    const load = async (r=false) => {
-      if (!isConfigured()) { setLoad(false); return }
-      if (r) setRef(true)
-      try { setUsers(await getUsers()) } catch {}
-      setLoad(false); setRef(false)
+    const load=async(r=false)=>{
+      if(!isConfigured()){setLoad(false);return}
+      if(r)setRef(true)
+      try{setUsers(await getUsers())}catch{}
+      setLoad(false);setRef(false)
     }
-    useEffect(() => { load() }, [])
+    useEffect(()=>{load()},[])
 
-    if (!isConfigured()) return (
-      <div className="empty-state" style={{ height:320 }}>
-        <div className="empty-state-title" style={{ color:'var(--gold)' }}>VITE_API_URL no configurada en Vercel</div>
-      </div>
-    )
-    if (loading) return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:320, gap:10, color:'var(--tx3)' }}>
-        <RefreshCw size={18} style={{ animation:'spin 1s linear infinite' }} />
-        <span style={{ fontSize:13 }}>Cargando usuarios…</span>
-      </div>
-    )
+    const sorted=useMemo(()=>{
+      let list=[...users]
+      if(search) list=list.filter(u=>(u.name||'').toLowerCase().includes(search.toLowerCase())||u.jid.includes(search))
+      list.sort((a,b)=>{
+        const av=(a as unknown as Record<string,number>)[sortBy]??0
+        const bv=(b as unknown as Record<string,number>)[sortBy]??0
+        return sortAsc?av-bv:bv-av
+      })
+      return list
+    },[users,search,sortBy,sortAsc])
 
-    const sorted = [...users].sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0))
-    const filtered = sorted.filter(u => {
-      const s = search.toLowerCase()
-      return (u.name||'').toLowerCase().includes(s) || u.jid.includes(s)
-    })
+    const rankDist:Record<string,number>={}
+    for(const u of users){const r=getTier(u.level).rank;rankDist[r]=(rankDist[r]||0)+1}
 
-    const SORT_OPTS: {key: typeof sortKey; label: string}[] = [
-      { key:'level',    label:'Nivel' },
-      { key:'xp',       label:'XP' },
-      { key:'coins',    label:'Coins' },
-      { key:'messages', label:'Mensajes' },
-      { key:'commands', label:'Comandos' },
-    ]
-
-    const totalCoins = users.reduce((a,u)=>a+(u.coins||0),0)
-    const avgLevel   = users.length ? Math.round(users.reduce((a,u)=>a+(u.level||1),0)/users.length*10)/10 : 0
+    if(!isConfigured()) return(<div className="empty-state"><div className="empty-state-icon"><UsersIcon size={22} color="var(--tx3)"/></div><div className="empty-state-title">API SIN CONFIGURAR</div></div>)
+    if(loading) return(<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12,marginTop:16}}>{[...Array(9)].map((_,i)=><div key={i} className="skeleton" style={{height:170}}/>)}</div>)
 
     return (
-      <div style={{ display:'flex', flexDirection:'column', gap:22 }} className="animate-fade-up">
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+      <div style={{display:'flex',flexDirection:'column',gap:18}} className="animate-fade-up">
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
           <div>
-            <h1 style={{ fontFamily:"'Rajdhani',sans-serif", fontWeight:700, fontSize:'1.6rem' }}>Usuarios</h1>
-            <p style={{ fontSize:12, color:'var(--tx3)', marginTop:3 }}>Leaderboard y estadísticas — {users.length} registrados</p>
+            <div className="page-title">
+              <span className="page-title-bracket">◈</span>HUNTER LIST<span className="page-title-bracket">◈</span>
+            </div>
+            <div className="page-subtitle">{users.length} HUNTERS REGISTRADOS</div>
           </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <div style={{ position:'relative' }}>
-              <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--tx3)', pointerEvents:'none' }} />
-              <input className="input" placeholder="Buscar usuario…" value={search}
-                onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:30, width:200 }} />
+          <div style={{display:'flex',gap:8}}>
+            <div style={{position:'relative'}}>
+              <Search size={12} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--tx3)',pointerEvents:'none'}}/>
+              <input className="input" placeholder="BUSCAR HUNTER…" value={search} onChange={e=>setSearch(e.target.value)} style={{paddingLeft:28,width:200,fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.06em',fontSize:12}}/>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={()=>load(true)} disabled={refreshing}>
-              <RefreshCw size={13} style={{ animation:refreshing?'spin 1s linear infinite':'none' }} />
+              <RefreshCw size={12} style={{animation:refreshing?'spin 1s linear infinite':'none'}}/>
             </button>
           </div>
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))', gap:10 }}>
-          {[
-            { label:'Total usuarios', val:users.length, icon:UsersIcon, color:'var(--blue)' },
-            { label:'Nivel promedio', val:avgLevel, icon:Trophy, color:'var(--gold)' },
-            { label:'Mayor nivel',    val:[...users].sort((a,b)=>(b.level||0)-(a.level||0))[0]?.level||0, icon:Zap, color:'var(--purple)' },
-            { label:'Top XP',         val:[...users].sort((a,b)=>(b.xp||0)-(a.xp||0))[0]?.xp?.toLocaleString()||0, icon:Star, color:'var(--red)' },
-            { label:'Coins totales',  val:totalCoins.toLocaleString(), icon:DollarSign, color:'var(--green)' },
-            { label:'Total mensajes', val:users.reduce((a,u)=>a+(u.messages||0),0).toLocaleString(), icon:MessageSquare, color:'var(--indigo)' },
-          ].map(s=>(
-            <div key={s.label} className="card" style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:10 }}>
-              <div className="icon-badge" style={{ background:s.color+'20' }}>
-                <s.icon size={15} color={s.color} />
-              </div>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontWeight:700, fontSize:'1.1rem', color:'white' }}>{s.val}</div>
-                <div style={{ fontSize:9, color:'var(--tx3)', marginTop:1 }}>{s.label}</div>
-              </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {RANK_TIERS.map(t=>(
+            <div key={t.rank} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:'var(--radius)',background:t.color+'08',border:'1px solid '+t.color+'20'}}>
+              <span className={`rank rank-${t.rank.toLowerCase()}`} style={{fontSize:9}}>{t.rank}</span>
+              <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:13,color:t.color}}>{rankDist[t.rank]??0}</span>
+              <span style={{fontSize:9,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.06em',fontWeight:700}}>{t.label}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-          <span style={{ fontSize:11, color:'var(--tx3)', alignSelf:'center', marginRight:4 }}>Ordenar:</span>
-          {SORT_OPTS.map(o=>(
-            <button key={o.key} onClick={()=>setSort(o.key)}
-              className={`btn btn-xs ${sortKey===o.key?'btn-primary':'btn-ghost'}`}>
-              {o.label}
+        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+          <span style={{fontSize:10,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",fontWeight:700,letterSpacing:'.1em'}}><Filter size={10} style={{marginRight:5}}/>ORDENAR:</span>
+          {(['xp','level','commands','messages','coins'] as SortKey[]).map(k=>(
+            <button key={k} className={`btn btn-xs ${sortBy===k?'btn-primary':'btn-ghost'}`}
+              onClick={()=>{if(sortBy===k)setAsc(a=>!a);else{setSort(k);setAsc(false)}}}>
+              {k.toUpperCase()}{sortBy===k&&(sortAsc?<ChevronUp size={9}/>:<ChevronDown size={9}/>)}
             </button>
           ))}
+          <span style={{marginLeft:'auto',fontSize:10,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif"}}>{sorted.length} HUNTERS</span>
         </div>
 
-        <div className="card">
-          {filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon"><UsersIcon size={22} color="var(--tx3)" /></div>
-              <div className="empty-state-title">{search ? 'Sin resultados' : 'Sin usuarios registrados'}</div>
-              <div className="empty-state-sub">{search ? 'Intenta con otro término' : 'Los usuarios aparecerán cuando el bot comience a operar'}</div>
-            </div>
-          ) : (
-            <div style={{ overflowX:'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr><th style={{width:36}}>#</th><th>Usuario</th><th>Rango</th><th>Nivel / XP</th><th>Coins</th><th>Mensajes</th><th>Comandos</th></tr>
-                </thead>
-                <tbody>
-                  {filtered.map((u,i)=>{
-                    const rk  = rankOf(u.level)
-                    const av  = avatarColor(u.jid)
-                    const xpp = xpToNextLevel(u.level, u.xp)
-                    return (
-                      <tr key={u.jid}>
-                        <td>
-                          <span style={{ fontWeight:800, fontSize:13, color:i===0?'#f59e0b':i===1?'#c0c0c0':i===2?'#cd7c3f':'var(--tx3)' }}>
-                            {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                            <div style={{ width:34, height:34, borderRadius:9, background:av+'20',
-                              border:`1px solid ${av}44`, display:'flex', alignItems:'center',
-                              justifyContent:'center', fontSize:13, fontWeight:700, color:av, flexShrink:0,
-                              boxShadow: i<3 ? `0 0 10px ${av}33` : 'none' }}>
-                              {(u.name||u.jid).charAt(0).toUpperCase()}
-                            </div>
-                            <div style={{ minWidth:0 }}>
-                              <div style={{ fontWeight:600, fontSize:13 }}>{u.name||'Sin nombre'}</div>
-                              <div style={{ fontSize:9, color:'var(--tx3)', fontFamily:"'JetBrains Mono',monospace" }}>+{u.jid.split('@')[0]}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span style={{ fontSize:10, fontWeight:700, color:rk.color, background:rk.bg,
-                            padding:'3px 9px', borderRadius:5, boxShadow:i<3?`0 0 8px ${rk.glow}`:'none' }}>
-                            {rk.label}
-                          </span>
-                        </td>
-                        <td style={{ minWidth:130 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <strong style={{ fontSize:13, color:'white', minWidth:22, textAlign:'right' }}>{u.level}</strong>
-                            <div style={{ flex:1 }}>
-                              <div style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'var(--tx3)', marginBottom:3 }}>
-                                <span>{xpp.current}</span><span>{xpp.required}</span>
-                              </div>
-                              <div className="progress-track-sm">
-                                <div className="progress-fill" style={{ width:xpp.pct+'%', background:'var(--purple)' }} />
-                              </div>
-                            </div>
-                            <span style={{ fontSize:9, color:'var(--tx3)', minWidth:28 }}>{xpp.pct}%</span>
-                          </div>
-                        </td>
-                        <td style={{ color:'var(--gold)', fontWeight:600 }}>{(u.coins||0).toLocaleString()}</td>
-                        <td style={{ color:'var(--tx2)' }}>{(u.messages||0).toLocaleString()}</td>
-                        <td style={{ color:'var(--tx2)' }}>{(u.commands||0).toLocaleString()}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {sorted.length===0?(
+          <div className="card"><div className="empty-state">
+            <div className="empty-state-icon"><Trophy size={20} color="var(--tx3)"/></div>
+            <div className="empty-state-title">SIN HUNTERS</div>
+            <div className="empty-state-sub">No hay usuarios registrados aún</div>
+          </div></div>
+        ):(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}}>
+            {sorted.map((u,i)=><UserCard key={u.jid} user={u} pos={i+1}/>)}
+          </div>
+        )}
       </div>
     )
   }
