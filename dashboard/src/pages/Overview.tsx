@@ -251,7 +251,6 @@ export default function Overview() {
         padding:'14px 20px', borderRadius:4,
         borderLeft:'3px solid #4466ff',
         border:'1px solid rgba(30,58,255,0.22)',
-        borderLeft:'3px solid #4466ff',
         background:'linear-gradient(90deg,rgba(30,58,255,0.12),rgba(5,8,16,0.96))',
         position:'relative', overflow:'hidden',
         display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,
