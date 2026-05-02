@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-  import { Activity as ActivityIcon, RefreshCw, Filter, Play, Pause, X, Clock, Zap } from 'lucide-react'
+  import { Activity as ActivityIcon, RefreshCw, Play, Pause, X } from 'lucide-react'
   import { getActivityHistory, isConfigured, type ActivityEvent } from '../api'
 
   const TYPE_META: Record<string,{ color: string; bg: string; label: string }> = {
@@ -51,8 +51,6 @@ import { useEffect, useState, useRef } from 'react'
       intervalRef.current = setInterval(load, 8000)
       return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
     }, [paused])
-
-    const allTypes = [...new Set(events.map(e => e.type))].sort()
     const filtered = filter === 'all' ? events : events.filter(e => e.type === filter)
 
     // Stats
