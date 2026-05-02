@@ -129,10 +129,17 @@ function getExpiredPending() {
   return expired;
 }
 
-function removePendingBulk(entries) { for (const { groupJid, userJid } of entries) removePending(groupJid, userJid); }
+function deleteGroup(jid) {
+    if (groups[jid]) {
+      delete groups[jid];
+      save(GROUPS_FILE, groups);
+    }
+  }
+
+  function removePendingBulk(entries) { for (const { groupJid, userJid } of entries) removePending(groupJid, userJid); }
 
 module.exports = {
-  getUser, updateUser, getGroup, updateGroup, getAllUsers,
+  getUser, updateUser, getGroup, updateGroup, deleteGroup, getAllUsers,
   getWaifuOwners, assignWaifu, reload,
   addPending, removePending, isPending, getExpiredPending, removePendingBulk,
 };
