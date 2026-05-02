@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
   import Moderation from './pages/Moderation'
   import Activity from './pages/Activity'
   import Connect from './pages/Connect'
+  import Commands from './pages/Commands'
 
   export default function App() {
     return (
@@ -20,6 +21,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
             <Route path="moderation" element={<Moderation />} />
             <Route path="activity" element={<Activity />} />
             <Route path="connect" element={<Connect />} />
+            <Route path="commands" element={<Commands />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
