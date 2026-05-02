@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
   import { NavLink, Outlet, useLocation } from 'react-router-dom'
   import {
     LayoutDashboard, Users, MessageSquare, Settings,
-    Shield, Activity, Wifi, Menu, X, Terminal, Zap, ChevronRight, RefreshCw
+    Shield, Activity, Wifi, Menu, X, Terminal, Zap, ChevronRight
   } from 'lucide-react'
   import { getStatus, getStats, isConfigured, type BotStatus, type BotStats } from '../api'
 
@@ -77,8 +77,7 @@ import { useState, useEffect } from 'react'
       const load = async () => {
         try { setStatus(await getStatus()) } catch {}
         try { setStats(await getStats()) } catch {}
-        setTick(t => t + 1)
-      }
+        }
       load(); const id = setInterval(load, 15000); return () => clearInterval(id)
     }, [])
 
