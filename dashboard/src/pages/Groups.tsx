@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ElementType } from 'react'
   import {
     Search, RefreshCw, MessageSquare, Shield, Link, Bell, Send,
     X, Check, Power, PowerOff, Trash2, AlertTriangle, ToggleLeft, ToggleRight
@@ -98,7 +98,7 @@ import { useEffect, useState } from 'react'
     const enabled = group.botEnabled !== false
     const activeCount = [group.antiLink, group.antiSpam, group.welcome].filter(Boolean).length
 
-    const FEATS: { key: 'antiLink' | 'antiSpam' | 'welcome'; label: string; icon: React.ElementType; color: string }[] = [
+    const FEATS: { key: 'antiLink' | 'antiSpam' | 'welcome'; label: string; icon: ElementType; color: string }[] = [
       { key: 'antiLink', label: 'Anti-Link', icon: Link,   color: 'var(--red)' },
       { key: 'antiSpam', label: 'Anti-Spam', icon: Shield, color: 'var(--gold)' },
       { key: 'welcome',  label: 'Bienvenida',icon: Bell,   color: 'var(--green)' },
@@ -339,7 +339,7 @@ import { useEffect, useState } from 'react'
       if (!bcMsg.trim()) return
       setBcSend(true); setBcRes(null)
       try {
-        const targets = selected.size > 0 ? [...selected] : groups.map(g => g.jid)
+        const targets = selected.size > 0 ? [...selected] : groups.filter(g => g.botEnabled !== false).map(g => g.jid)
         await postBroadcast(bcMsg.trim(), targets)
         setBcRes({ ok: true, text: `Enviado a ${targets.length} grupo(s)` })
         setBcMsg(''); setSelected(new Set())
