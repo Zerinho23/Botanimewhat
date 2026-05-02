@@ -2,41 +2,41 @@ import { useState, useEffect } from 'react'
   import { NavLink, Outlet, useLocation } from 'react-router-dom'
   import {
     LayoutDashboard, Users, MessageSquare, Settings,
-    Shield, Activity, Wifi, Menu, X, Bot, Radio
+    Shield, Activity, Wifi, Menu, X, Bot
   } from 'lucide-react'
   import { getStatus, getStats, isConfigured, type BotStatus, type BotStats } from '../api'
 
   const NAV = [
-    { to: '/',           icon: LayoutDashboard, label: 'Inicio',       exact: true },
-    { to: '/users',      icon: Users,           label: 'Usuarios' },
-    { to: '/groups',     icon: MessageSquare,   label: 'Grupos' },
-    { to: '/moderation', icon: Shield,          label: 'Moderación' },
-    { to: '/activity',   icon: Activity,        label: 'Actividad' },
-    { to: '/config',     icon: Settings,        label: 'Configuración' },
-    { to: '/connect',    icon: Wifi,            label: 'Conexión' },
+    { to: '/',           icon: LayoutDashboard, label: 'INICIO',         exact: true,  num: '01' },
+    { to: '/users',      icon: Users,           label: 'USUARIOS',                     num: '02' },
+    { to: '/groups',     icon: MessageSquare,   label: 'GRUPOS',                       num: '03' },
+    { to: '/moderation', icon: Shield,          label: 'MODERACIÓN',                   num: '04' },
+    { to: '/activity',   icon: Activity,        label: 'ACTIVIDAD',                    num: '05' },
+    { to: '/config',     icon: Settings,        label: 'CONFIG',                       num: '06' },
+    { to: '/connect',    icon: Wifi,            label: 'CONEXIÓN',                     num: '07' },
   ]
 
   const PAGE_LABELS: Record<string, string> = {
-    '/':           'Inicio',
-    '/users':      'Usuarios',
-    '/groups':     'Grupos',
-    '/moderation': 'Moderación',
-    '/activity':   'Actividad',
-    '/config':     'Configuración',
-    '/connect':    'Conexión',
+    '/': 'STATUS WINDOW', '/users': 'HUNTER LIST', '/groups': 'DUNGEON MAP',
+    '/moderation': 'MOD SYSTEM', '/activity': 'EVENT LOG', '/config': 'SYSTEM CONFIG', '/connect': 'CONNECTION',
   }
 
   function Clock() {
-    const [time, setTime] = useState(new Date())
-    useEffect(() => { const id = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(id) }, [])
-    const hh = time.getHours().toString().padStart(2, '0')
-    const mm = time.getMinutes().toString().padStart(2, '0')
-    const ss = time.getSeconds().toString().padStart(2, '0')
-    const date = time.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
+    const [t, setT] = useState(new Date())
+    useEffect(() => { const id = setInterval(() => setT(new Date()), 1000); return () => clearInterval(id) }, [])
+    const hh = t.getHours().toString().padStart(2,'0')
+    const mm = t.getMinutes().toString().padStart(2,'0')
+    const ss = t.getSeconds().toString().padStart(2,'0')
+    const date = t.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
     return (
       <div className="sidebar-footer">
-        <div className="sidebar-clock">{hh}<span style={{ opacity: time.getSeconds() % 2 === 0 ? 1 : .3, transition: 'opacity .15s' }}>:</span>{mm}<span style={{ fontSize: 12, color: 'var(--tx3)', marginLeft: 3 }}>{ss}</span></div>
-        <div className="sidebar-date">{date.toUpperCase()}</div>
+        <div className="sidebar-clock">
+          {hh}
+          <span style={{ opacity: t.getSeconds() % 2 === 0 ? 1 : .2, transition: 'opacity .1s' }}>:</span>
+          {mm}
+          <span style={{ fontSize: 11, color: 'var(--tx3)', marginLeft: 4, fontWeight: 400 }}>{ss}</span>
+        </div>
+        <div className="sidebar-date">SYS · {date.toUpperCase()}</div>
       </div>
     )
   }
@@ -44,23 +44,23 @@ import { useState, useEffect } from 'react'
   function StatusChip({ status, stats }: { status: BotStatus | null; stats: BotStats | null }) {
     if (!isConfigured()) return (
       <div className="sidebar-status loading">
-        <div className="live-dot" style={{ color: 'var(--tx3)' }} />
-        <span style={{ fontSize: 10 }}>API sin configurar</span>
+        <div className="live-dot" />
+        <span>API SIN CONFIG</span>
       </div>
     )
     if (!status) return (
       <div className="sidebar-status loading">
-        <div className="live-dot" style={{ color: 'var(--tx3)' }} />
-        <span style={{ fontSize: 10 }}>Conectando…</span>
+        <div className="live-dot" />
+        <span>CONECTANDO…</span>
       </div>
     )
     return (
       <div className={`sidebar-status ${status.connected ? 'online' : 'offline'}`}>
         <div className="live-dot" />
-        <span>{status.connected ? 'BOT EN LÍNEA' : 'DESCONECTADO'}</span>
+        <span>{status.connected ? 'HUNTER: ONLINE' : 'DESCONECTADO'}</span>
         {stats && status.connected && (
-          <span style={{ marginLeft: 'auto', fontSize: 9, opacity: .7 }}>
-            {stats.users}u · {stats.groups}g
+          <span style={{ marginLeft: 'auto', fontSize: 9, opacity: .6, fontFamily: "'Orbitron',sans-serif" }}>
+            S{stats.groups ?? 0}
           </span>
         )}
       </div>
@@ -68,139 +68,110 @@ import { useState, useEffect } from 'react'
   }
 
   export default function Layout() {
-    const [open, setOpen]   = useState(false)
-    const [status, setStat] = useState<BotStatus | null>(null)
-    const [stats,  setStats]= useState<BotStats | null>(null)
-    const location          = useLocation()
+    const [status, setStatus] = useState<BotStatus | null>(null)
+    const [stats,  setStats]  = useState<BotStats  | null>(null)
+    const [open,   setOpen]   = useState(false)
+    const location = useLocation()
 
     useEffect(() => {
       if (!isConfigured()) return
-      const load = async () => {
-        try {
-          const [s, st] = await Promise.allSettled([
-            getStatus(),
-            getStats(),
-          ])
-          if (s.status === 'fulfilled')  setStat(s.value)
-          if (st.status === 'fulfilled') setStats(st.value)
-        } catch {}
+      const tick = async () => {
+        try { setStatus(await getStatus()) } catch {}
+        try { setStats(await getStats())   } catch {}
       }
-      load()
-      const id = setInterval(load, 12000)
+      tick()
+      const id = setInterval(tick, 12000)
       return () => clearInterval(id)
     }, [])
 
-    useEffect(() => { setOpen(false) }, [location])
+    const pageLabel = Object.entries(PAGE_LABELS)
+      .sort((a,b) => b[0].length - a[0].length)
+      .find(([k]) => k === '/' ? location.pathname === '/' : location.pathname.startsWith(k))?.[1] ?? ''
 
-    const pageLabel = PAGE_LABELS[location.pathname] ?? ''
+    const sidebar = (
+      <aside className={`sidebar ${open ? 'open' : ''}`}>
+        {/* Logo */}
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-title">
+            <div className="logo-diamond" />
+            BOT SYSTEM
+          </div>
+          <div className="sidebar-logo-sub">◈ BOTANIME · v2.0 · AWAKENED</div>
+        </div>
+
+        {/* Hunter Status */}
+        <StatusChip status={status} stats={stats} />
+
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+          {NAV.map(item => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.exact}
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onClick={() => setOpen(false)}
+            >
+              <item.icon size={14} strokeWidth={1.8} />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              <span className="nav-num">{item.num}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Mini stats */}
+        {stats && (
+          <div className="sidebar-stats">
+            <div className="sidebar-stats-grid">
+              <div className="sidebar-stat-item">
+                <div className="sidebar-stat-val">{stats.users ?? 0}</div>
+                <div className="sidebar-stat-label">PWR</div>
+              </div>
+              <div className="sidebar-stat-item">
+                <div className="sidebar-stat-val">{stats.groups ?? 0}</div>
+                <div className="sidebar-stat-label">GUILD</div>
+              </div>
+              <div className="sidebar-stat-item">
+                <div className="sidebar-stat-val" style={{ color: stats.connected ? 'var(--green2)' : 'var(--red2)' }}>
+                  {stats.connected ? 'ON' : 'OFF'}
+                </div>
+                <div className="sidebar-stat-label">NET</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Clock />
+      </aside>
+    )
 
     return (
-      <div className="app-layout">
-        {/* ── Sidebar overlay (mobile) ── */}
-        <div
-          className={`sidebar-overlay${open ? ' show' : ''}`}
-          onClick={() => setOpen(false)}
-        />
+      <div className="shell">
+        {sidebar}
+        {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
 
-        {/* ── Sidebar ── */}
-        <aside className={`sidebar${open ? ' open' : ''}`}>
-          {/* Header / brand */}
-          <div className="sidebar-header">
-            <div className="sidebar-logo">
-              <div className="sidebar-logo-icon">🤖</div>
-              <div>
-                <div className="sidebar-brand-name">BotAnime</div>
-                <div className="sidebar-brand-sub">Dashboard v2</div>
-              </div>
-            </div>
-            <StatusChip status={status} stats={stats} />
-          </div>
-
-          {/* Nav */}
-          <nav style={{ flex: 1, paddingTop: 8 }}>
-            <div className="nav-section-label">Navegación</div>
-
-            {NAV.map(({ to, icon: Icon, label, exact }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={exact}
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-              >
-                <span className="nav-icon"><Icon size={16} /></span>
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-
-          {/* Stats mini */}
-          {stats && (
-            <div style={{ margin: '0 8px 4px', padding: '10px 12px', borderRadius: 10, background: 'rgba(229,57,53,.05)', border: '1px solid rgba(229,57,53,.1)' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.14em', color: 'rgba(229,57,53,.6)', textTransform: 'uppercase', marginBottom: 8, fontFamily: "'JetBrains Mono',monospace" }}>Stats globales</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                {[
-                  { label: 'Usuarios', val: stats.users, color: 'var(--blue)' },
-                  { label: 'Grupos',   val: stats.groups, color: 'var(--purple)' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} style={{ textAlign: 'center', padding: '6px 4px', borderRadius: 7, background: 'rgba(0,0,0,.2)' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
-                    <div style={{ fontSize: 9, color: 'var(--tx3)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Clock />
-        </aside>
-
-        {/* ── Main ── */}
-        <div className="main-content">
+        <div className="main-content" style={{ marginLeft: 0 }}>
           {/* Topbar */}
           <header className="topbar">
-            <button className="mobile-menu-btn" onClick={() => setOpen(o => !o)} aria-label="menu">
-              {open ? <X size={18} /> : <Menu size={18} />}
+            <button className="sidebar-toggle" onClick={() => setOpen(o => !o)}>
+              {open ? <X size={16} /> : <Menu size={16} />}
             </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bot size={16} color="var(--red)" style={{ flexShrink: 0 }} />
-              <span className="topbar-title">BotAnime</span>
-              <span className="topbar-breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ opacity: .3 }}>/</span>
+            <div className="sidebar-logo-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Bot size={14} />
+            </div>
+            <div className="topbar-title">
+              <span className="topbar-page-label" style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, letterSpacing: '.14em' }}>
                 {pageLabel}
               </span>
             </div>
-
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Live pill */}
-              {isConfigured() && status?.connected && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,.08)', border: '1px solid rgba(16,185,129,.18)', fontSize: 10, fontWeight: 700, color: 'var(--green)', letterSpacing: '.08em' }}>
-                  <Radio size={10} style={{ animation: 'pulse 1.8s ease-in-out infinite' }} />
-                  LIVE
-                </div>
-              )}
-
-              {/* Uptime */}
-              {stats?.uptime !== undefined && (
-                <div style={{ fontSize: 11, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
-                  ↑ {Math.floor(stats.uptime / 3600)}h {Math.floor((stats.uptime % 3600) / 60)}m
-                </div>
-              )}
-
-              {/* Avatar */}
-              <div style={{
-                width: 30, height: 30, borderRadius: 9,
-                background: 'linear-gradient(135deg,#e53935,#7b1fa2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, boxShadow: '0 0 12px rgba(229,57,53,.25)',
-              }}>🤖</div>
-            </div>
+            {status?.connected && (
+              <div className="topbar-badge">◈ SYSTEM ACTIVE</div>
+            )}
           </header>
 
-          {/* Page content */}
-          <main className="page-content">
+          <div className="page-content animate-fade-up">
             <Outlet />
-          </main>
+          </div>
         </div>
       </div>
     )
