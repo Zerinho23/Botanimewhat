@@ -1,6 +1,7 @@
 const config = require("../../config/config");
 const api = require("../../utils/api");
 const format = require("../../utils/format");
+const translator = require("../../utils/translator");
 const { isAdmin } = require("../../handlers/antiSpamHandler");
 const { startGame, getGame, endGame } = require("../../utils/dinamicaManager");
 
@@ -27,42 +28,87 @@ const TRIVIA_POOL = [
   { q: "¿Cuántas Dragon Balls existen en la saga original?", a: "siete", opts: ["A) Tres", "B) Cinco", "C) Siete", "D) Nueve"], correct: "C" },
   { q: "¿Quién tiene el sharingan en Naruto Shippuden?", a: "kakashi", opts: ["A) Naruto", "B) Sakura", "C) Kakashi", "D) Rock Lee"], correct: "C" },
   { q: "¿De dónde viene Zero Two en Darling in the FranXX?", a: "klaxosaur", opts: ["A) Es humana", "B) Es un android", "C) Es mitad klaxosaur", "D) Es extraterrestre"], correct: "C" },
-  { q: "¿Cuántos episodios tiene la primera temporada de Fullmetal Alchemist: Brotherhood?", a: "64", opts: ["A) 51", "B) 52", "C) 64", "D) 74"], correct: "C" },
+  { q: "¿Cuántos episodios tiene Fullmetal Alchemist: Brotherhood?", a: "64", opts: ["A) 51", "B) 52", "C) 64", "D) 74"], correct: "C" },
   { q: "¿Cuál es el verdadero nombre de Tuxedo Mask en Sailor Moon?", a: "mamoru chiba", opts: ["A) Darien Shields", "B) Mamoru Chiba", "C) Ken Ito", "D) Shingo Tsukino"], correct: "B" },
   { q: "¿Qué animal es Chopper en One Piece?", a: "reno", opts: ["A) Oso", "B) Conejo", "C) Mapache", "D) Reno"], correct: "D" },
-  { q: "¿En qué ciudad ocurre la historia principal de Steins;Gate?", a: "akihabara", opts: ["A) Shibuya", "B) Shinjuku", "C) Akihabara", "D) Harajuku"], correct: "C" },
-  { q: "¿Cuál es el nombre de la espada legendaria en Sword Art Online?", a: "excalibur", opts: ["A) Elucidator", "B) Dark Repulser", "C) Excalibur", "D) Lambent Light"], correct: "C" },
+  { q: "¿En qué ciudad ocurre la historia de Steins;Gate?", a: "akihabara", opts: ["A) Shibuya", "B) Shinjuku", "C) Akihabara", "D) Harajuku"], correct: "C" },
+  { q: "¿Cuál es la espada legendaria de Sword Art Online?", a: "excalibur", opts: ["A) Elucidator", "B) Dark Repulser", "C) Excalibur", "D) Lambent Light"], correct: "C" },
   { q: "¿Quién es el maestro de Kakashi en Naruto?", a: "minato", opts: ["A) Jiraiya", "B) Orochimaru", "C) Hiruzen", "D) Minato"], correct: "D" },
   { q: "¿De qué clan viene Itachi en Naruto?", a: "uchiha", opts: ["A) Hyuga", "B) Senju", "C) Uchiha", "D) Uzumaki"], correct: "C" },
   { q: "¿Cómo se llama el ataque principal de Goku?", a: "kamehameha", opts: ["A) Genki-Dama", "B) Kamehameha", "C) Masenko", "D) Galick-Ho"], correct: "B" },
   { q: "¿Cuál es el nombre del instituto en My Hero Academia?", a: "ua", opts: ["A) Seika", "B) Shiketsu", "C) Ketsubutsu", "D) UA"], correct: "D" },
 ];
 
-function normalizeAnswer(text) {
-  return text.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+// ── Normalización ─────────────────────────────────────────────────────────────
+function normalizeText(text) {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+// ── Validación de trivia (opción múltiple) ────────────────────────────────────
 function checkTriviaAnswer(userText, correctLetter, correctAnswer) {
-  const norm = normalizeAnswer(userText);
-  if (/^[abcd]$/.test(norm)) return norm === correctLetter.toLowerCase();
-  const normAnswer = normalizeAnswer(correctAnswer);
-  const words = normAnswer.split(" ").filter((w) => w.length > 2);
-  const matchedWords = words.filter((w) => norm.includes(w));
-  return matchedWords.length >= Math.ceil(words.length * 0.6) || norm.includes(normAnswer);
+  const norm = normalizeText(userText.trim());
+
+  // Acepta solo la letra (A, B, C o D)
+  if (/^[abcd]$/.test(norm)) {
+    return norm === correctLetter.toLowerCase();
+  }
+
+  // Acepta la respuesta completa escrita (coincidencia exacta normalizada)
+  const normAnswer = normalizeText(correctAnswer);
+  return norm === normAnswer;
 }
 
+// ── Validación de anime/personaje (matching ESTRICTO de palabras enteras) ─────
 function checkAnimeAnswer(userText, correctTitle) {
-  const norm = normalizeAnswer(userText);
-  const normTitle = normalizeAnswer(correctTitle);
+  const norm = normalizeText(userText.trim());
+  const normTitle = normalizeText(correctTitle);
+
+  // Respuesta demasiado corta para ser válida
+  if (norm.length < 3) return false;
+
+  // Coincidencia exacta completa
   if (norm === normTitle) return true;
-  const words = normTitle.split(" ").filter((w) => w.length > 2);
-  if (!words.length) return norm.includes(normTitle.split(" ")[0]);
-  const matched = words.filter((w) => norm.includes(w));
-  return matched.length >= Math.ceil(words.length * 0.65);
+
+  // Palabras significativas del título (> 2 caracteres, sin artículos comunes)
+  const STOP_WORDS = new Set(["the", "los", "las", "del", "una", "uno", "que", "con", "por", "para"]);
+  const titleWords = normTitle.split(" ").filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+
+  // Si el título no tiene palabras significativas, exigir coincidencia exacta
+  if (titleWords.length === 0) return norm === normTitle;
+
+  // Palabras exactas que el usuario escribió (conjunto)
+  const userWords = new Set(norm.split(" ").filter((w) => w.length > 1));
+
+  // Contar cuántas palabras significativas del título están en la respuesta (match exacto de palabra completa)
+  const matched = titleWords.filter((w) => userWords.has(w));
+  const ratio = matched.length / titleWords.length;
+
+  // Para títulos de 1 sola palabra significativa: debe aparecer exactamente
+  if (titleWords.length === 1) {
+    return userWords.has(titleWords[0]);
+  }
+
+  // Para títulos de 2+ palabras: al menos 80% de palabras significativas deben coincidir
+  // Y al menos 2 palabras deben coincidir
+  return ratio >= 0.8 && matched.length >= 2;
+}
+
+// ── Traducir sinopsis al español ──────────────────────────────────────────────
+async function translateSynopsis(text, maxChars = 280) {
+  if (!text) return "Sin sinopsis disponible.";
+  try {
+    const translated = await translator.translate(text, "es");
+    const result = translated || text;
+    return result.length > maxChars ? result.slice(0, maxChars) + "..." : result;
+  } catch (_) {
+    return text.length > maxChars ? text.slice(0, maxChars) + "..." : text;
+  }
 }
 
 // ── Trivia ────────────────────────────────────────────────────────────────────
@@ -85,7 +131,7 @@ async function startTrivia(sock, groupJid, autoMode = false) {
     ...q.opts,
     ``,
     `${config.emojis.coin} Premio: *${reward} monedas* al primero en responder correctamente`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe la letra (A, B, C o D) o la respuesta completa.`,
+    `⏳ Tienes *${timeoutSecs} segundos*. Escribe la letra (A, B, C o D) o la respuesta exacta.`,
   ].join("\n");
 
   await sock.sendMessage(groupJid, { text });
@@ -106,7 +152,8 @@ async function startTrivia(sock, groupJid, autoMode = false) {
     question: q,
     reward,
     timeout,
-    check: (text, sender) => checkTriviaAnswer(text, q.correct, q.a) ? { winner: sender, reward } : null,
+    check: (text, sender) =>
+      checkTriviaAnswer(text, q.correct, q.a) ? { winner: sender, reward } : null,
   });
 }
 
@@ -132,7 +179,9 @@ async function startAdivina(sock, groupJid, autoMode = false) {
 
   const reward = config.dinamica?.adivinaReward ?? 50;
   const timeoutSecs = config.dinamica?.timeoutSeconds ?? 90;
-  const synopsis = anime.synopsis.length > 280 ? anime.synopsis.slice(0, 280) + "..." : anime.synopsis;
+
+  // Traducir sinopsis al español
+  const synopsis = await translateSynopsis(anime.synopsis, 300);
 
   const hints = [
     anime.type ? `📺 *Tipo:* ${anime.type}` : null,
@@ -152,10 +201,18 @@ async function startAdivina(sock, groupJid, autoMode = false) {
     ...hints,
     ``,
     `${config.emojis.coin} Premio: *${reward} monedas* al primero en acertar`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre del anime en el chat.`,
+    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre *exacto* del anime.`,
   ].join("\n");
 
   await sock.sendMessage(groupJid, { text });
+
+  const allTitles = [
+    anime.title,
+    anime.title_english,
+    anime.title_japanese,
+    ...((anime.titles || []).map((t) => t.title)),
+    ...((anime.title_synonyms || [])),
+  ].filter(Boolean);
 
   const timeout = setTimeout(async () => {
     if (!getGame(groupJid)) return;
@@ -166,12 +223,6 @@ async function startAdivina(sock, groupJid, autoMode = false) {
       });
     } catch (_) {}
   }, timeoutSecs * 1000);
-
-  const allTitles = [
-    anime.title, anime.title_english, anime.title_japanese,
-    ...((anime.titles || []).map((t) => t.title)),
-    ...((anime.title_synonyms || [])),
-  ].filter(Boolean);
 
   startGame(groupJid, {
     type: "adivina",
@@ -209,7 +260,9 @@ async function startAdivinaPersonaje(sock, groupJid, autoMode = false) {
 
   const reward = config.dinamica?.personajeReward ?? 40;
   const timeoutSecs = config.dinamica?.timeoutSeconds ?? 90;
-  const about = character.about.length > 250 ? character.about.slice(0, 250) + "..." : character.about;
+
+  // Traducir descripción al español
+  const about = await translateSynopsis(character.about, 280);
   const animeNames = character.anime?.slice(0, 2).map((a) => a.anime?.title).filter(Boolean).join(", ");
 
   const text = [
@@ -222,7 +275,7 @@ async function startAdivinaPersonaje(sock, groupJid, autoMode = false) {
     `⭐ *Favoritos globales:* ${character.favorites?.toLocaleString() || "N/A"}`,
     ``,
     `${config.emojis.coin} Premio: *${reward} monedas* al primero en acertar`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre del personaje.`,
+    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre *exacto* del personaje.`,
   ].filter(Boolean).join("\n");
 
   await sock.sendMessage(groupJid, { text });
@@ -258,7 +311,6 @@ module.exports = {
   description: "Solo admins. Inicia una dinámica de anime. Tipos: trivia, adivina, personaje",
   aliases: ["juego", "game", "play", "reto"],
 
-  // Exportadas para el auto-scheduler en index.js
   startTrivia,
   startAdivina,
   startAdivinaPersonaje,
@@ -270,7 +322,6 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    // Solo admins pueden iniciar dinámicas
     const admin = await isAdmin(sock, from, sender);
     if (!admin) {
       return sock.sendMessage(from, {
@@ -284,7 +335,6 @@ module.exports = {
     if (type === "adivina") return startAdivina(sock, from);
     if (type === "personaje") return startAdivinaPersonaje(sock, from);
 
-    // Sin argumento: tipo aleatorio
     const chosen = GAME_TYPES[Math.floor(Math.random() * GAME_TYPES.length)];
     if (chosen === "trivia") return startTrivia(sock, from);
     if (chosen === "adivina") return startAdivina(sock, from);
