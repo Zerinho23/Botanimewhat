@@ -55,18 +55,19 @@ function MetricCard({ icon: Icon, label, value, color, glow, rank, sub, delay = 
       transition={{ delay: delay / 1000, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -6, transition: { duration: 0.22 } }}
       style={{
-        position: 'relative', borderRadius: 4, padding: '20px 20px 18px',
-        background: `linear-gradient(140deg, ${glow} 0%, rgba(7,7,20,1) 60%)`,
-        border: `1px solid ${color}22`,
-        borderLeft: `3px solid ${color}`,
+        position: 'relative', borderRadius: 16, padding: '20px 20px 18px',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderLeft: `2px solid ${color}`,
         overflow: 'hidden', cursor: 'default',
-        boxShadow: `0 4px 24px rgba(0,0,0,0.60), 0 0 0 1px ${color}08`,
+        boxShadow: `0 4px 24px rgba(0,0,0,0.30), 0 0 30px ${glow}`,
       }}
     >
       {/* Top gradient line */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, ${color}88, transparent 60%)` }} />
-      {/* Corner bracket */}
-      <div style={{ position: 'absolute', top: -1, left: -1, width: 13, height: 13, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}`, boxShadow: `-1px -1px 8px ${glow}` }} />
+
       {/* Ambient orb */}
       <div style={{ position: 'absolute', top: -20, left: -10, width: 120, height: 120, background: `radial-gradient(circle, ${glow}, transparent 68%)`, pointerEvents: 'none' }} />
 
@@ -152,22 +153,24 @@ const evMeta = (t: string) => EV_META[t] ?? { label: t.slice(0, 4).toUpperCase()
 const fmtTs = (ts: number) => new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
 const panelStyle = (accent: string) => ({
-  background: 'linear-gradient(135deg, rgba(10,10,24,0.97) 0%, rgba(5,5,14,1) 100%)',
-  border: `1px solid rgba(245,158,11,0.13)`,
-  borderLeft: `3px solid ${accent}`,
-  borderRadius: 4,
+  background: 'rgba(255,255,255,0.03)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderLeft: `2px solid ${accent}`,
+  borderRadius: 16,
   position: 'relative' as const,
   overflow: 'hidden' as const,
   display: 'flex' as const,
   flexDirection: 'column' as const,
-  boxShadow: `0 4px 24px rgba(0,0,0,0.55), 0 0 0 1px ${accent}06`,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.30)',
 })
 
-const panelHeader = (accent: string) => ({
+const panelHeader = (_accent: string) => ({
   display: 'flex', alignItems: 'center', gap: 8,
-  padding: '11px 16px',
-  borderBottom: '1px solid rgba(245,158,11,0.07)',
-  background: `${accent}06`,
+  padding: '12px 18px',
+  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  background: 'rgba(255,255,255,0.02)',
   flexShrink: 0,
 })
 
@@ -211,13 +214,13 @@ export default function Overview() {
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div className="skeleton" style={{ height: 96, borderRadius: 4 }} />
+      <div className="skeleton" style={{ height: 96, borderRadius: 12 }} />
       <div className="grid-metrics">
-        {[...Array(6)].map((_, i) => <div key={i} className="skeleton" style={{ height: 138, borderRadius: 4 }} />)}
+        {[...Array(6)].map((_, i) => <div key={i} className="skeleton" style={{ height: 138, borderRadius: 12 }} />)}
       </div>
       <div className="grid-duo">
-        <div className="skeleton" style={{ height: 230, borderRadius: 4 }} />
-        <div className="skeleton" style={{ height: 230, borderRadius: 4 }} />
+        <div className="skeleton" style={{ height: 230, borderRadius: 12 }} />
+        <div className="skeleton" style={{ height: 230, borderRadius: 12 }} />
       </div>
     </div>
   )
@@ -253,19 +256,20 @@ export default function Overview() {
         transition={{ duration: 0.38 }}
         style={{
           padding: '20px 24px',
-          background: 'linear-gradient(100deg, rgba(245,158,11,0.12) 0%, rgba(7,7,20,0.97) 60%)',
-          border: '1px solid rgba(245,158,11,0.20)', borderLeft: '4px solid #F59E0B',
-          borderRadius: 4, position: 'relative', overflow: 'hidden',
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)', borderLeft: '3px solid #8B5CF6',
+          borderRadius: 16, position: 'relative', overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
-          boxShadow: '0 0 50px rgba(245,158,11,0.08), 0 8px 40px rgba(0,0,0,0.60)',
+          boxShadow: '0 4px 30px rgba(0,0,0,0.35), 0 0 60px rgba(139,92,246,0.08)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #F59E0B, #F97316 40%, rgba(245,158,11,0.20) 70%, transparent)' }} />
-        <div style={{ position: 'absolute', top: -1, left: -1, width: 16, height: 16, borderTop: '2px solid #F59E0B', borderLeft: '2px solid #F59E0B', boxShadow: '-2px -2px 12px rgba(245,158,11,0.60)' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 240, height: '100%', background: 'radial-gradient(ellipse at left, rgba(245,158,11,0.10), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #8B5CF6, #EC4899 40%, rgba(6,182,212,0.20) 70%, transparent)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 280, height: '100%', background: 'radial-gradient(ellipse at left, rgba(139,92,246,0.10), transparent 70%)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative' }}>
-          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.22em', color: 'rgba(245,158,11,0.40)', marginBottom: 9 }}>
+          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.22em', color: 'rgba(139,92,246,0.50)', marginBottom: 9 }}>
             [ SYSTEM ] /// STATUS WINDOW
           </div>
           <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 20, fontWeight: 900, letterSpacing: '.10em', color: '#F0EFFF', display: 'flex', alignItems: 'center', gap: 12, textShadow: '0 0 40px rgba(245,158,11,0.25)' }}>
@@ -285,8 +289,8 @@ export default function Overview() {
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {connected
-            ? <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 10, fontWeight: 900, letterSpacing: '.14em', padding: '6px 14px', borderRadius: 3, border: '1px solid rgba(251,191,36,0.52)', background: 'rgba(251,191,36,0.10)', color: '#FBBF24', animation: 'sRankPulse 2.5s ease-in-out infinite', boxShadow: '0 0 20px rgba(251,191,36,0.12)' }}>◈ S-RANK</div>
-            : <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 10, fontWeight: 900, letterSpacing: '.14em', padding: '6px 14px', borderRadius: 3, border: '1px solid rgba(71,85,105,0.30)', background: 'rgba(71,85,105,0.08)', color: '#475569' }}>E-RANK</div>
+            ? <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 10, fontWeight: 900, letterSpacing: '.14em', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.09)', color: '#FBBF24', animation: 'sRankPulse 2.5s ease-in-out infinite' }}>◈ S-RANK</div>
+            : <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 10, fontWeight: 900, letterSpacing: '.14em', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(71,85,105,0.30)', background: 'rgba(71,85,105,0.08)', color: '#475569' }}>E-RANK</div>
           }
           <button className="btn btn-ghost btn-sm" onClick={() => load(true)} disabled={ref}>
             <RefreshCw size={12} style={{ animation: ref ? 'spin 1s linear infinite' : 'none', color: 'rgba(245,158,11,0.65)' }} />
@@ -410,7 +414,7 @@ export default function Overview() {
                     return (
                       <div key={u.jid} className="lb-row">
                         <span className={`lb-pos ${posClass}`}>#{pos + 1}</span>
-                        <div style={{ width: 26, height: 26, borderRadius: 4, background: `${color}12`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 800, color, fontFamily: "'Orbitron',monospace" }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}12`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 800, color, fontFamily: "'Orbitron',monospace" }}>
                           {name.slice(0, 2).toUpperCase()}
                         </div>
                         <span className="lb-name">{name}</span>
