@@ -40,7 +40,7 @@ function SectionHeader({ icon: Icon, title, color }: { icon: React.ElementType; 
 export default function Config() {
   const [form,      setForm]  = useState<Partial<BotConfig>>({})
   const [maintForm, setMF]    = useState<MaintenanceState>({ enabled: false, message: '' })
-  const [maint,     setMaint] = useState<MaintenanceState>({ enabled: false, message: '' })
+
   const [loading,   setLoad]  = useState(true)
   const [saving,    setSave]  = useState(false)
   const [savingM,   setSaveM] = useState(false)
@@ -65,7 +65,7 @@ export default function Config() {
   }
   const saveMaint = async () => {
     setSaveM(true)
-    try { await postMaintenance(maintForm); setMaint(maintForm); showToast('Sistema ' + (maintForm.enabled ? 'en mantenimiento' : 'operativo')) }
+    try { await postMaintenance(maintForm); showToast('Sistema ' + (maintForm.enabled ? 'en mantenimiento' : 'operativo')) }
     catch (e) { showToast(e instanceof Error ? e.message : 'Error', false) }
     setSaveM(false)
   }
@@ -133,7 +133,7 @@ export default function Config() {
           {tab === 'bot' && (
             <>
               <SectionHeader icon={Wrench} title="CONFIGURACIÓN DEL BOT" color="#3B82F6" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px' }}>
+              <div className="grid-form">
                 <FormRow label="NOMBRE DEL BOT" hint="Aparece en mensajes del sistema">
                   <input className="input" value={form.botName ?? ''} onChange={e => setForm(f => ({ ...f, botName: e.target.value }))} placeholder="BotAnime" />
                 </FormRow>
@@ -159,7 +159,7 @@ export default function Config() {
           {tab === 'economy' && (
             <>
               <SectionHeader icon={DollarSign} title="SISTEMA DE ECONOMÍA" color="#FBBF24" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px' }}>
+              <div className="grid-form">
                 <FormRow label="COINS DIARIOS" hint="Monedas que recibe el usuario con !daily">
                   <input className="input" type="number" min={0} value={(form.economy as Record<string,number>|undefined)?.dailyCoins ?? 100} onChange={e => setForm(f => ({ ...f, economy: { ...(f.economy as object || {}), dailyCoins: +e.target.value } }))} />
                 </FormRow>
@@ -186,7 +186,7 @@ export default function Config() {
           {tab === 'antispam' && (
             <>
               <SectionHeader icon={Shield} title="MÓDULO ANTI-SPAM" color="#EF4444" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px' }}>
+              <div className="grid-form">
                 <FormRow label="MÁX. MENSAJES (5 seg)" hint="Mensajes permitidos en 5 segundos antes de activar">
                   <input className="input" type="number" min={1} max={20} value={(form.antiSpam as Record<string,number>|undefined)?.maxMessages ?? 5} onChange={e => setForm(f => ({ ...f, antiSpam: { ...(f.antiSpam as object || {}), maxMessages: +e.target.value } }))} />
                 </FormRow>

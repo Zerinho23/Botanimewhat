@@ -212,10 +212,10 @@ export default function Overview() {
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div className="skeleton" style={{ height: 96, borderRadius: 4 }} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(185px,1fr))', gap: 14 }}>
+      <div className="grid-metrics">
         {[...Array(6)].map((_, i) => <div key={i} className="skeleton" style={{ height: 138, borderRadius: 4 }} />)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 14 }}>
+      <div className="grid-duo">
         <div className="skeleton" style={{ height: 230, borderRadius: 4 }} />
         <div className="skeleton" style={{ height: 230, borderRadius: 4 }} />
       </div>
@@ -295,7 +295,7 @@ export default function Overview() {
       </motion.div>
 
       {/* ── Metrics grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(185px,1fr))', gap: 14 }}>
+      <div className="grid-metrics">
         {METRICS.map((m, i) => (
           <MetricCard
             key={m.key}
@@ -312,7 +312,7 @@ export default function Overview() {
       </div>
 
       {/* ── Chart + Event Log ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 14 }}>
+      <div className="grid-duo">
 
         {/* Activity chart */}
         <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.38, duration: 0.35 }} style={panelStyle('#3B82F6')}>
@@ -388,7 +388,7 @@ export default function Overview() {
       </div>
 
       {/* ── Leaderboards + System Health ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+      <div className="grid-trio">
 
         {[
           { title: '[ XP RANKING ]',  icon: Award, color: '#F59E0B', data: topUsers, valFn: (u: User) => u.xp ?? 0 },
