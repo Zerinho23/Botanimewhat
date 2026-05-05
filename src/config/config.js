@@ -22,6 +22,21 @@ module.exports = {
     coinsPerCommand: 5,
     waifuCost: 50,
     dailyReward: 100,
+    // Solo se otorgan monedas por mensaje 1 vez cada X segundos (anti-farmeo)
+    coinCooldownSeconds: 30,
+  },
+
+  dinamica: {
+    // Monedas que gana el primero en responder correctamente
+    triviaReward: 30,
+    adivinaReward: 50,
+    personajeReward: 40,
+    // Segundos para responder antes de que expire la dinámica
+    timeoutSeconds: 90,
+    // Dinámicas automáticas: cada cuántas horas se activa en grupos activos (0 = desactivado)
+    autoIntervalHours: 3,
+    // Mínimo de mensajes recientes para que un grupo sea considerado "activo"
+    autoMinMessages: 5,
   },
 
   antiSpam: {

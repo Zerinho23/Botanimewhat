@@ -11,7 +11,7 @@ const fs = require("fs");
 const config = require("./config/config");
 const logger = require("./utils/logger");
 const db = require("./database/db");
-const { loadCommands } = require("./handlers/commandHandler");
+const { loadCommands, getCommand } = require("./handlers/commandHandler");
 const { handleMessages } = require("./handlers/messageHandler");
 const { handleConnection } = require("./events/connection");
 const { handleGroupEvents } = require("./events/groupEvents");
@@ -68,40 +68,30 @@ const msgRetryCounterMap = {};
 
 // ────────────────────────────────────────────────────────────────
 // REVISOR DE FICHAS EXPIRADAS
-// Cada 5 minutos revisa si algún miembro nuevo no entregó su ficha
-// dentro de las 24 horas y lo expulsa automáticamente del grupo.
 // ────────────────────────────────────────────────────────────────
 function startKickChecker(sock) {
-  const INTERVAL_MS = 5 * 60 * 1000; // revisar cada 5 minutos
+  const INTERVAL_MS = 5 * 60 * 1000;
 
   async function checkAndKick() {
     const expired = db.getExpiredPending();
     if (!expired.length) return;
-
     logger.info(`⏰ Revisión de fichas: ${expired.length} miembro(s) con plazo vencido`);
-
     for (const { groupJid, userJid } of expired) {
       try {
-        // Intentar expulsar del grupo
         await sock.groupParticipantsUpdate(groupJid, [userJid], "remove");
         logger.info(`🚫 Expulsado por no presentarse: ${userJid.split("@")[0]} de ${groupJid}`);
-
-        // Avisar al grupo
         await sock.sendMessage(groupJid, {
-          text:
-            `🚫 @${userJid.split("@")[0]} fue expulsado por no completar su ficha de presentación en 24 horas.`,
+          text: `🚫 @${userJid.split("@")[0]} fue expulsado por no completar su ficha de presentación en 24 horas.`,
           mentions: [userJid],
         });
       } catch (err) {
         logger.warn(`No pude expulsar a ${userJid.split("@")[0]}: ${err.message}`);
       } finally {
-        // Siempre quitar del pendiente, aunque la expulsión falle
         db.removePending(groupJid, userJid);
       }
     }
   }
 
-  // Primera verificación a los 2 minutos del arranque (para que el socket esté estable)
   setTimeout(() => {
     checkAndKick().catch((e) => logger.error(`kickChecker error: ${e.message}`));
     setInterval(() => {
@@ -110,6 +100,78 @@ function startKickChecker(sock) {
   }, 2 * 60 * 1000);
 
   logger.info("⏰ Revisor de fichas activo — verifica cada 5 minutos");
+}
+
+// ────────────────────────────────────────────────────────────────
+// AUTO-DINÁMICAS
+// Cada X horas lanza una dinámica aleatoria en grupos activos.
+// Solo actúa si autoIntervalHours > 0 en config.
+// ────────────────────────────────────────────────────────────────
+function startAutoDinamica(sock) {
+  const intervalHours = config.dinamica?.autoIntervalHours ?? 0;
+  if (!intervalHours || intervalHours <= 0) return;
+
+  const INTERVAL_MS = intervalHours * 60 * 60 * 1000;
+  const MIN_MESSAGES = config.dinamica?.autoMinMessages ?? 5;
+  const RECENT_WINDOW_MS = intervalHours * 60 * 60 * 1000; // misma ventana que el intervalo
+
+  async function runAutoDinamica() {
+    // Cargar dinámicas
+    let dinamicaCmd;
+    try {
+      dinamicaCmd = getCommand("dinamica");
+    } catch (_) {}
+    if (!dinamicaCmd) return;
+
+    const { startTrivia, startAdivina, startAdivinaPersonaje } = dinamicaCmd;
+    if (!startTrivia || !startAdivina || !startAdivinaPersonaje) return;
+
+    const allUsers = db.getAllUsers();
+    // Obtener grupos activos buscando en lastMessageAt de la DB
+    const activeGroups = new Set();
+    const now = Date.now();
+
+    // Revisar todos los grupos registrados
+    const groups = db.getAllGroups ? db.getAllGroups() : [];
+    for (const group of groups) {
+      if (!group.jid || !group.jid.endsWith("@g.us")) continue;
+      if (group.botEnabled === false) continue;
+      const lastMsg = group.lastMessageAt || {};
+      const recentSenders = Object.values(lastMsg).filter((t) => now - t < RECENT_WINDOW_MS);
+      if (recentSenders.length >= MIN_MESSAGES) {
+        activeGroups.add(group.jid);
+      }
+    }
+
+    if (!activeGroups.size) {
+      logger.info("🎮 Auto-dinámica: ningún grupo activo encontrado.");
+      return;
+    }
+
+    logger.info(`🎮 Auto-dinámica: lanzando en ${activeGroups.size} grupo(s) activo(s)`);
+
+    const gameTypes = ["trivia", "adivina", "personaje"];
+    for (const groupJid of activeGroups) {
+      try {
+        const chosen = gameTypes[Math.floor(Math.random() * gameTypes.length)];
+        if (chosen === "trivia") await startTrivia(sock, groupJid, true);
+        else if (chosen === "adivina") await startAdivina(sock, groupJid, true);
+        else await startAdivinaPersonaje(sock, groupJid, true);
+        logger.info(`🎮 Auto-dinámica (${chosen}) iniciada en ${groupJid}`);
+        // Pequeña pausa entre grupos para no saturar
+        await new Promise((r) => setTimeout(r, 2000));
+      } catch (err) {
+        logger.warn(`Auto-dinámica falló en ${groupJid}: ${err.message}`);
+      }
+    }
+  }
+
+  // Primera ejecución tras el intervalo completo (no al arrancar)
+  setInterval(() => {
+    runAutoDinamica().catch((e) => logger.error(`Auto-dinámica error: ${e.message}`));
+  }, INTERVAL_MS);
+
+  logger.info(`🎮 Auto-dinámicas activas — cada ${intervalHours} hora(s) en grupos activos`);
 }
 
 async function startBot() {
@@ -230,8 +292,8 @@ async function startBot() {
   });
   handleGroupEvents(sock);
 
-  // Iniciar el revisor de fichas expiradas
   startKickChecker(sock);
+  startAutoDinamica(sock);
 
   async function ensureGroupMetadata(jid) {
     if (!jid?.endsWith("@g.us")) return;

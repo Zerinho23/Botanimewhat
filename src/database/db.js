@@ -90,6 +90,7 @@ function updateGroup(jid, data) {
 }
 
 function getAllUsers() { return Object.values(users); }
+function getAllGroups() { return Object.values(groups); }
 
 // ── WAIFUS ────────────────────────────────────────────────────────────────────
 function getWaifuOwners() { return waifus; }
@@ -139,7 +140,7 @@ function deleteGroup(jid) {
   function removePendingBulk(entries) { for (const { groupJid, userJid } of entries) removePending(groupJid, userJid); }
 
 module.exports = {
-  getUser, updateUser, getGroup, updateGroup, deleteGroup, getAllUsers,
+  getUser, updateUser, getGroup, updateGroup, deleteGroup, getAllUsers, getAllGroups,
   getWaifuOwners, assignWaifu, reload,
   addPending, removePending, isPending, getExpiredPending, removePendingBulk,
 };

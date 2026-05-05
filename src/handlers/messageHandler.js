@@ -3,9 +3,11 @@ const db = require("../database/db");
 const logger = require("../utils/logger");
 const { getCommand } = require("./commandHandler");
 const { checkAntiSpam, checkAntiLink, checkStickerSpam } = require("./antiSpamHandler");
+const { getGame, endGame } = require("../utils/dinamicaManager");
 
 const cooldowns = new Map();
 const xpCooldowns = new Map();
+const coinCooldowns = new Map();
 
 // Lazy-load webServer to avoid circular deps
 let _ws = null;
@@ -32,6 +34,7 @@ function isFichaRellena(text) {
   return campos.filter((re) => re.test(lower)).length >= 4;
 }
 
+// ── Otorgar XP ────────────────────────────────────────────────────────────────
 async function awardXp(sock, userJid, groupJid, isCommand) {
   if (!isCommand) {
     const cooldownMs = (config.level.xpCooldownSeconds ?? 30) * 1000;
@@ -59,6 +62,66 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
       mentions: [userJid],
     });
   }
+}
+
+// ── Otorgar monedas ───────────────────────────────────────────────────────────
+function awardCoins(userJid, isCommand) {
+  if (!config.economy?.enabled) return;
+  if (!isCommand) {
+    const cooldownMs = (config.economy.coinCooldownSeconds ?? 30) * 1000;
+    const last = coinCooldowns.get(userJid) || 0;
+    if (Date.now() - last < cooldownMs) return;
+    coinCooldowns.set(userJid, Date.now());
+  }
+  const gain = isCommand
+    ? (config.economy.coinsPerCommand ?? 5)
+    : (config.economy.coinsPerMessage ?? 2);
+  const user = db.getUser(userJid);
+  db.updateUser(userJid, { coins: (user.coins || 0) + gain });
+}
+
+// ── Manejar respuesta a una dinámica activa ───────────────────────────────────
+async function handleDinamicaAnswer(sock, msg, from, sender, text) {
+  const game = getGame(from);
+  if (!game) return false;
+
+  const result = game.check(text, sender);
+  if (!result) return false; // Respuesta incorrecta, dejamos que siga el flujo normal
+
+  // Respuesta correcta — cancelar timeout y cerrar juego
+  endGame(from);
+
+  const { winner, reward } = result;
+  const winnerUser = db.getUser(winner);
+  db.updateUser(winner, { coins: (winnerUser.coins || 0) + reward });
+
+  const typeLabels = { trivia: "la trivia", adivina: "adivinar el anime", personaje: "adivinar el personaje" };
+  const label = typeLabels[game.type] || "la dinámica";
+
+  let replyText = [
+    `${config.emojis.sparkles} *¡@${winner.split("@")[0]} ganó ${label}!* ${config.emojis.sparkles}`,
+    ``,
+    `${config.emojis.coin} *+${reward} monedas* agregadas a tu cuenta`,
+    `💰 Saldo total: *${(winnerUser.coins || 0) + reward} monedas*`,
+  ];
+
+  if (game.type === "adivina" && result.anime) {
+    replyText.push(``, `✅ El anime era: *${result.anime.title}*`);
+  } else if (game.type === "personaje" && result.character) {
+    replyText.push(``, `✅ El personaje era: *${result.character.name}*`);
+  } else if (game.type === "trivia") {
+    const correctOpt = game.question?.opts?.find((o) => o.startsWith(game.question.correct));
+    if (correctOpt) replyText.push(``, `✅ Respuesta correcta: *${correctOpt}*`);
+  }
+
+  replyText.push(``, `_Usa *${config.prefix}dinamica* para jugar de nuevo._`);
+
+  await sock.sendMessage(from, {
+    text: replyText.join("\n"),
+    mentions: [winner],
+  }, { quoted: msg });
+
+  return true;
 }
 
 async function handleMessages(sock, { messages }) {
@@ -110,13 +173,13 @@ async function handleMessages(sock, { messages }) {
       if (!text) continue;
       if (msg.key.fromMe && !text.startsWith(config.prefix)) continue;
 
-      // ── Grupos con bot desactivado: ignorar antes de emitir nada ─────
-        if (isGroup) {
-          const _g = db.getGroup(from);
-          if (_g.botEnabled === false) continue;
-        }
+      // ── Grupos con bot desactivado ────────────────────────────────
+      if (isGroup) {
+        const _g = db.getGroup(from);
+        if (_g.botEnabled === false) continue;
+      }
 
-        // ── Emitir evento de mensaje para el log ─────────────────────
+      // ── Emitir evento de mensaje ──────────────────────────────────
       try {
         ws().emitEvent("msg", {
           sender: sender.split("@")[0],
@@ -127,6 +190,17 @@ async function handleMessages(sock, { messages }) {
 
       if (text.startsWith(config.prefix)) {
         logger.info(`📥 ${sender.split("@")[0]} en ${isGroup ? "grupo" : "privado"}: "${text.slice(0, 60)}"`);
+      }
+
+      // ── Comprobar respuesta a dinámica activa (grupos) ────────────
+      if (isGroup && !msg.key.fromMe && !text.startsWith(config.prefix)) {
+        const answered = await handleDinamicaAnswer(sock, msg, from, sender, text);
+        if (answered) {
+          // También damos XP y monedas al ganador por haber participado
+          await awardXp(sock, sender, from, false);
+          awardCoins(sender, false);
+          continue;
+        }
       }
 
       if (isGroup) {
@@ -152,6 +226,7 @@ async function handleMessages(sock, { messages }) {
             });
           } catch (err) { logger.error(`Error aprobando ficha: ${err.message}`); }
           await awardXp(sock, sender, from, false);
+          awardCoins(sender, false);
           continue;
         }
         try {
@@ -162,7 +237,11 @@ async function handleMessages(sock, { messages }) {
       }
 
       const isCommand = text.startsWith(config.prefix);
-      if (!isCommand) { await awardXp(sock, sender, isGroup ? from : null, false); continue; }
+      if (!isCommand) {
+        await awardXp(sock, sender, isGroup ? from : null, false);
+        awardCoins(sender, false);
+        continue;
+      }
 
       const args = text.slice(config.prefix.length).trim().split(/\s+/);
       const commandName = args.shift().toLowerCase();
@@ -187,13 +266,14 @@ async function handleMessages(sock, { messages }) {
 
       logger.command(sender.split("@")[0], commandName, isGroup ? from : null);
 
-      // ── Emitir evento de comando ──────────────────────────────────
       try {
         ws().emitEvent("cmd", { sender: sender.split("@")[0], cmd: commandName, group: isGroup ? from.split("@")[0] : null });
       } catch (_) {}
 
       try { await sock.sendPresenceUpdate("composing", from); } catch (_) {}
       awardXp(sock, sender, isGroup ? from : null, true).catch(() => {});
+      awardCoins(sender, true);
+
       try {
         await command.execute({ sock, msg, args, from, sender, isGroup, text });
       } catch (err) {
