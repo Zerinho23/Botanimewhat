@@ -52,7 +52,7 @@ export default function Config() {
   const load = async () => {
     if (!isConfigured()) { setLoad(false); return }
     try { const c = await getConfig(); setForm(c) } catch {}
-    try { const m = await getMaintenance(); setMaint(m); setMF(m) } catch {}
+    try { const m = await getMaintenance(); setMF(m) } catch {}
     setLoad(false)
   }
   useEffect(() => { load() }, [])
