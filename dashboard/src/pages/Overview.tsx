@@ -84,8 +84,8 @@ function MetricCard({ icon: Icon, label, value, color, glow, rank, sub, delay = 
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
-        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, fontWeight: 600, letterSpacing: '.18em', color: 'rgba(220,38,38,0.32)', textTransform: 'uppercase' }}>/// {label}</span>
-        {sub && <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 7, color: 'rgba(220,38,38,0.20)', marginLeft: 'auto' }}>{sub}</span>}
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, fontWeight: 600, letterSpacing: '.18em', color: 'rgba(245,158,11,0.32)', textTransform: 'uppercase' }}>/// {label}</span>
+        {sub && <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 7, color: 'rgba(245,158,11,0.20)', marginLeft: 'auto' }}>{sub}</span>}
       </div>
     </motion.div>
   )
@@ -104,11 +104,11 @@ function MiniBar({ data }: { data: { label: string; value: number; color: string
               initial={{ height: '3%' }}
               animate={{ height: h + '%' }}
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: i * 0.06 }}
-              style={{ width: '100%', borderRadius: '2px 2px 0 0', background: d.value > 0 ? `linear-gradient(to top, ${d.color}, ${d.color}70)` : 'rgba(220,38,38,0.04)', boxShadow: d.value > 0 ? `0 0 12px ${d.color}55` : 'none', position: 'relative', overflow: 'hidden' }}
+              style={{ width: '100%', borderRadius: '2px 2px 0 0', background: d.value > 0 ? `linear-gradient(to top, ${d.color}, ${d.color}70)` : 'rgba(245,158,11,0.04)', boxShadow: d.value > 0 ? `0 0 12px ${d.color}55` : 'none', position: 'relative', overflow: 'hidden' }}
             >
               {d.value > 0 && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)', animation: 'shimmerFill 2.5s ease-in-out infinite' }} />}
             </motion.div>
-            <span style={{ fontSize: 8, color: 'rgba(220,38,38,0.32)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.05em' }}>{d.label}</span>
+            <span style={{ fontSize: 8, color: 'rgba(245,158,11,0.32)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.05em' }}>{d.label}</span>
           </div>
         )
       })}
@@ -121,12 +121,12 @@ function HealthBar({ label, val, max, color }: { label: string; val: number; max
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: '.12em', color: 'rgba(220,38,38,0.38)' }}>{label}</span>
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: '.12em', color: 'rgba(245,158,11,0.38)' }}>{label}</span>
         <span style={{ fontFamily: "'Orbitron',monospace", fontSize: 11, fontWeight: 700, color: '#F0EFFF' }}>
-          {val.toLocaleString()} <span style={{ color: 'rgba(220,38,38,0.28)', fontSize: 9 }}>/ {max.toLocaleString()}</span>
+          {val.toLocaleString()} <span style={{ color: 'rgba(245,158,11,0.28)', fontSize: 9 }}>/ {max.toLocaleString()}</span>
         </span>
       </div>
-      <div style={{ width: '100%', height: 5, background: 'rgba(220,38,38,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: 5, background: 'rgba(245,158,11,0.07)', borderRadius: 3, overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: pct + '%' }}
@@ -143,17 +143,17 @@ function HealthBar({ label, val, max, color }: { label: string; val: number; max
 const EV_META: Record<string, { label: string; color: string }> = {
   msg:  { label: 'MSG',  color: '#3B82F6' },
   cmd:  { label: 'CMD',  color: '#A855F7' },
-  mod:  { label: 'MOD',  color: '#EF4444' },
+  mod:  { label: 'MOD',  color: '#FBBF24' },
   join: { label: 'JOIN', color: '#10B981' },
   lvl:  { label: 'LVL',  color: '#F59E0B' },
   conn: { label: 'SYS',  color: '#06B6D4' },
 }
-const evMeta = (t: string) => EV_META[t] ?? { label: t.slice(0, 4).toUpperCase(), color: 'rgba(220,38,38,0.45)' }
+const evMeta = (t: string) => EV_META[t] ?? { label: t.slice(0, 4).toUpperCase(), color: 'rgba(245,158,11,0.45)' }
 const fmtTs = (ts: number) => new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
 const panelStyle = (accent: string) => ({
   background: 'linear-gradient(135deg, rgba(10,10,24,0.97) 0%, rgba(5,5,14,1) 100%)',
-  border: `1px solid rgba(220,38,38,0.13)`,
+  border: `1px solid rgba(245,158,11,0.13)`,
   borderLeft: `3px solid ${accent}`,
   borderRadius: 4,
   position: 'relative' as const,
@@ -166,7 +166,7 @@ const panelStyle = (accent: string) => ({
 const panelHeader = (accent: string) => ({
   display: 'flex', alignItems: 'center', gap: 8,
   padding: '11px 16px',
-  borderBottom: '1px solid rgba(220,38,38,0.07)',
+  borderBottom: '1px solid rgba(245,158,11,0.07)',
   background: `${accent}06`,
   flexShrink: 0,
 })
@@ -195,15 +195,15 @@ export default function Overview() {
 
   if (!isConfigured()) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 360 }}>
-      <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} style={{ maxWidth: 420, width: '100%', background: 'linear-gradient(135deg, rgba(10,10,24,0.97), rgba(5,5,14,1))', border: '1px solid rgba(220,38,38,0.22)', borderLeft: '3px solid #DC2626', borderRadius: 4, overflow: 'hidden', boxShadow: '0 0 50px rgba(220,38,38,0.10), 0 20px 60px rgba(0,0,0,0.7)' }}>
-        <div style={{ position: 'absolute', top: -1, left: -1, width: 14, height: 14, borderTop: '2px solid #DC2626', borderLeft: '2px solid #DC2626' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', borderBottom: '1px solid rgba(220,38,38,0.10)', background: 'rgba(220,38,38,0.05)' }}>
-          <AlertCircle size={12} color="#DC2626" style={{ filter: 'drop-shadow(0 0 5px #DC2626)' }} />
-          <span style={{ fontFamily: "'Orbitron',monospace", fontSize: 9, fontWeight: 700, letterSpacing: '.18em', color: '#DC2626' }}>[ SYSTEM ALERT ]</span>
+      <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} style={{ maxWidth: 420, width: '100%', background: 'linear-gradient(135deg, rgba(10,10,24,0.97), rgba(5,5,14,1))', border: '1px solid rgba(245,158,11,0.22)', borderLeft: '3px solid #F59E0B', borderRadius: 4, overflow: 'hidden', boxShadow: '0 0 50px rgba(245,158,11,0.10), 0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div style={{ position: 'absolute', top: -1, left: -1, width: 14, height: 14, borderTop: '2px solid #F59E0B', borderLeft: '2px solid #F59E0B' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', borderBottom: '1px solid rgba(245,158,11,0.10)', background: 'rgba(245,158,11,0.05)' }}>
+          <AlertCircle size={12} color="#F59E0B" style={{ filter: 'drop-shadow(0 0 5px #F59E0B)' }} />
+          <span style={{ fontFamily: "'Orbitron',monospace", fontSize: 9, fontWeight: 700, letterSpacing: '.18em', color: '#F59E0B' }}>[ SYSTEM ALERT ]</span>
         </div>
         <div style={{ padding: '24px 20px', fontSize: 12, color: 'rgba(122,122,154,0.80)', lineHeight: 1.9 }}>
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", color: 'rgba(220,38,38,0.55)' }}>{'>'}</span>{' '}
-          Configura <span style={{ color: '#DC2626', fontFamily: "'JetBrains Mono',monospace", background: 'rgba(220,38,38,0.10)', padding: '1px 6px', borderRadius: 2 }}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", color: 'rgba(245,158,11,0.55)' }}>{'>'}</span>{' '}
+          Configura <span style={{ color: '#F59E0B', fontFamily: "'JetBrains Mono',monospace", background: 'rgba(245,158,11,0.10)', padding: '1px 6px', borderRadius: 2 }}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
         </div>
       </motion.div>
     </div>
@@ -232,7 +232,7 @@ export default function Overview() {
   const chartData = [
     { label: 'MSG',  value: evCounts['msg']  || 0, color: '#3B82F6' },
     { label: 'CMD',  value: evCounts['cmd']  || 0, color: '#A855F7' },
-    { label: 'MOD',  value: evCounts['mod']  || 0, color: '#EF4444' },
+    { label: 'MOD',  value: evCounts['mod']  || 0, color: '#FBBF24' },
     { label: 'JOIN', value: evCounts['join'] || 0, color: '#10B981' },
     { label: 'LVL',  value: evCounts['lvl']  || 0, color: '#F59E0B' },
     { label: 'SYS',  value: evCounts['conn'] || 0, color: '#06B6D4' },
@@ -253,31 +253,31 @@ export default function Overview() {
         transition={{ duration: 0.38 }}
         style={{
           padding: '20px 24px',
-          background: 'linear-gradient(100deg, rgba(220,38,38,0.12) 0%, rgba(7,7,20,0.97) 60%)',
-          border: '1px solid rgba(220,38,38,0.20)', borderLeft: '4px solid #DC2626',
+          background: 'linear-gradient(100deg, rgba(245,158,11,0.12) 0%, rgba(7,7,20,0.97) 60%)',
+          border: '1px solid rgba(245,158,11,0.20)', borderLeft: '4px solid #F59E0B',
           borderRadius: 4, position: 'relative', overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
-          boxShadow: '0 0 50px rgba(220,38,38,0.08), 0 8px 40px rgba(0,0,0,0.60)',
+          boxShadow: '0 0 50px rgba(245,158,11,0.08), 0 8px 40px rgba(0,0,0,0.60)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #DC2626, #F97316 40%, rgba(220,38,38,0.20) 70%, transparent)' }} />
-        <div style={{ position: 'absolute', top: -1, left: -1, width: 16, height: 16, borderTop: '2px solid #DC2626', borderLeft: '2px solid #DC2626', boxShadow: '-2px -2px 12px rgba(220,38,38,0.60)' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 240, height: '100%', background: 'radial-gradient(ellipse at left, rgba(220,38,38,0.10), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #F59E0B, #F97316 40%, rgba(245,158,11,0.20) 70%, transparent)' }} />
+        <div style={{ position: 'absolute', top: -1, left: -1, width: 16, height: 16, borderTop: '2px solid #F59E0B', borderLeft: '2px solid #F59E0B', boxShadow: '-2px -2px 12px rgba(245,158,11,0.60)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 240, height: '100%', background: 'radial-gradient(ellipse at left, rgba(245,158,11,0.10), transparent 70%)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative' }}>
-          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.22em', color: 'rgba(220,38,38,0.40)', marginBottom: 9 }}>
+          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.22em', color: 'rgba(245,158,11,0.40)', marginBottom: 9 }}>
             [ SYSTEM ] /// STATUS WINDOW
           </div>
-          <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 20, fontWeight: 900, letterSpacing: '.10em', color: '#F0EFFF', display: 'flex', alignItems: 'center', gap: 12, textShadow: '0 0 40px rgba(220,38,38,0.25)' }}>
-            <span style={{ color: '#DC2626', textShadow: '0 0 20px rgba(220,38,38,0.90)', fontSize: 16 }}>◈</span>
+          <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 20, fontWeight: 900, letterSpacing: '.10em', color: '#F0EFFF', display: 'flex', alignItems: 'center', gap: 12, textShadow: '0 0 40px rgba(245,158,11,0.25)' }}>
+            <span style={{ color: '#F59E0B', textShadow: '0 0 20px rgba(245,158,11,0.90)', fontSize: 16 }}>◈</span>
             BOTANIME CORE
-            <span style={{ color: '#F97316', textShadow: '0 0 20px rgba(249,115,22,0.80)', fontSize: 16 }}>◈</span>
+            <span style={{ color: '#F97316', textShadow: '0 0 20px rgba(251,191,36,0.70)', fontSize: 16 }}>◈</span>
           </div>
-          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: '.12em', color: 'rgba(220,38,38,0.30)', marginTop: 9, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: '.12em', color: 'rgba(245,158,11,0.30)', marginTop: 9, display: 'flex', alignItems: 'center', gap: 8 }}>
             <motion.span
               animate={{ opacity: [1, 0.2, 1] }}
               transition={{ duration: 1.6, repeat: Infinity }}
-              style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block', flexShrink: 0, background: connected ? '#10B981' : '#EF4444', boxShadow: connected ? '0 0 8px rgba(16,185,129,0.80)' : 'none' }}
+              style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block', flexShrink: 0, background: connected ? '#10B981' : '#FBBF24', boxShadow: connected ? '0 0 8px rgba(16,185,129,0.80)' : 'none' }}
             />
             {'>'} HUNTER: BOTANIME · {connected ? 'ONLINE — AWAKENED' : 'OFFLINE'} · UPTIME {fmtUp(uptimeSecs)}
           </div>
@@ -289,7 +289,7 @@ export default function Overview() {
             : <div style={{ fontFamily: "'Orbitron',monospace", fontSize: 10, fontWeight: 900, letterSpacing: '.14em', padding: '6px 14px', borderRadius: 3, border: '1px solid rgba(71,85,105,0.30)', background: 'rgba(71,85,105,0.08)', color: '#475569' }}>E-RANK</div>
           }
           <button className="btn btn-ghost btn-sm" onClick={() => load(true)} disabled={ref}>
-            <RefreshCw size={12} style={{ animation: ref ? 'spin 1s linear infinite' : 'none', color: 'rgba(220,38,38,0.65)' }} />
+            <RefreshCw size={12} style={{ animation: ref ? 'spin 1s linear infinite' : 'none', color: 'rgba(245,158,11,0.65)' }} />
           </button>
         </div>
       </motion.div>
@@ -373,9 +373,9 @@ export default function Overview() {
                         <div style={{ flex: 1, fontSize: 12, color: 'rgba(122,122,154,0.72)', lineHeight: 1.5 }}>
                           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 7, fontWeight: 700, letterSpacing: '.12em', color: m.color, background: `${m.color}12`, border: `1px solid ${m.color}28`, padding: '1px 5px', borderRadius: 2, marginRight: 7 }}>{m.label}</span>
                           {d?.sender && <span style={{ color: '#F0EFFF', fontWeight: 600 }}>{d.sender}</span>}
-                          {d?.cmd && <span style={{ color: 'rgba(220,38,38,0.48)' }}> › {d.cmd}</span>}
-                          {d?.group && <span style={{ color: 'rgba(220,38,38,0.28)', fontSize: 10 }}> [{d.group}]</span>}
-                          {!d?.sender && !d?.cmd && <span style={{ color: 'rgba(220,38,38,0.35)' }}>{ev.type}</span>}
+                          {d?.cmd && <span style={{ color: 'rgba(245,158,11,0.48)' }}> › {d.cmd}</span>}
+                          {d?.group && <span style={{ color: 'rgba(245,158,11,0.28)', fontSize: 10 }}> [{d.group}]</span>}
+                          {!d?.sender && !d?.cmd && <span style={{ color: 'rgba(245,158,11,0.35)' }}>{ev.type}</span>}
                         </div>
                         <span className="event-time">{fmtTs(ev.ts)}</span>
                       </motion.div>
@@ -438,10 +438,10 @@ export default function Overview() {
             <HealthBar label="MENSAJES"  val={stats?.messages ?? 0}      max={10000} color="#10B981" />
             <div style={{ height: 1, background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.18),transparent)', margin: '14px 0 12px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.14em', color: 'rgba(220,38,38,0.32)' }}>/// NET STATUS</span>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, letterSpacing: '.14em', color: 'rgba(245,158,11,0.32)' }}>/// NET STATUS</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.6, repeat: Infinity }} style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#10B981' : '#EF4444', boxShadow: connected ? '0 0 10px rgba(16,185,129,0.80)' : 'none' }} />
-                <span style={{ fontFamily: "'Orbitron',monospace", fontSize: 9, fontWeight: 700, color: connected ? '#10B981' : '#EF4444', letterSpacing: '.10em' }}>{connected ? 'ONLINE' : 'OFFLINE'}</span>
+                <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.6, repeat: Infinity }} style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#10B981' : '#FBBF24', boxShadow: connected ? '0 0 10px rgba(16,185,129,0.80)' : 'none' }} />
+                <span style={{ fontFamily: "'Orbitron',monospace", fontSize: 9, fontWeight: 700, color: connected ? '#10B981' : '#FBBF24', letterSpacing: '.10em' }}>{connected ? 'ONLINE' : 'OFFLINE'}</span>
               </div>
             </div>
           </div>
