@@ -1108,7 +1108,19 @@ function startWebServer(port) {
     try{
       const db=require("../database/db");const users=db.getAllUsers();
       let gc=0;try{const gf=path.join(__dirname,"..","database","data","groups.json");if(fs.existsSync(gf))gc=Object.keys(JSON.parse(fs.readFileSync(gf,"utf-8"))).length;}catch{}
-      res.json({users:users.length,groups:gc,connected:state.connected,uptime:Math.floor((Date.now()-state.startedAt)/1000)});
+      // Sum total messages and commands from all users in the database
+      const totalMessages=users.reduce((s,u)=>s+(u.messages||0),0);
+      const totalCommands=users.reduce((s,u)=>s+(u.commands||0),0);
+      // Commands executed today (since midnight local time) from the in-memory event log
+      const dayAgo=Date.now()-86400000;
+      const commandsToday=eventLog.filter(e=>e.type==="cmd"&&e.ts>=dayAgo).length;
+      const eventsToday=eventLog.filter(e=>e.ts>=dayAgo).length;
+      res.json({
+        users:users.length,groups:gc,connected:state.connected,
+        uptime:Math.floor((Date.now()-state.startedAt)/1000),
+        messages:totalMessages,commandsToday,eventsToday,
+        totalCommands,
+      });
     }catch(e){res.status(500).json({error:e.message});}
   });
 
