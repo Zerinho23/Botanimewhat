@@ -394,12 +394,12 @@ import { useEffect, useState, useRef } from 'react'
                   <div className="empty-state-title">Sin datos</div>
                 </div>
               ) : topUsers.map((u, i) => (
-                <div key={u.id} className="lb-row">
+                <div key={u.jid} className="lb-row">
                   <span className={`lb-pos lb-pos-${i < 3 ? i + 1 : 'n'}`}>{i + 1}</span>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#F59E0B', flexShrink: 0 }}>
-                    {(u.name || u.phone || '?').slice(0, 2).toUpperCase()}
+                    {(u.name || u.jid || '?').slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="lb-name">{u.name || u.phone || 'Usuario'}</span>
+                  <span className="lb-name">{u.name || u.jid || 'Usuario'}</span>
                   <span className="lb-val">{(u.xp ?? 0).toLocaleString()}</span>
                 </div>
               ))}
@@ -424,12 +424,12 @@ import { useEffect, useState, useRef } from 'react'
                   <div className="empty-state-title">Sin datos</div>
                 </div>
               ) : topCmds.map((u, i) => (
-                <div key={u.id} className="lb-row">
+                <div key={u.jid} className="lb-row">
                   <span className={`lb-pos lb-pos-${i < 3 ? i + 1 : 'n'}`}>{i + 1}</span>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#A78BFA', flexShrink: 0 }}>
-                    {(u.name || u.phone || '?').slice(0, 2).toUpperCase()}
+                    {(u.name || u.jid || '?').slice(0, 2).toUpperCase()}
                   </div>
-                  <span className="lb-name">{u.name || u.phone || 'Usuario'}</span>
+                  <span className="lb-name">{u.name || u.jid || 'Usuario'}</span>
                   <span className="lb-val">{(u.commands ?? 0).toLocaleString()}</span>
                 </div>
               ))}
