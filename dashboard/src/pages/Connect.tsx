@@ -3,15 +3,15 @@ import { useEffect, useState } from 'react'
   import { getStatus, postPairingCode, postReset, getApiUrl, isConfigured, type BotStatus } from '../api'
 
   function StepCard({num,title,desc,active,done}:{num:number;title:string;desc:string;active?:boolean;done?:boolean}) {
-    const color=done?'var(--green2)':active?'var(--blue)':'var(--tx3)'
+    const color=done?'var(--green)':active?'var(--blue)':'var(--text3)'
     return (
       <div style={{display:'flex',gap:14,padding:'12px 0',borderBottom:'1px solid var(--border)',opacity:done||active?1:.4,transition:'opacity .2s'}}>
-        <div style={{width:32,height:32,borderRadius:2,flexShrink:0,background:color+'15',border:'1px solid '+color+'30',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Orbitron',sans-serif",fontWeight:800,fontSize:12,color}}>
+        <div style={{width:32,height:32,borderRadius:2,flexShrink:0,background:color+'15',border:'1px solid '+color+'30',display:'flex',alignItems:'center',justifyContent:'center',fontFamily: "'Inter', sans-serif",fontWeight:800,fontSize:12,color}}>
           {done?<CheckCircle size={14}/>:num}
         </div>
         <div>
-          <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:13,letterSpacing:'.06em',color:active?'var(--tx1)':'var(--tx2)',marginBottom:3}}>{title}</div>
-          <div style={{fontSize:11,color:'var(--tx3)',lineHeight:1.6}}>{desc}</div>
+          <div style={{fontFamily: "'Inter', sans-serif",fontWeight:700,fontSize:13,letterSpacing:'.06em',color:active?'var(--text)':'var(--text2)',marginBottom:3}}>{title}</div>
+          <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.6}}>{desc}</div>
         </div>
       </div>
     )
@@ -62,14 +62,14 @@ import { useEffect, useState } from 'react'
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:300}}>
         <div className="card animate-scale-in" style={{padding:32,textAlign:'center',maxWidth:400}}>
           <div className="sys-header" style={{margin:'-32px -32px 24px',borderRadius:'var(--radius-lg) var(--radius-lg) 0 0'}}>
-            <AlertTriangle size={12} color="var(--gold)"/>
-            <span className="sys-header-title" style={{color:'var(--gold)'}}>PORTAL SIN CONFIGURAR</span>
+            <AlertTriangle size={12} color="var(--amber)"/>
+            <span className="sys-header-title" style={{color:'var(--amber)'}}>PORTAL SIN CONFIGURAR</span>
           </div>
-          <p style={{fontSize:12,color:'var(--tx2)',lineHeight:1.8,marginBottom:16}}>
-            Define <span style={{color:'var(--blue)',fontFamily:"'JetBrains Mono',monospace"}}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
+          <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.8,marginBottom:16}}>
+            Define <span style={{color:'var(--blue)',fontFamily: 'monospace'}}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
           </p>
           <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'rgba(30,144,255,.05)',border:'1px solid var(--border)',borderRadius:'var(--radius)'}}>
-            <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'var(--tx3)'}}>VITE_API_URL = https://tu-bot.railway.app</span>
+            <span style={{fontFamily: 'monospace',fontSize:10,color:'var(--text3)'}}>VITE_API_URL = https://tu-bot.railway.app</span>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@ import { useEffect, useState } from 'react'
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <div className={`sidebar-status ${connected?'online':loading?'loading':'offline'}`} style={{padding:'6px 12px',borderRadius:'var(--radius)',margin:0}}>
               <div className="live-dot"/>
-              <span style={{fontSize:11,fontWeight:700,fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.08em'}}>
+              <span style={{fontSize:11,fontWeight:700,fontFamily: "'Inter', sans-serif",letterSpacing:'.08em'}}>
                 {loading?'VERIFICANDO…':connected?'SESIÓN ACTIVA':'SIN SESIÓN'}
               </span>
             </div>
@@ -135,26 +135,26 @@ import { useEffect, useState } from 'react'
                   <div style={{display:'flex',gap:8,marginBottom:10}}>
                     <input className="input" placeholder="521234567890" value={phone}
                       onChange={e=>setPhone(e.target.value.replace(/[^0-9]/g,''))}
-                      style={{fontFamily:"'JetBrains Mono',monospace"}}
+                      style={{fontFamily: 'monospace'}}
                       onKeyDown={e=>e.key==='Enter'&&requestCode()}/>
                     <button className="btn btn-primary" onClick={requestCode} disabled={sending||!phone.trim()}>
                       {sending?<RefreshCw size={12} style={{animation:'spin 1s linear infinite'}}/>:<Key size={12}/>}
                       {sending?'…':'PEDIR'}
                     </button>
                   </div>
-                  <p style={{fontSize:10,color:'var(--tx3)',fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.04em',lineHeight:1.6,marginBottom:code?14:0}}>
+                  <p style={{fontSize:10,color:'var(--text3)',fontFamily: "'Inter', sans-serif",letterSpacing:'.04em',lineHeight:1.6,marginBottom:code?14:0}}>
                     Sin + ni espacios. Ej: 521234567890 (MX) · 541234567890 (AR)
                   </p>
                   {code&&(
                     <div style={{padding:20,background:'rgba(30,144,255,.05)',border:'1px solid var(--border3)',borderRadius:'var(--radius)',textAlign:'center'}} className="animate-scale-in">
-                      <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:9,fontWeight:700,letterSpacing:'.2em',color:'var(--tx3)',marginBottom:10}}>CÓDIGO DE ACCESO</div>
-                      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'.1em',color:'var(--blue)',textShadow:'0 0 24px rgba(30,144,255,.55)',marginBottom:10}}>
+                      <div style={{fontFamily: "'Inter', sans-serif",fontSize:9,fontWeight:700,letterSpacing: '.02em',color:'var(--text3)',marginBottom:10}}>CÓDIGO DE ACCESO</div>
+                      <div style={{fontFamily: "'Inter', sans-serif",fontWeight:800,fontSize:30,letterSpacing: '.02em',color:'var(--blue)',textShadow:'0 0 24px rgba(30,144,255,.55)',marginBottom:10}}>
                         {code}
                       </div>
-                      <button className="btn btn-ghost btn-sm" onClick={copyCode} style={{color:copied?'var(--green2)':'var(--tx2)'}}>
+                      <button className="btn btn-ghost btn-sm" onClick={copyCode} style={{color:copied?'var(--green)':'var(--text2)'}}>
                         <Copy size={11}/>{copied?'COPIADO ✓':'COPIAR'}
                       </button>
-                      <p style={{fontSize:10,color:'var(--tx3)',marginTop:10,fontFamily:"'Rajdhani',sans-serif",letterSpacing:'.04em',lineHeight:1.6}}>
+                      <p style={{fontSize:10,color:'var(--text3)',marginTop:10,fontFamily: "'Inter', sans-serif",letterSpacing:'.04em',lineHeight:1.6}}>
                         WhatsApp → ⋮ → Dispositivos vinculados → Vincular dispositivo → Código
                       </p>
                     </div>
@@ -166,38 +166,38 @@ import { useEffect, useState } from 'react'
             {connected&&(
               <div className="card animate-scale-in" style={{padding:0}}>
                 <div className="sys-header">
-                  <CheckCircle size={12} color="var(--green2)"/>
-                  <span className="sys-header-title" style={{color:'var(--green2)'}}>SESIÓN ACTIVA</span>
+                  <CheckCircle size={12} color="var(--green)"/>
+                  <span className="sys-header-title" style={{color:'var(--green)'}}>SESIÓN ACTIVA</span>
                 </div>
                 <div style={{padding:20,textAlign:'center'}}>
                   <div style={{width:56,height:56,borderRadius:'var(--radius)',background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 0 20px rgba(16,185,129,.12)'}}>
-                    <Wifi size={22} color="var(--green2)"/>
+                    <Wifi size={22} color="var(--green)"/>
                   </div>
-                  <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:12,letterSpacing:'.14em',color:'var(--green2)',marginBottom:6}}>BOT CONECTADO</div>
-                  <div style={{fontSize:11,color:'var(--tx3)',marginBottom:18,fontFamily:"'Rajdhani',sans-serif"}}>La sesión está activa y procesando mensajes</div>
+                  <div style={{fontFamily: "'Inter', sans-serif",fontWeight:700,fontSize:12,letterSpacing: '.02em',color:'var(--green)',marginBottom:6}}>BOT CONECTADO</div>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:18,fontFamily: "'Inter', sans-serif"}}>La sesión está activa y procesando mensajes</div>
                 </div>
               </div>
             )}
 
             <div className="card" style={{padding:0}}>
               <div className="sys-header">
-                <ExternalLink size={12} color="var(--tx3)"/>
+                <ExternalLink size={12} color="var(--text3)"/>
                 <span className="sys-header-title">API ENDPOINT</span>
               </div>
               <div style={{padding:14}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--bg2)',borderRadius:'var(--radius)',border:'1px solid var(--border)'}}>
-                  <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'var(--tx2)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{apiUrl||'Sin configurar'}</span>
+                  <span style={{fontFamily: 'monospace',fontSize:10,color:'var(--text2)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{apiUrl||'Sin configurar'}</span>
                 </div>
               </div>
             </div>
 
             <div className="card" style={{padding:0,border:'1px solid rgba(239,68,68,.15)'}}>
               <div className="sys-header">
-                <RotateCcw size={12} color="var(--red2)"/>
-                <span className="sys-header-title" style={{color:'var(--red2)'}}>ZONA PELIGROSA</span>
+                <RotateCcw size={12} color="var(--red)"/>
+                <span className="sys-header-title" style={{color:'var(--red)'}}>ZONA PELIGROSA</span>
               </div>
               <div style={{padding:14}}>
-                <p style={{fontSize:11,color:'var(--tx3)',lineHeight:1.7,marginBottom:12,fontFamily:"'Rajdhani',sans-serif"}}>
+                <p style={{fontSize:11,color:'var(--text3)',lineHeight:1.7,marginBottom:12,fontFamily: "'Inter', sans-serif"}}>
                   Reiniciar la sesión desconecta el bot de WhatsApp. Deberás vincular el dispositivo nuevamente.
                 </p>
                 <button className="btn btn-red btn-sm" onClick={resetBot} disabled={resetting} style={{width:'100%',justifyContent:'center'}}>
