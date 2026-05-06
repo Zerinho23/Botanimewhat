@@ -28,11 +28,11 @@ import { useEffect, useState, type ElementType } from 'react'
         padding: '10px 16px', borderRadius: 'var(--radius)',
         background: ok ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)',
         border: `1px solid ${ok ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`,
-        color: ok ? 'var(--green2)' : 'var(--red2)',
+        color: ok ? 'var(--green)' : 'var(--red)',
         boxShadow: '0 8px 32px rgba(0,0,0,.5)',
         backdropFilter: 'blur(12px)',
         animation: 'fadeUp .2s cubic-bezier(.16,1,.3,1)',
-        fontFamily: "'Rajdhani',sans-serif",
+        fontFamily: "'Inter', sans-serif",
         fontWeight: 700,
         fontSize: 13,
         letterSpacing: '.04em',
@@ -60,26 +60,26 @@ import { useEffect, useState, type ElementType } from 'react'
           boxShadow: '0 0 40px rgba(239,68,68,.12), 0 20px 60px rgba(0,0,0,.7)',
         }}>
           <div className="sys-header" style={{ margin: '-24px -24px 20px', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-            <AlertTriangle size={12} color="var(--red2)" />
-            <span className="sys-header-title" style={{ color: 'var(--red2)' }}>SYSTEM ALERT</span>
+            <AlertTriangle size={12} color="var(--red)" />
+            <span className="sys-header-title" style={{ color: 'var(--red)' }}>SYSTEM ALERT</span>
             <div className="sys-dots" style={{ marginLeft: 'auto' }}>
-              <div className="sys-dot" style={{ background: 'var(--red2)', opacity: .6 }} />
-              <div className="sys-dot" style={{ background: 'var(--red2)', opacity: .4 }} />
-              <div className="sys-dot" style={{ background: 'var(--red2)', opacity: .2 }} />
+              <div className="sys-dot" style={{ background: 'var(--red)', opacity: .6 }} />
+              <div className="sys-dot" style={{ background: 'var(--red)', opacity: .4 }} />
+              <div className="sys-dot" style={{ background: 'var(--red)', opacity: .2 }} />
             </div>
           </div>
 
           <div style={{ background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 18 }}>
-            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--tx1)', marginBottom: 3 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>
               {group.name || 'GRUPO SIN NOMBRE'}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'monospace' }}>
               ID: {group.jid.split('@')[0]}
             </div>
           </div>
 
-          <p style={{ fontSize: 13, color: 'var(--tx2)', lineHeight: 1.7, marginBottom: 22, fontFamily: "'Inter',sans-serif" }}>
-            El bot <strong style={{ color: 'var(--tx1)' }}>dejará de responder</strong> en este grupo permanentemente. La configuración guardada será eliminada. El número seguirá en el grupo.
+          <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 22, fontFamily: "'Inter',sans-serif" }}>
+            El bot <strong style={{ color: 'var(--text)' }}>dejará de responder</strong> en este grupo permanentemente. La configuración guardada será eliminada. El número seguirá en el grupo.
           </p>
 
           <div style={{ display: 'flex', gap: 10 }}>
@@ -110,13 +110,13 @@ import { useEffect, useState, type ElementType } from 'react'
     const activeCount = [group.antiLink, group.antiSpam, group.welcome].filter(Boolean).length
 
     const FEATS: { key: 'antiLink' | 'antiSpam' | 'welcome'; label: string; icon: ElementType; color: string }[] = [
-      { key: 'antiLink', label: 'ANTI-LINK', icon: Link,   color: 'var(--red2)'    },
-      { key: 'antiSpam', label: 'ANTI-SPAM', icon: Shield, color: 'var(--gold)'    },
-      { key: 'welcome',  label: 'WELCOME',   icon: Bell,   color: 'var(--green2)'  },
+      { key: 'antiLink', label: 'ANTI-LINK', icon: Link,   color: 'var(--red)'    },
+      { key: 'antiSpam', label: 'ANTI-SPAM', icon: Shield, color: 'var(--amber)'    },
+      { key: 'welcome',  label: 'WELCOME',   icon: Bell,   color: 'var(--green)'  },
     ]
 
     const rankColor: Record<string,string> = {
-      S: 'var(--gold)', A: 'var(--red2)', B: 'var(--purple2)', C: 'var(--blue)', E: 'var(--tx3)',
+      S: 'var(--amber)', A: 'var(--red)', B: 'var(--purple)', C: 'var(--blue)', E: 'var(--text3)',
     }
 
     return (
@@ -154,16 +154,16 @@ import { useEffect, useState, type ElementType } from 'react'
             border: `1px solid ${enabled ? 'rgba(30,144,255,.2)' : 'rgba(239,68,68,.2)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <MessageSquare size={15} color={enabled ? 'var(--blue)' : 'var(--red2)'} />
+            <MessageSquare size={15} color={enabled ? 'var(--blue)' : 'var(--red)'} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {group.name || 'SIN NOMBRE'}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--tx3)', marginTop: 2, fontFamily: "'JetBrains Mono',monospace" }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2, fontFamily: 'monospace' }}>
               {group.jid.split('@')[0].slice(0, 22)}
             </div>
-            <div style={{ fontSize: 9, color: 'var(--tx3)', marginTop: 4, fontFamily: "'Orbitron',sans-serif", letterSpacing: '.08em' }}>
+            <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 4, fontFamily: "'Inter', sans-serif", letterSpacing: '.08em' }}>
               {activeCount}/3 MODULES ACTIVE
             </div>
           </div>
@@ -247,8 +247,8 @@ import { useEffect, useState, type ElementType } from 'react'
 
     if (!isConfigured()) return (
       <div className="empty-state">
-        <div className="empty-state-icon"><AlertTriangle size={22} color="var(--gold)" /></div>
-        <div className="empty-state-title" style={{ color: 'var(--gold)' }}>API SIN CONFIGURAR</div>
+        <div className="empty-state-icon"><AlertTriangle size={22} color="var(--amber)" /></div>
+        <div className="empty-state-title" style={{ color: 'var(--amber)' }}>API SIN CONFIGURAR</div>
         <div className="empty-state-sub">Ve a Vercel → Settings → Environment Variables</div>
       </div>
     )
@@ -346,9 +346,9 @@ import { useEffect, useState, type ElementType } from 'react'
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
+              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
               <input className="input" placeholder="BUSCAR DUNGEON…" value={search} onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 28, width: 200, fontFamily: "'Rajdhani',sans-serif", letterSpacing: '.06em', fontSize: 12 }} />
+                style={{ paddingLeft: 28, width: 200, fontFamily: "'Inter', sans-serif", letterSpacing: '.06em', fontSize: 12 }} />
             </div>
             <button className="btn btn-blue btn-sm" onClick={() => { setBc(b => !b); if (broadcast) setBcRes(null) }}>
               <Send size={12} /> BROADCAST
@@ -363,15 +363,15 @@ import { useEffect, useState, type ElementType } from 'react'
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 10 }}>
           {[
             { label: 'TOTAL',   val: groups.length,               color: 'var(--blue)'    },
-            { label: 'ACTIVE',  val: activeGroups.length,         color: 'var(--green2)'  },
-            { label: 'SEALED',  val: inactiveGroups.length,       color: 'var(--red2)'    },
-            { label: 'S-RANK',  val: rankDist['S'] || 0,          color: 'var(--gold)'    },
-            { label: 'A-RANK',  val: rankDist['A'] || 0,          color: 'var(--red2)'    },
-            { label: 'MODULES', val: groups.filter(g=>g.antiLink||g.antiSpam||g.welcome).length, color: 'var(--purple2)' },
+            { label: 'ACTIVE',  val: activeGroups.length,         color: 'var(--green)'  },
+            { label: 'SEALED',  val: inactiveGroups.length,       color: 'var(--red)'    },
+            { label: 'S-RANK',  val: rankDist['S'] || 0,          color: 'var(--amber)'    },
+            { label: 'A-RANK',  val: rankDist['A'] || 0,          color: 'var(--red)'    },
+            { label: 'MODULES', val: groups.filter(g=>g.antiLink||g.antiSpam||g.welcome).length, color: 'var(--purple)' },
           ].map(s => (
             <div key={s.label} className="metric-card" style={{ padding: '12px 14px' }}>
-              <div style={{ fontFamily: "'Orbitron',sans-serif", fontWeight: 800, fontSize: '1.5rem', color: s.color, lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--tx3)', marginTop: 5, letterSpacing: '.12em' }}>{s.label}</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: s.color, lineHeight: 1 }}>{s.val}</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--text3)', marginTop: 5, letterSpacing: '.02em' }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -380,8 +380,8 @@ import { useEffect, useState, type ElementType } from 'react'
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {([
             { key: 'all',      label: `ALL (${groups.length})` },
-            { key: 'active',   label: `ACTIVE (${activeGroups.length})`,  color: 'var(--green2)' },
-            { key: 'inactive', label: `SEALED (${inactiveGroups.length})`, color: 'var(--red2)' },
+            { key: 'active',   label: `ACTIVE (${activeGroups.length})`,  color: 'var(--green)' },
+            { key: 'inactive', label: `SEALED (${inactiveGroups.length})`, color: 'var(--red)' },
           ] as { key: Filter; label: string; color?: string }[]).map(tab => (
             <button
               key={tab.key}
@@ -435,7 +435,7 @@ import { useEffect, useState, type ElementType } from 'react'
                   )}
                 </div>
               </div>
-              <p style={{ fontSize: 10, color: 'var(--tx3)', marginBottom: 14, fontFamily: "'Rajdhani',sans-serif", letterSpacing: '.06em' }}>
+              <p style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 14, fontFamily: "'Inter', sans-serif", letterSpacing: '.06em' }}>
                 Haz clic en las tarjetas para seleccionar grupos destino.
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -452,7 +452,7 @@ import { useEffect, useState, type ElementType } from 'react'
         {filtered.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <div className="empty-state-icon"><MessageSquare size={20} color="var(--tx3)" /></div>
+              <div className="empty-state-icon"><MessageSquare size={20} color="var(--text3)" /></div>
               <div className="empty-state-title">{search ? 'SIN RESULTADOS' : filter !== 'all' ? 'CATEGORÍA VACÍA' : 'SIN DUNGEONS'}</div>
               <div className="empty-state-sub">{search ? 'Intenta con otro término' : filter !== 'all' ? 'No hay grupos en esta categoría' : 'El bot no está en ningún grupo'}</div>
             </div>
