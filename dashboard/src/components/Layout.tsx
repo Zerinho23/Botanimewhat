@@ -29,13 +29,13 @@ const PAGE_LABELS: Record<string, string> = {
 }
 
 const EV_NOTIF: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  ban:     { icon: UserX,       color: '#EF4444', label: 'Ban' },
-  kick:    { icon: UserX,       color: '#F87171', label: 'Expulsado' },
-  warn:    { icon: AlertTriangle,color: '#F59E0B', label: 'Advertencia' },
-  mute:    { icon: VolumeX,     color: '#3B82F6', label: 'Muteado' },
-  command: { icon: Zap,         color: '#8B5CF6', label: 'Comando' },
-  join:    { icon: Users,       color: '#10B981', label: 'Unión' },
-  error:   { icon: AlertTriangle,color:'#EF4444', label: 'Error' },
+  ban:     { icon: UserX,        color: '#EF4444', label: 'Ban' },
+  kick:    { icon: UserX,        color: '#F87171', label: 'Expulsado' },
+  warn:    { icon: AlertTriangle, color: '#F59E0B', label: 'Advertencia' },
+  mute:    { icon: VolumeX,      color: '#3B82F6', label: 'Muteado' },
+  command: { icon: Zap,          color: '#8B5CF6', label: 'Comando' },
+  join:    { icon: Users,        color: '#10B981', label: 'Unión' },
+  error:   { icon: AlertTriangle, color: '#EF4444', label: 'Error' },
 }
 const notifMeta = (t: string) => EV_NOTIF[t] ?? { icon: Activity, color: '#A1A1AA', label: t }
 
@@ -54,6 +54,57 @@ function fmtTs(ts: number) {
   if (diff < 60000) return 'ahora'
   if (diff < 3600000) return Math.floor(diff / 60000) + 'm'
   return Math.floor(diff / 3600000) + 'h'
+}
+
+/* ── Sakura Logo SVG ── */
+function SakuraLogo() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {[0, 72, 144, 216, 288].map((deg, i) => (
+        <ellipse
+          key={i}
+          cx="12" cy="5.5" rx="2.8" ry="5"
+          fill={i % 2 === 0 ? '#F9A8D4' : '#FBCFE8'}
+          transform={`rotate(${deg} 12 12)`}
+          opacity="0.92"
+        />
+      ))}
+      <circle cx="12" cy="12" r="2.3" fill="#FBBF24" />
+      <circle cx="12" cy="12" r="1.1" fill="#F59E0B" />
+    </svg>
+  )
+}
+
+/* ── Falling Sakura Petals ── */
+const PETAL_CONFIG = [
+  { left: '4%',  delayFall: '0s',   durFall: '13s', delaySway: '0s',    durSway: '9s'  },
+  { left: '13%', delayFall: '2.2s', durFall: '17s', delaySway: '1.1s',  durSway: '11s' },
+  { left: '26%', delayFall: '5.1s', durFall: '11s', delaySway: '2.6s',  durSway: '8s'  },
+  { left: '42%', delayFall: '1.3s', durFall: '15s', delaySway: '0.7s',  durSway: '10s' },
+  { left: '57%', delayFall: '3.8s', durFall: '12s', delaySway: '1.9s',  durSway: '8.5s'},
+  { left: '71%', delayFall: '7.2s', durFall: '16s', delaySway: '3.6s',  durSway: '10s' },
+  { left: '84%', delayFall: '4.5s', durFall: '10s', delaySway: '2.3s',  durSway: '7s'  },
+  { left: '94%', delayFall: '9.3s', durFall: '18s', delaySway: '4.7s',  durSway: '12s' },
+]
+
+function SakuraPetals() {
+  return (
+    <>
+      {PETAL_CONFIG.map((p, i) => (
+        <div
+          key={i}
+          className="petal"
+          style={{
+            left: p.left,
+            animationDelay: `${p.delayFall}, ${p.delaySway}`,
+            animationDuration: `${p.durFall}, ${p.durSway}`,
+          }}
+        >
+          🌸
+        </div>
+      ))}
+    </>
+  )
 }
 
 export default function Layout() {
@@ -78,7 +129,6 @@ export default function Layout() {
     return () => { document.body.style.overflow = '' }
   }, [open, isMobile])
 
-  // Close notif drawer on outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
@@ -130,6 +180,9 @@ export default function Layout() {
   return (
     <div className="shell">
 
+      {/* Sakura petals (decorative, z-index 1) */}
+      <SakuraPetals />
+
       {/* Mobile overlay */}
       <AnimatePresence>
         {open && isMobile && (
@@ -140,7 +193,7 @@ export default function Layout() {
       </AnimatePresence>
 
       {/* ── SIDEBAR ── */}
-      <aside className={open ? 'sidebar open' : 'sidebar'}>
+      <aside className={open ? 'sidebar open' : 'sidebar'} style={{ zIndex: 50 }}>
 
         {/* Logo */}
         <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: border, flexShrink: 0, gap: 12 }}>
@@ -149,12 +202,20 @@ export default function Layout() {
               <X size={14} />
             </button>
           )}
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: `linear-gradient(135deg,${amber},#E07B00)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111', fontWeight: 800, fontSize: 18, flexShrink: 0, boxShadow: `0 0 16px ${amber}40` }}>
-            B
+          {/* Sakura SVG logo */}
+          <div style={{
+            width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+            background: 'linear-gradient(135deg, rgba(236,72,153,.25), rgba(245,158,11,.20))',
+            border: '1px solid rgba(249,168,212,.28)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 18px rgba(236,72,153,.20), 0 0 6px rgba(245,158,11,.15)',
+            animation: 'sakuraSpin 18s linear infinite',
+          }}>
+            <SakuraLogo />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: '.01em', color: '#F4F4F5' }}>BotAnime</div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500, marginTop: 1 }}>WhatsApp Bot</div>
+            <div style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 700, fontSize: 14, letterSpacing: '.02em', color: '#F4F4F5' }}>BotAnime</div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500, marginTop: 1, letterSpacing: '.02em' }}>WhatsApp Bot 🌸</div>
           </div>
         </div>
 
@@ -212,7 +273,7 @@ export default function Layout() {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="main-content">
+      <div className="main-content" style={{ position: 'relative', zIndex: 2 }}>
 
         {/* Topbar */}
         <header className="topbar">
@@ -225,7 +286,7 @@ export default function Layout() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ fontSize: 17, fontWeight: 600, color: '#F4F4F5' }}
+              style={{ fontSize: 17, fontWeight: 600, color: '#F4F4F5', fontFamily: "'Noto Serif JP', serif" }}
             >
               {pageLabel}
             </motion.h1>
