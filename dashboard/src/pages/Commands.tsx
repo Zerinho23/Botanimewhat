@@ -164,7 +164,6 @@ export default function Commands() {
   }, [search, permFilter])
 
   const activeCategory = search.trim() ? null : filteredCats.find(c => c.id === activeId) ?? filteredCats[0] ?? null
-  const displayCats    = search.trim() ? filteredCats : (activeCategory ? [activeCategory] : [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className="animate-fade-up">
