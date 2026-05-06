@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Users, MessageSquare, Settings,
-  Shield, Activity, Wifi, Terminal, Menu, X, Bell,
+  Shield, Activity, Wifi, Terminal, X, Bell,
   AlertTriangle, RefreshCw, Zap, UserX, VolumeX,
 } from 'lucide-react'
 import {
