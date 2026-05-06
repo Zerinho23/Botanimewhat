@@ -20,7 +20,7 @@ import { useEffect, useState, useCallback } from 'react'
     unmute:     { color: '#10b981', bg: 'rgba(16,185,129,.12)',  label: 'Desmuteado',   icon: Volume2 },
   }
   const metaOf = (a: string) =>
-    ACTION_META[a] ?? { color: 'var(--tx3)', bg: 'rgba(255,255,255,.06)', label: a, icon: Shield }
+    ACTION_META[a] ?? { color: 'var(--text3)', bg: 'rgba(255,255,255,.06)', label: a, icon: Shield }
 
   function fmtTs(ts: number) {
     return new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -66,7 +66,7 @@ import { useEffect, useState, useCallback } from 'react'
               width: 34, height: 34, borderRadius: 9, flexShrink: 0,
               background: color + '1a', border: `1px solid ${color}44`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 800, color, fontFamily: "'Rajdhani',sans-serif",
+              fontSize: 13, fontWeight: 800, color, fontFamily: "'Inter', sans-serif",
             }}>
               {displayName[0]?.toUpperCase()}
             </div>
@@ -75,7 +75,7 @@ import { useEffect, useState, useCallback } from 'react'
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{displayName}</span>
                 {member.isAdmin && (
                   <span style={{
-                    fontSize: 9, fontWeight: 800, letterSpacing: '.1em', color: 'var(--gold)',
+                    fontSize: 9, fontWeight: 800, letterSpacing: '.02em', color: 'var(--amber)',
                     background: 'rgba(255,200,0,.1)', border: '1px solid rgba(255,200,0,.3)',
                     padding: '1px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
                   }}>
@@ -83,7 +83,7 @@ import { useEffect, useState, useCallback } from 'react'
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>+{num}</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'monospace' }}>+{num}</div>
             </div>
           </div>
         </td>
@@ -105,12 +105,12 @@ import { useEffect, useState, useCallback } from 'react'
               }}>
                 <AlertTriangle size={10} /> {warns}
               </span>
-            : <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
+            : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}
         </td>
 
         <td>
           {member.isAdmin
-            ? <span style={{ fontSize: 11, color: 'var(--tx3)', fontStyle: 'italic' }}>Sin acciones disponibles</span>
+            ? <span style={{ fontSize: 11, color: 'var(--text3)', fontStyle: 'italic' }}>Sin acciones disponibles</span>
             : (
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                 <button
@@ -166,8 +166,8 @@ import { useEffect, useState, useCallback } from 'react'
   function NotConfigured() {
     return (
       <div className="empty-state" style={{ height: 360 }}>
-        <div className="empty-state-icon"><AlertTriangle size={28} color="var(--gold)" /></div>
-        <div className="empty-state-title" style={{ color: 'var(--gold)' }}>VITE_API_URL no configurada</div>
+        <div className="empty-state-icon"><AlertTriangle size={28} color="var(--amber)" /></div>
+        <div className="empty-state-title" style={{ color: 'var(--amber)' }}>VITE_API_URL no configurada</div>
         <div className="empty-state-sub">Ve a Vercel → Settings → Environment Variables</div>
       </div>
     )
@@ -298,10 +298,10 @@ import { useEffect, useState, useCallback } from 'react'
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: 10 }}>
               <Shield size={20} color="var(--red)" /> Moderación
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 3 }}>Gestiona usuarios directamente desde el panel</p>
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>Gestiona usuarios directamente desde el panel</p>
           </div>
           <button
             className="btn btn-ghost btn-sm"
@@ -317,12 +317,12 @@ import { useEffect, useState, useCallback } from 'react'
         <div className="card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <Users size={14} color="var(--tx3)" />
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: 'var(--tx3)', textTransform: 'uppercase' }}>Grupo</span>
+              <Users size={14} color="var(--text3)" />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: 'var(--text3)', textTransform: 'uppercase' }}>Grupo</span>
             </div>
 
             {loadingGroups ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--tx3)', fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text3)', fontSize: 12 }}>
                 <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Cargando grupos…
               </div>
             ) : (
@@ -340,13 +340,13 @@ import { useEffect, useState, useCallback } from 'react'
                 </select>
                 <ChevronDown size={14} style={{
                   position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--tx3)', pointerEvents: 'none',
+                  color: 'var(--text3)', pointerEvents: 'none',
                 }} />
               </div>
             )}
 
             {selectedJid && modData && (
-              <span style={{ fontSize: 12, color: 'var(--tx3)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
                 {memberCount} miembros · {adminCount} admins · {mutedCount} muteados · {warnedCount} con warns
               </span>
             )}
@@ -356,7 +356,7 @@ import { useEffect, useState, useCallback } from 'react'
         {/* No group selected */}
         {!selectedJid && !loadingGroups && (
           <div className="empty-state" style={{ height: 200 }}>
-            <div className="empty-state-icon"><Users size={26} color="var(--tx3)" /></div>
+            <div className="empty-state-icon"><Users size={26} color="var(--text3)" /></div>
             <div className="empty-state-title">Selecciona un grupo</div>
             <div className="empty-state-sub">Elige un grupo arriba para ver y gestionar sus miembros</div>
           </div>
@@ -364,7 +364,7 @@ import { useEffect, useState, useCallback } from 'react'
 
         {/* Loading members */}
         {selectedJid && loadingMembers && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, gap: 10, color: 'var(--tx3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, gap: 10, color: 'var(--text3)' }}>
             <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
             <span style={{ fontSize: 13 }}>Cargando miembros…</span>
           </div>
@@ -377,7 +377,7 @@ import { useEffect, useState, useCallback } from 'react'
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(145px,1fr))', gap: 10 }}>
               {[
                 { label: 'Total miembros',    val: memberCount, color: 'var(--blue)',  Icon: Users },
-                { label: 'Admins',            val: adminCount,  color: 'var(--gold)',  Icon: Crown },
+                { label: 'Admins',            val: adminCount,  color: 'var(--amber)',  Icon: Crown },
                 { label: 'Muteados',          val: mutedCount,  color: '#3b82f6',      Icon: VolumeX },
                 { label: 'Con advertencias',  val: warnedCount, color: '#f59e0b',      Icon: AlertTriangle },
               ].map(({ label, val, color, Icon }) => (
@@ -386,8 +386,8 @@ import { useEffect, useState, useCallback } from 'react'
                     <Icon size={14} color={color} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '1.4rem', color, fontFamily: "'Rajdhani',sans-serif", lineHeight: 1 }}>{val}</div>
-                    <div style={{ fontSize: 10, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.07em', marginTop: 2 }}>{label}</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.4rem', color, fontFamily: "'Inter', sans-serif", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.07em', marginTop: 2 }}>{label}</div>
                   </div>
                 </div>
               ))}
@@ -396,7 +396,7 @@ import { useEffect, useState, useCallback } from 'react'
             {/* Filters */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 280 }}>
-                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx3)', pointerEvents: 'none' }} />
+                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
                 <input
                   className="input"
                   placeholder="Buscar miembro…"
@@ -422,14 +422,14 @@ import { useEffect, useState, useCallback } from 'react'
                 <strong style={{ fontSize: 13 }}>
                   {modData.groupName || selectedJid.split('@')[0]}
                 </strong>
-                <span style={{ fontSize: 11, color: 'var(--tx3)', marginLeft: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 4 }}>
                   {filteredMembers.length} de {memberCount} miembros
                 </span>
               </div>
 
               {filteredMembers.length === 0 ? (
                 <div className="empty-state" style={{ padding: '32px 0' }}>
-                  <div className="empty-state-icon"><Users size={22} color="var(--tx3)" /></div>
+                  <div className="empty-state-icon"><Users size={22} color="var(--text3)" /></div>
                   <div className="empty-state-title">Sin resultados</div>
                 </div>
               ) : (
@@ -474,7 +474,7 @@ import { useEffect, useState, useCallback } from 'react'
             onClick={() => setShowHistory(s => !s)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Clock size={14} color="var(--tx3)" />
+              <Clock size={14} color="var(--text3)" />
               <strong style={{ fontSize: 13 }}>Historial de acciones</strong>
               <span className="badge badge-blue" style={{ fontSize: 10 }}>{history.length}</span>
             </div>
@@ -487,8 +487,8 @@ import { useEffect, useState, useCallback } from 'react'
                 <RefreshCw size={11} style={{ animation: refreshingHist ? 'spin 1s linear infinite' : 'none' }} />
               </button>
               {showHistory
-                ? <ChevronDown size={14} color="var(--tx3)" />
-                : <ChevronRight size={14} color="var(--tx3)" />}
+                ? <ChevronDown size={14} color="var(--text3)" />
+                : <ChevronRight size={14} color="var(--text3)" />}
             </div>
           </div>
 
@@ -513,7 +513,7 @@ import { useEffect, useState, useCallback } from 'react'
 
               {filteredHistory.length === 0 ? (
                 <div className="empty-state" style={{ padding: '28px 0' }}>
-                  <div className="empty-state-icon"><Clock size={20} color="var(--tx3)" /></div>
+                  <div className="empty-state-icon"><Clock size={20} color="var(--text3)" /></div>
                   <div className="empty-state-title">Sin historial aún</div>
                   <div className="empty-state-sub">Las acciones de moderación aparecerán aquí</div>
                 </div>
@@ -542,16 +542,16 @@ import { useEffect, useState, useCallback } from 'react'
                             <td style={{ fontSize: 12 }}>
                               <div style={{ fontWeight: 600 }}>{e.userName || '—'}</div>
                               {e.userJid && (
-                                <div style={{ fontSize: 9, color: 'var(--tx3)', fontFamily: "'JetBrains Mono',monospace" }}>
+                                <div style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'monospace' }}>
                                   +{e.userJid.split('@')[0]}
                                 </div>
                               )}
                             </td>
-                            <td style={{ fontSize: 12, color: 'var(--tx2)' }}>
+                            <td style={{ fontSize: 12, color: 'var(--text2)' }}>
                               {e.groupName || e.groupJid?.split('@')[0] || '—'}
                             </td>
                             <td>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--tx3)' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)' }}>
                                 <Zap size={10} />{fmtTs(e.ts)}
                               </span>
                             </td>
