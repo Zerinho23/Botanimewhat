@@ -1,324 +1,321 @@
 import { useState, useMemo } from 'react'
-  import {
-    Terminal, Search, Copy, Check, Shield, Users, Star,
-    BookOpen, ChevronDown, ChevronRight
-  } from 'lucide-react'
+import {
+  Terminal, Search, Copy, Check, Shield, Users, Star,
+  BookOpen, ChevronRight, Zap, DollarSign, Clock, Lock, Globe,
+} from 'lucide-react'
 
-  interface Command {
-    name: string
-    description: string
-    usage: string
-    aliases: string[]
-    permission: 'all' | 'admin' | 'owner'
-    cooldown?: number
-  }
+interface Command {
+  name: string
+  description: string
+  usage: string
+  aliases: string[]
+  permission: 'all' | 'admin' | 'owner'
+  cooldown?: number
+  example?: string
+}
+interface Category {
+  id: string; label: string; icon: React.ElementType; color: string; description: string; commands: Command[]
+}
 
-  interface Category {
-    id: string
-    label: string
-    icon: React.ElementType
-    color: string
-    description: string
-    commands: Command[]
-  }
+const CATEGORIES: Category[] = [
+  {
+    id: 'admin', label: 'Administración', icon: Shield, color: '#EF4444',
+    description: 'Moderación y gestión de grupo',
+    commands: [
+      { name: 'antilink',  description: 'Activa o desactiva el filtro de enlaces externos en el grupo.', usage: '!antilink [on|off]', aliases: ['antilinks'], permission: 'admin', example: '!antilink on' },
+      { name: 'ban',       description: 'Expulsa permanentemente a un usuario del grupo.', usage: '!ban @usuario', aliases: ['expulsar'], permission: 'admin', example: '!ban @Juan' },
+      { name: 'kick',      description: 'Expulsa temporalmente a un usuario del grupo.', usage: '!kick @usuario', aliases: ['sacar'], permission: 'admin', example: '!kick @María' },
+      { name: 'mute',      description: 'Silencia a un usuario (sus mensajes son eliminados automáticamente).', usage: '!mute @usuario', aliases: ['silenciar'], permission: 'admin' },
+      { name: 'nuevos',    description: 'Lista los miembros que ingresaron recientemente al grupo.', usage: '!nuevos [días]', aliases: ['recientes','new'], permission: 'admin', example: '!nuevos 7' },
+      { name: 'invocar',   description: 'Menciona a todos los integrantes del grupo.', usage: '!invocar [mensaje]', aliases: ['all','todos','llamar','convocar'], permission: 'admin' },
+      { name: 'fantasmas', description: 'Detecta miembros inactivos que no han escrito en X días.', usage: '!fantasmas [días]', aliases: ['inactivos','ghosts'], permission: 'admin', example: '!fantasmas 30' },
+      { name: 'purga',     description: 'Expulsa masivamente a miembros inactivos (+30 días sin escribir).', usage: '!purga', aliases: ['cleanup'], permission: 'admin', cooldown: 60 },
+    ],
+  },
+  {
+    id: 'anime', label: 'Anime', icon: Star, color: '#8B5CF6',
+    description: 'Búsqueda, noticias y recomendaciones',
+    commands: [
+      { name: 'buscar',          description: 'Busca un anime por nombre en MyAnimeList con sinopsis, rating y más.', usage: '!buscar [nombre]', aliases: ['search','find'], permission: 'all', example: '!buscar Attack on Titan' },
+      { name: 'noticias',        description: 'Muestra las últimas noticias del mundo anime.', usage: '!noticias', aliases: ['news'], permission: 'all' },
+      { name: 'recomendaciones', description: 'Recomienda animes basados en géneros y preferencias.', usage: '!recomendaciones', aliases: ['recomienda','rec'], permission: 'all' },
+    ],
+  },
+  {
+    id: 'user', label: 'Perfil & Niveles', icon: Users, color: '#3B82F6',
+    description: 'Perfil, XP, ranking y estadísticas',
+    commands: [
+      { name: 'help',   description: 'Muestra el menú de todos los comandos disponibles en el bot.', usage: '!help [comando]', aliases: ['menu','ayuda','comandos'], permission: 'all', example: '!help ban' },
+      { name: 'perfil', description: 'Muestra tu perfil otaku: nivel, XP, monedas, rango y estadísticas.', usage: '!perfil', aliases: ['profile','me'], permission: 'all' },
+      { name: 'rank',   description: 'Muestra el top 10 de usuarios con más nivel y XP del grupo.', usage: '!rank', aliases: ['leaderboard','lb'], permission: 'all' },
+      { name: 'daily',  description: 'Recoge tus monedas diarias para usar en la economía del bot.', usage: '!daily', aliases: ['diario'], permission: 'all', cooldown: 86400 },
+    ],
+  },
+  {
+    id: 'economy', label: 'Economía', icon: DollarSign, color: '#F59E0B',
+    description: 'Coins, apuestas y tienda',
+    commands: [
+      { name: 'bal',   description: 'Muestra tu saldo actual de coins.', usage: '!bal', aliases: ['balance','monedas'], permission: 'all' },
+      { name: 'shop',  description: 'Abre la tienda del bot para comprar items especiales.', usage: '!shop', aliases: ['tienda','store'], permission: 'all' },
+      { name: 'duel',  description: 'Reta a otro usuario a un duelo por coins.', usage: '!duel @usuario [coins]', aliases: ['batalla'], permission: 'all', example: '!duel @Rival 500' },
+      { name: 'gift',  description: 'Envía coins a otro usuario.', usage: '!gift @usuario [cantidad]', aliases: ['dar','transfer'], permission: 'all', example: '!gift @Amigo 100' },
+    ],
+  },
+]
 
-  const CATEGORIES: Category[] = [
-    {
-      id: 'admin',
-      label: 'ADMIN',
-      icon: Shield,
-      color: 'var(--red)',
-      description: 'Herramientas de moderación y gestión de grupo',
-      commands: [
-        { name: 'antilink',    description: 'Activa o desactiva el filtro de enlaces del grupo.',     usage: '!antilink [on|off]',   aliases: ['antilinks'],                  permission: 'admin' },
-        { name: 'ban',         description: 'Expulsa permanentemente a un usuario del grupo.',        usage: '!ban @usuario',        aliases: ['expulsar'],                   permission: 'admin' },
-        { name: 'kick',        description: 'Expulsa temporalmente a un usuario del grupo.',          usage: '!kick @usuario',       aliases: ['sacar'],                      permission: 'admin' },
-        { name: 'mute',        description: 'Silencia a un usuario (sus mensajes son eliminados).',   usage: '!mute @usuario',       aliases: ['silenciar'],                  permission: 'admin' },
-        { name: 'nuevos',      description: 'Lista los miembros que ingresaron recientemente.',       usage: '!nuevos [días]',       aliases: ['recientes', 'new'],           permission: 'admin' },
-        { name: 'invocar',     description: 'Tagea a todos los integrantes del grupo.',               usage: '!invocar [mensaje]',   aliases: ['all','todos','llamar','convocar'], permission: 'admin' },
-        { name: 'fantasmas',   description: 'Detecta miembros inactivos que no han escrito.',         usage: '!fantasmas [días]',    aliases: ['inactivos','ghosts'],         permission: 'admin' },
-        { name: 'purga',       description: 'Expulsa masivamente a miembros inactivos (+30 días).',   usage: '!purga',               aliases: ['cleanup'],                    permission: 'admin', cooldown: 60 },
-      ],
-    },
-    {
-      id: 'anime',
-      label: 'ANIME',
-      icon: Star,
-      color: 'var(--purple)',
-      description: 'Búsqueda de anime, noticias y recomendaciones',
-      commands: [
-        { name: 'buscar',           description: 'Busca un anime por nombre en MyAnimeList.',             usage: '!buscar [nombre]',     aliases: ['search','find'],  permission: 'all' },
-        { name: 'noticias',         description: 'Muestra las últimas noticias del mundo anime.',          usage: '!noticias',            aliases: ['news'],           permission: 'all' },
-        { name: 'recomendaciones',  description: 'Recomienda animes basados en tus gustos.',               usage: '!recomendaciones',     aliases: ['recomienda','rec'], permission: 'all' },
-      ],
-    },
-    {
-      id: 'user',
-      label: 'USUARIO',
-      icon: Users,
-      color: 'var(--blue)',
-      description: 'Comandos de perfil, nivel y ranking',
-      commands: [
-        { name: 'help',    description: 'Muestra el menú de todos los comandos disponibles.',  usage: '!help [comando]',   aliases: ['menu','ayuda','comandos'],   permission: 'all' },
-        { name: 'perfil',  description: 'Muestra tu perfil otaku con nivel, XP y monedas.',   usage: '!perfil',           aliases: ['profile','me'],              permission: 'all' },
-        { name: 'rank',    description: 'Muestra el top 10 de usuarios con más nivel.',        usage: '!rank',             aliases: ['leaderboard','lb'],          permission: 'all' },
-      ],
-    },
-  ]
+const PERM_META = {
+  all:   { label: 'Público',     color: '#3B82F6',  bg: 'rgba(59,130,246,.10)',  icon: Globe },
+  admin: { label: 'Admin',       color: '#F59E0B',  bg: 'rgba(245,158,11,.10)',  icon: Shield },
+  owner: { label: 'Owner',       color: '#8B5CF6',  bg: 'rgba(139,92,246,.10)', icon: Lock },
+}
 
-  const PERM_META = {
-    all:   { label: 'TODOS',     color: 'var(--blue)',    bg: 'rgba(30,144,255,.1)',    border: 'rgba(30,144,255,.3)'    },
-    admin: { label: 'ADMIN',     color: 'var(--amber)',    bg: 'rgba(251,191,36,.1)',    border: 'rgba(251,191,36,.35)'   },
-    owner: { label: 'OWNER',     color: 'var(--purple)', bg: 'rgba(168,85,247,.1)',   border: 'rgba(168,85,247,.3)'    },
-  }
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button onClick={() => { navigator.clipboard.writeText(text).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1800) }}
+      className="btn btn-ghost btn-xs" title="Copiar"
+      style={{ padding: '3px 8px', color: copied ? '#10B981' : 'var(--text3)', transition: 'color .2s' }}>
+      {copied ? <Check size={10} /> : <Copy size={10} />}
+    </button>
+  )
+}
 
-  function CopyButton({ text }: { text: string }) {
-    const [copied, setCopied] = useState(false)
-    const copy = () => {
-      navigator.clipboard.writeText(text).catch(() => {})
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    }
-    return (
-      <button onClick={copy} className="btn btn-ghost btn-xs"
-        style={{ padding: '3px 7px', color: copied ? 'var(--green)' : 'var(--text3)' }}
-        title="Copiar comando">
-        {copied ? <Check size={10} /> : <Copy size={10} />}
-      </button>
-    )
-  }
+function CommandCard({ cmd, prefix, color }: { cmd: Command; prefix: string; color: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const pm = PERM_META[cmd.permission]
+  const PmIcon = pm.icon
 
-  function CommandRow({ cmd, prefix, color }: { cmd: Command; prefix: string; color: string }) {
-    const pm = PERM_META[cmd.permission]
-    return (
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 2fr auto',
-        gap: 12, padding: '10px 0',
-        borderBottom: '1px solid rgba(30,144,255,.05)',
-        alignItems: 'start', transition: 'background .12s',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,144,255,.025)')}
-      onMouseLeave={e => (e.currentTarget.style.background = '')}>
-        {/* Name + usage */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span style={{
-              fontFamily: 'monospace', fontWeight: 700, fontSize: 13,
-              color, textShadow: `0 0 8px ${color}55`,
-            }}>
+  return (
+    <div className="cmd-card" onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer', borderLeft: `2px solid ${color}` }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+            <code style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, fontSize: 13, color }}>
               {prefix}{cmd.name}
+            </code>
+            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: pm.bg, color: pm.color, display: 'inline-flex', alignItems: 'center', gap: 3, border: `1px solid ${pm.color}25` }}>
+              <PmIcon size={8} /> {pm.label}
             </span>
-            <CopyButton text={prefix + cmd.name} />
+            {cmd.cooldown && (
+              <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text3)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <Clock size={9} /> {cmd.cooldown >= 3600 ? Math.round(cmd.cooldown / 3600) + 'h' : cmd.cooldown + 's'}
+              </span>
+            )}
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--text3)', letterSpacing: '.04em' }}>
-            {cmd.usage}
+          <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{cmd.description}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <CopyButton text={prefix + cmd.name} />
+          <ChevronRight size={13} color="var(--text3)" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s', marginTop: 2 }} />
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          {/* Usage */}
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase', marginRight: 8 }}>USO</span>
+            <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color: 'var(--text2)', background: 'rgba(255,255,255,.04)', padding: '2px 8px', borderRadius: 4 }}>{cmd.usage}</code>
           </div>
+          {/* Example */}
+          {cmd.example && (
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase' }}>EJEMPLO</span>
+              <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color, background: color + '10', border: `1px solid ${color}20`, padding: '2px 8px', borderRadius: 4 }}>{cmd.example}</code>
+              <CopyButton text={cmd.example} />
+            </div>
+          )}
+          {/* Aliases */}
           {cmd.aliases.length > 0 && (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase' }}>ALIAS</span>
               {cmd.aliases.map(a => (
-                <span key={a} style={{
-                  fontSize: 9, color: 'var(--text3)', background: 'rgba(30,144,255,.04)',
-                  border: '1px solid rgba(30,144,255,.1)', borderRadius: 2,
-                  padding: '1px 5px', fontFamily: 'monospace',
-                }}>
+                <span key={a} style={{ fontFamily: 'ui-monospace,monospace', fontSize: 10, color: 'var(--text3)', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 4, padding: '1px 6px' }}>
                   {prefix}{a}
                 </span>
               ))}
             </div>
           )}
         </div>
-        {/* Description */}
-        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, paddingTop: 2 }}>
-          {cmd.description}
+      )}
+    </div>
+  )
+}
+
+export default function Commands() {
+  const [search,    setSearch]   = useState('')
+  const [activeId,  setActiveId] = useState('admin')
+  const [permFilter,setPermF]    = useState<'all' | 'admin' | 'owner' | ''>('')
+  const prefix = '!'
+
+  const totalCmds = CATEGORIES.reduce((s, c) => s + c.commands.length, 0)
+
+  const filteredCats = useMemo(() => {
+    let cats = CATEGORIES
+    if (permFilter) cats = cats.map(c => ({ ...c, commands: c.commands.filter(x => x.permission === permFilter) })).filter(c => c.commands.length > 0)
+    if (!search.trim()) return cats
+    const q = search.toLowerCase()
+    return cats.map(c => ({
+      ...c,
+      commands: c.commands.filter(x => x.name.includes(q) || x.description.toLowerCase().includes(q) || x.aliases.some(a => a.includes(q)))
+    })).filter(c => c.commands.length > 0)
+  }, [search, permFilter])
+
+  const activeCategory = search.trim() ? null : filteredCats.find(c => c.id === activeId) ?? filteredCats[0] ?? null
+  const displayCats    = search.trim() ? filteredCats : (activeCategory ? [activeCategory] : [])
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className="animate-fade-up">
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div className="page-title"><Terminal size={18} color="#06B6D4" />Comandos</div>
+          <div className="page-subtitle">{totalCmds} comandos · prefijo <code style={{ fontFamily: 'monospace', color: '#06B6D4', background: 'rgba(6,182,212,.12)', padding: '0 5px', borderRadius: 4 }}>{prefix}</code></div>
         </div>
-        {/* Meta */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
-          <span style={{
-            fontFamily: "'Inter', sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: '.02em',
-            padding: '2px 7px', borderRadius: 2,
-            background: pm.bg, border: `1px solid ${pm.border}`, color: pm.color,
-          }}>
-            {pm.label}
-          </span>
-          {cmd.cooldown && (
-            <span style={{ fontSize: 9, color: 'var(--text3)', fontFamily: "'Inter', sans-serif" }}>
-              ⏱ {cmd.cooldown}s
-            </span>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  function CategorySection({ cat, prefix, defaultOpen }: { cat: Category; prefix: string; defaultOpen: boolean }) {
-    const [open, setOpen] = useState(defaultOpen)
-    const Icon = cat.icon
-    return (
-      <div className="card" style={{ padding: 0 }}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          style={{
-            width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-            padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
-            borderBottom: open ? '1px solid var(--border)' : 'none',
-          }}>
-          {/* Top accent */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-            background: `linear-gradient(90deg, ${cat.color}, transparent)`, borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }} />
-          <div style={{
-            width: 32, height: 32, borderRadius: 'var(--radius)',
-            background: cat.color + '15', border: `1px solid ${cat.color}35`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <Icon size={14} color={cat.color} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
+            <input className="input" placeholder="Buscar comando…" value={search} onChange={e => setSearch(e.target.value)}
+              style={{ paddingLeft: 28, width: 200, fontSize: 12 }} />
           </div>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700,
-                letterSpacing: '.02em', color: cat.color, textShadow: `0 0 8px ${cat.color}44` }}>
-                {cat.label}
-              </span>
-              <span className="rank rank-b" style={{ background: cat.color + '15', borderColor: cat.color + '40', color: cat.color, fontSize: 9 }}>
-                {cat.commands.length} CMD
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, fontFamily: "'Inter', sans-serif", letterSpacing: '.04em' }}>
-              {cat.description}
-            </div>
-          </div>
-          {open ? <ChevronDown size={14} color="var(--text3)" /> : <ChevronRight size={14} color="var(--text3)" />}
-        </button>
-
-        {open && (
-          <div style={{ padding: '4px 18px 14px' }}>
-            {/* Column headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 12,
-              padding: '8px 0', borderBottom: '1px solid var(--border)', marginBottom: 2 }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '.02em', color: 'var(--text3)' }}>COMANDO</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '.02em', color: 'var(--text3)' }}>DESCRIPCIÓN</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '.02em', color: 'var(--text3)' }}>PERM</span>
-            </div>
-            {cat.commands.map(cmd => (
-              <CommandRow key={cmd.name} cmd={cmd} prefix={prefix} color={cat.color} />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  export default function Commands() {
-    const [search, setSearch] = useState('')
-    const [filter, setFilter] = useState<'all' | 'admin' | 'user'>('all')
-    const [prefix] = useState('!')
-
-    const totalCmds = CATEGORIES.reduce((s, c) => s + c.commands.length, 0)
-    const adminCmds = CATEGORIES.find(c => c.id === 'admin')?.commands.length ?? 0
-    const publicCmds = totalCmds - adminCmds
-
-    const filteredCats = useMemo(() => {
-      let cats = CATEGORIES
-      if (filter === 'admin') cats = cats.map(c => ({ ...c, commands: c.commands.filter(x => x.permission === 'admin') })).filter(c => c.commands.length > 0)
-      if (filter === 'user')  cats = cats.map(c => ({ ...c, commands: c.commands.filter(x => x.permission === 'all') })).filter(c => c.commands.length > 0)
-      if (!search.trim()) return cats
-      const q = search.toLowerCase()
-      return cats
-        .map(c => ({
-          ...c,
-          commands: c.commands.filter(x =>
-            x.name.includes(q) || x.description.toLowerCase().includes(q) || x.aliases.some(a => a.includes(q))
-          )
-        }))
-        .filter(c => c.commands.length > 0)
-    }, [search, filter])
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }} className="animate-fade-up">
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div className="page-title">
-              <span className="page-title-bracket">◈</span>
-              COMMAND REGISTRY
-              <span className="page-title-bracket">◈</span>
-            </div>
-            <div className="page-subtitle">
-              {totalCmds} COMANDOS REGISTRADOS · PREFIJO: <span style={{ color: 'var(--blue)', fontFamily: 'monospace' }}>{prefix}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
-              <input className="input" placeholder="BUSCAR COMANDO…" value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 28, width: 200, fontFamily: "'Inter', sans-serif", letterSpacing: '.06em', fontSize: 12 }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Stats strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 10 }}>
-          {[
-            { label: 'TOTAL',     val: totalCmds,          color: 'var(--blue)'    },
-            { label: 'PÚBLICOS',  val: publicCmds,          color: 'var(--green)'  },
-            { label: 'ADMIN',     val: adminCmds,           color: 'var(--amber)'    },
-            { label: 'CATEGORÍAS',val: CATEGORIES.length,   color: 'var(--purple)' },
-          ].map(s => (
-            <div key={s.label} className="metric-card" style={{ padding: '12px 14px' }}>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: s.color, lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--text3)', marginTop: 5, letterSpacing: '.02em' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Filter chips */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {([
-            { key: 'all',   label: `TODO (${totalCmds})` },
-            { key: 'admin', label: `ADMIN (${adminCmds})`,   color: 'var(--amber)' },
-            { key: 'user',  label: `PÚBLICO (${publicCmds})`, color: 'var(--blue)' },
-          ] as { key: typeof filter; label: string; color?: string }[]).map(tab => (
-            <button key={tab.key} className={`btn btn-xs ${filter === tab.key ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setFilter(tab.key)}
-              style={filter !== tab.key && tab.color ? { color: tab.color, borderColor: tab.color + '30' } : undefined}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 16, padding: '10px 16px',
-          background: 'rgba(30,144,255,.03)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text3)', fontFamily: "'Inter', sans-serif", letterSpacing: '.06em' }}>
-            <Terminal size={11} color="var(--blue)" />
-            <span>Haz clic en el nombre del comando para copiarlo</span>
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
-            {Object.entries(PERM_META).map(([k, pm]) => (
-              <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text3)', fontFamily: "'Inter', sans-serif" }}>
-                <span style={{ width: 6, height: 6, borderRadius: 1, background: pm.color, boxShadow: `0 0 4px ${pm.color}` }} />
-                {pm.label}
-              </span>
+          {/* Perm filter */}
+          <div style={{ display: 'flex', gap: 5 }}>
+            {([['', 'Todos'], ['all', 'Público'], ['admin', 'Admin']] as [string, string][]).map(([k, l]) => (
+              <button key={k} className={`btn btn-xs ${permFilter === k ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPermF(k as '' | 'all' | 'admin' | 'owner')}>{l}</button>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Category sections */}
-        {filteredCats.length === 0 ? (
+      {/* Summary stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+        {[
+          { label: 'Total',      val: totalCmds,                                                           color: '#06B6D4', icon: Terminal },
+          { label: 'Públicos',   val: CATEGORIES.flatMap(c=>c.commands).filter(c=>c.permission==='all').length,  color: '#10B981', icon: Globe },
+          { label: 'Admin',      val: CATEGORIES.flatMap(c=>c.commands).filter(c=>c.permission==='admin').length, color: '#F59E0B', icon: Shield },
+          { label: 'Categorías', val: CATEGORIES.length,                                                  color: '#8B5CF6', icon: BookOpen },
+        ].map(({ label, val, color, icon: Icon }) => (
+          <div key={label} className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: color + '12', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={13} color={color} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 20, color, letterSpacing: '-0.03em', lineHeight: 1 }}>{val}</div>
+              <div style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 2 }}>{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {search.trim() ? (
+        /* Search results — show all categories */
+        filteredCats.length === 0 ? (
           <div className="card">
             <div className="empty-state">
               <div className="empty-state-icon"><BookOpen size={20} color="var(--text3)" /></div>
-              <div className="empty-state-title">SIN RESULTADOS</div>
-              <div className="empty-state-sub">No se encontraron comandos con ese término</div>
+              <div className="empty-state-title">Sin resultados</div>
+              <div className="empty-state-sub">No se encontraron comandos con "{search}"</div>
             </div>
           </div>
-        ) : filteredCats.map((cat, i) => (
-          <CategorySection key={cat.id} cat={cat} prefix={prefix} defaultOpen={i === 0} />
-        ))}
+        ) : filteredCats.map(cat => (
+          <div key={cat.id}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '0 2px' }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: cat.color + '18', border: `1px solid ${cat.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <cat.icon size={11} color={cat.color} />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: cat.color }}>{cat.label}</span>
+              <span className="badge badge-blue" style={{ fontSize: 10 }}>{cat.commands.length}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 8 }}>
+              {cat.commands.map(cmd => <CommandCard key={cmd.name} cmd={cmd} prefix={prefix} color={cat.color} />)}
+            </div>
+          </div>
+        ))
+      ) : (
+        /* Category tab layout */
+        <div style={{ display: 'flex', gap: 14 }}>
+          {/* Sidebar tabs */}
+          <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {CATEGORIES.map(cat => {
+              const isActive = activeId === cat.id
+              return (
+                <button key={cat.id} onClick={() => setActiveId(cat.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10,
+                    background: isActive ? cat.color + '12' : 'rgba(255,255,255,.025)',
+                    border: `1px solid ${isActive ? cat.color + '35' : 'rgba(255,255,255,.06)'}`,
+                    cursor: 'pointer', textAlign: 'left', transition: 'all .18s', width: '100%',
+                  }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: cat.color + '18', border: `1px solid ${cat.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <cat.icon size={13} color={cat.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: isActive ? 600 : 500, color: isActive ? cat.color : 'var(--text2)' }}>{cat.label}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{cat.commands.length} cmds</div>
+                  </div>
+                  {isActive && <ChevronRight size={12} color={cat.color} />}
+                </button>
+              )
+            })}
 
-      </div>
-    )
-  }
-  
+            {/* Legend */}
+            <div className="card" style={{ padding: '12px 14px', marginTop: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 10 }}>Permisos</div>
+              {Object.entries(PERM_META).map(([k, pm]) => {
+                const Icon = pm.icon
+                return (
+                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 5, background: pm.bg, border: `1px solid ${pm.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon size={10} color={pm.color} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: pm.color }}>{pm.label}</div>
+                    </div>
+                  </div>
+                )
+              })}
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Zap size={10} />Haz clic en un comando para ver más detalles
+              </div>
+            </div>
+          </div>
+
+          {/* Command list */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {activeCategory ? (
+              <>
+                {/* Category header */}
+                <div className="card" style={{ padding: '14px 18px', marginBottom: 12, borderLeft: `3px solid ${activeCategory.color}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: activeCategory.color + '18', border: `1px solid ${activeCategory.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <activeCategory.icon size={16} color={activeCategory.color} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: activeCategory.color }}>{activeCategory.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{activeCategory.description} · {activeCategory.commands.length} comandos</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Commands grid */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {activeCategory.commands.map(cmd => (
+                    <CommandCard key={cmd.name} cmd={cmd} prefix={prefix} color={activeCategory.color} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="empty-state"><div className="empty-state-title">Selecciona una categoría</div></div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{ height: 8 }} />
+    </div>
+  )
+}
