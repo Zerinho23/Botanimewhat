@@ -102,8 +102,8 @@ export default function Config() {
       </AnimatePresence>
 
       <div>
-        <div className="page-title"><span className="page-title-bracket">◈</span>SYSTEM CONFIG<span className="page-title-bracket">◈</span></div>
-        <div className="page-subtitle">CONFIGURACIÓN GLOBAL DEL BOT · PANEL DE CONTROL</div>
+        <div className="page-title"><Wrench size={18} color="var(--blue)" />Configuración</div>
+        <div className="page-subtitle">Configuración global del bot</div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

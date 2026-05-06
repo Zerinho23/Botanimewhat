@@ -336,12 +336,11 @@ import { useEffect, useState, type ElementType } from 'react'
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div className="page-title">
-              <span className="page-title-bracket">◈</span>
-              DUNGEON MAP
-              <span className="page-title-bracket">◈</span>
+              <MessageSquare size={18} color="var(--blue)" />
+              Grupos
             </div>
             <div className="page-subtitle">
-              {groups.length} DUNGEONS · {activeGroups.length} ACTIVE · {inactiveGroups.length} SEALED
+              {groups.length} grupos · {activeGroups.length} activos · {inactiveGroups.length} sellados
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -359,19 +358,19 @@ import { useEffect, useState, type ElementType } from 'react'
           </div>
         </div>
 
-        {/* ── Rank distribution strip ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 10 }}>
+        {/* ── Stats strip (3-col grid → scrollable on mobile) ── */}
+        <div className="rank-strip">
           {[
-            { label: 'TOTAL',   val: groups.length,               color: 'var(--blue)'    },
-            { label: 'ACTIVE',  val: activeGroups.length,         color: 'var(--green)'  },
-            { label: 'SEALED',  val: inactiveGroups.length,       color: 'var(--red)'    },
-            { label: 'S-RANK',  val: rankDist['S'] || 0,          color: 'var(--amber)'    },
-            { label: 'A-RANK',  val: rankDist['A'] || 0,          color: 'var(--red)'    },
-            { label: 'MODULES', val: groups.filter(g=>g.antiLink||g.antiSpam||g.welcome).length, color: 'var(--purple)' },
+            { label: 'Total',   val: groups.length,               color: 'var(--blue)'   },
+            { label: 'Activos', val: activeGroups.length,         color: 'var(--green)'  },
+            { label: 'Sellados',val: inactiveGroups.length,       color: 'var(--red)'    },
+            { label: 'S-Rank',  val: rankDist['S'] || 0,          color: 'var(--amber)'  },
+            { label: 'A-Rank',  val: rankDist['A'] || 0,          color: 'var(--red)'    },
+            { label: 'Módulos', val: groups.filter(g=>g.antiLink||g.antiSpam||g.welcome).length, color: 'var(--purple)' },
           ].map(s => (
-            <div key={s.label} className="metric-card" style={{ padding: '12px 14px' }}>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: s.color, lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--text3)', marginTop: 5, letterSpacing: '.02em' }}>{s.label}</div>
+            <div key={s.label} className="rank-strip-item card" style={{ padding: '10px 16px', minWidth: 90, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color, lineHeight: 1 }}>{s.val}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
             </div>
           ))}
         </div>
