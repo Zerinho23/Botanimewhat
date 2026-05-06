@@ -1,7 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --amber:  #F59E0B; --amber2: #FBBF24; --amber-dim: rgba(245,158,11,0.12);
+  --pink:   #EC4899; --pink2:  #F9A8D4; --pink-dim:  rgba(236,72,153,0.12);
   --green:  #10B981; --red: #EF4444; --blue: #3B82F6;
   --purple: #8B5CF6; --orange: #F97316; --cyan: #06B6D4;
   --red2: #F87171; --green2: #34D399; --purple2: #A78BFA; --blue2: #60A5FA;
@@ -28,7 +29,13 @@ body {
 }
 
 /* ── Layout ── */
-.shell        { display:flex; height:100vh; overflow:hidden; }
+.shell {
+  display:flex; height:100vh; overflow:hidden; position:relative;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
 .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 .page-content { flex:1; overflow-y:auto; overflow-x:hidden; padding:24px 28px 48px; }
 .sidebar {
@@ -67,10 +74,11 @@ body {
   transform-origin:top right;
 }
 
-/* ── Page titles ── */
+/* ── Page titles — Noto Serif JP ── */
 .page-title {
+  font-family: 'Noto Serif JP', 'Inter', serif;
   font-size:19px !important; font-weight:700 !important; color:var(--text) !important;
-  letter-spacing:-0.02em !important; display:flex; align-items:center; gap:8px; line-height:1.2;
+  letter-spacing:-0.01em !important; display:flex; align-items:center; gap:8px; line-height:1.2;
 }
 .page-title-bracket { display:none; }
 .page-subtitle {
@@ -94,23 +102,60 @@ body {
 .dungeon-card.sealed { opacity:.6; }
 .dungeon-card.selected { border-color:rgba(59,130,246,.50); background:rgba(59,130,246,.04); }
 
-/* Metric card with shimmer */
+/* Metric card with shimmer + glow */
 .metric-card {
   background:var(--card); border:1px solid var(--border); border-radius:var(--r);
   padding:18px 20px; display:flex; flex-direction:column;
-  transition:border-color .2s,background .2s,transform .18s,box-shadow .2s;
+  transition:border-color .2s,background .2s,transform .18s,box-shadow .25s;
   position:relative; overflow:hidden; cursor:default;
 }
 .metric-card::after {
   content:''; position:absolute; top:0; left:-100%; width:60%; height:100%;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.04),transparent);
-  transition:left .6s ease; pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.05),transparent);
+  transition:left .65s ease; pointer-events:none;
 }
 .metric-card:hover { border-color:var(--border2); background:var(--card-hover); transform:translateY(-2px); }
 .metric-card:hover::after { left:160%; }
 
 .metric-val   { font-size:26px !important; font-weight:700 !important; line-height:1.1 !important; letter-spacing:-0.03em !important; }
 .metric-label { font-size:12px !important; font-weight:500 !important; color:var(--text2) !important; letter-spacing:normal !important; text-transform:none !important; margin-top:6px; }
+
+/* ── Aurora glow block ── */
+.aurora-wrap {
+  position: relative;
+}
+.aurora-wrap::before {
+  content: '';
+  position: absolute;
+  top: -55px; left: 10%; right: 10%; height: 130px;
+  background: radial-gradient(ellipse, rgba(245,158,11,.09) 0%, rgba(236,72,153,.05) 45%, transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Sakura petals ── */
+@keyframes petalFall {
+  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 0; }
+  8%   { opacity: .65; }
+  92%  { opacity: .35; }
+  100% { transform: translateY(102vh) rotate(680deg); opacity: 0; }
+}
+@keyframes petalSway {
+  0%,100% { margin-left: 0;   }
+  25%     { margin-left: 22px; }
+  75%     { margin-left: -18px; }
+}
+.petal {
+  position: fixed;
+  top: 0;
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+  animation: petalFall linear infinite, petalSway ease-in-out infinite;
+  user-select: none;
+  will-change: transform;
+}
 
 /* ── Heatmap ── */
 .heatmap-wrap  { display:flex; flex-direction:column; gap:6px; }
@@ -292,6 +337,65 @@ select.input,select.input-field { appearance:none; cursor:pointer; }
 .cmd-card:hover { border-color:var(--border2); background:var(--card-hover); transform:translateY(-1px); }
 .cmd-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
 
+/* ── WhatsApp bubble ── */
+.wa-bubble {
+  display: inline-block;
+  background: rgba(37,211,102,.08);
+  border: 1px solid rgba(37,211,102,.22);
+  border-radius: 12px 12px 12px 2px;
+  padding: 7px 13px;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #25D366;
+  position: relative;
+  max-width: 100%;
+  word-break: break-all;
+}
+.wa-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: -7px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 0 9px 8px;
+  border-color: transparent transparent rgba(37,211,102,.22) transparent;
+}
+.wa-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 1px; left: -5px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 0 8px 7px;
+  border-color: transparent transparent rgba(37,211,102,.08) transparent;
+}
+
+/* ── Summoning card ── */
+.summon-card {
+  background: linear-gradient(135deg, rgba(139,92,246,.07) 0%, rgba(10,10,18,.0) 50%, rgba(236,72,153,.05) 100%);
+  border: 1px solid rgba(139,92,246,.28);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.summon-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(139,92,246,.12), transparent 55%),
+    radial-gradient(circle at 85% 50%, rgba(236,72,153,.09), transparent 55%);
+  pointer-events: none;
+}
+.summon-corner {
+  position: absolute;
+  width: 18px; height: 18px;
+}
+.summon-corner-tl { top: 10px; left: 10px; border-top: 2px solid rgba(139,92,246,.40); border-left: 2px solid rgba(139,92,246,.40); border-radius: 3px 0 0 0; }
+.summon-corner-tr { top: 10px; right: 10px; border-top: 2px solid rgba(236,72,153,.40); border-right: 2px solid rgba(236,72,153,.40); border-radius: 0 3px 0 0; }
+.summon-corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid rgba(236,72,153,.40); border-left: 2px solid rgba(236,72,153,.40); border-radius: 0 0 0 3px; }
+.summon-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid rgba(139,92,246,.40); border-right: 2px solid rgba(139,92,246,.40); border-radius: 0 0 3px 0; }
+
 /* ── Sidebar / Mobile ── */
 .sidebar-toggle { display:none; align-items:center; justify-content:center; width:34px; height:34px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text2); flex-shrink:0; transition:all .18s; }
 .sidebar-toggle:hover { background:var(--card-hover); color:var(--text); }
@@ -324,6 +428,7 @@ select.input,select.input-field { appearance:none; cursor:pointer; }
 @keyframes pulseRing  { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(2.4);opacity:0} }
 @keyframes spin       { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes slideDown  { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes sakuraSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
 .animate-fade-up  { animation:fadeUp .32s cubic-bezier(.16,1,.3,1) both; }
 .animate-scale-in { animation:scaleIn .26s cubic-bezier(.16,1,.3,1) both; }
