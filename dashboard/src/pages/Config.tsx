@@ -18,7 +18,7 @@ function FormRow({ label, hint, children }: { label: string; hint?: string; chil
     <div style={{ marginBottom: 20 }}>
       <label className="label">{label}</label>
       {children}
-      {hint && <p style={{ marginTop: 6, fontSize: 10, color: 'var(--tx3)', fontFamily: "'Rajdhani',sans-serif", letterSpacing: '.04em', lineHeight: 1.6 }}>{hint}</p>}
+      {hint && <p style={{ marginTop: 6, fontSize: 10, color: 'var(--text3)', fontFamily: "'Inter', sans-serif", letterSpacing: '.04em', lineHeight: 1.6 }}>{hint}</p>}
     </div>
   )
 }
@@ -30,8 +30,8 @@ function SectionHeader({ icon: Icon, title, color }: { icon: React.ElementType; 
         <Icon size={14} color={color} />
       </div>
       <div>
-        <div style={{ fontFamily: "'Orbitron',monospace", fontWeight: 700, fontSize: 11, letterSpacing: '.14em', color }}>{title}</div>
-        <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 8, color: 'var(--tx3)', letterSpacing: '.12em', marginTop: 2 }}>MÓDULO DE CONFIGURACIÓN</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '.02em', color }}>{title}</div>
+        <div style={{ fontFamily: 'monospace', fontSize: 8, color: 'var(--text3)', letterSpacing: '.02em', marginTop: 2 }}>MÓDULO DE CONFIGURACIÓN</div>
       </div>
     </div>
   )
@@ -74,8 +74,8 @@ export default function Config() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 340 }}>
       <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ padding: 32, textAlign: 'center', maxWidth: 380 }}>
         <AlertCircle size={28} color="#FBBF24" style={{ margin: '0 auto 14px' }} />
-        <p style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.8 }}>
-          Configura <span style={{ color: '#3B82F6', fontFamily: "'JetBrains Mono',monospace" }}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
+        <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.8 }}>
+          Configura <span style={{ color: '#3B82F6', fontFamily: 'monospace' }}>VITE_API_URL</span> en Vercel → Settings → Environment Variables.
         </p>
       </motion.div>
     </div>
@@ -116,8 +116,8 @@ export default function Config() {
                 display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 4, border: '1px solid',
                 borderColor: isActive ? `${t.color}55` : 'var(--border)',
                 background: isActive ? `${t.color}12` : 'rgba(220,38,38,0.03)',
-                color: isActive ? t.color : 'var(--tx2)',
-                fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
+                color: isActive ? t.color : 'var(--text2)',
+                fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '.08em',
                 boxShadow: isActive ? `0 0 20px ${t.color}18, inset 0 1px 0 rgba(255,255,255,0.04)` : 'none',
                 cursor: 'pointer', transition: 'all .18s',
               }}>
@@ -228,7 +228,7 @@ export default function Config() {
                   style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                     background: maintForm.enabled ? '#EF4444' : '#10B981',
                     boxShadow: `0 0 8px ${maintForm.enabled ? '#EF4444' : '#10B981'}` }} />
-                <span style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, letterSpacing: '.07em', color: maintForm.enabled ? '#EF4444' : '#10B981', flex: 1, fontSize: 13 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, letterSpacing: '.07em', color: maintForm.enabled ? '#EF4444' : '#10B981', flex: 1, fontSize: 13 }}>
                   {maintForm.enabled ? 'Bot en mantenimiento — ignorando mensajes' : 'Bot operativo — respondiendo normalmente'}
                 </span>
                 <button className={`btn btn-sm ${maintForm.enabled ? 'btn-green' : 'btn-red'}`} onClick={() => setMF(m => ({ ...m, enabled: !m.enabled }))}>
