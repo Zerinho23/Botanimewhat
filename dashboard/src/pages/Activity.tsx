@@ -4,20 +4,20 @@ import { useEffect, useState, useRef } from 'react'
 
   const TYPE_META: Record<string,{ color: string; bg: string; label: string }> = {
     message: { color: 'var(--blue)',    bg: 'rgba(30,144,255,.1)',   label: 'MSG'     },
-    command: { color: 'var(--purple2)', bg: 'rgba(168,85,247,.1)',   label: 'CMD'     },
-    join:    { color: 'var(--green2)',  bg: 'rgba(16,185,129,.1)',   label: 'JOIN'    },
-    leave:   { color: 'var(--red2)',    bg: 'rgba(239,68,68,.1)',    label: 'LEAVE'   },
-    error:   { color: 'var(--red2)',    bg: 'rgba(239,68,68,.1)',    label: 'ERROR'   },
-    warning: { color: 'var(--gold)',    bg: 'rgba(251,191,36,.1)',   label: 'WARN'    },
-    ban:     { color: 'var(--red2)',    bg: 'rgba(239,68,68,.1)',    label: 'BAN'     },
+    command: { color: 'var(--purple)', bg: 'rgba(168,85,247,.1)',   label: 'CMD'     },
+    join:    { color: 'var(--green)',  bg: 'rgba(16,185,129,.1)',   label: 'JOIN'    },
+    leave:   { color: 'var(--red)',    bg: 'rgba(239,68,68,.1)',    label: 'LEAVE'   },
+    error:   { color: 'var(--red)',    bg: 'rgba(239,68,68,.1)',    label: 'ERROR'   },
+    warning: { color: 'var(--amber)',    bg: 'rgba(251,191,36,.1)',   label: 'WARN'    },
+    ban:     { color: 'var(--red)',    bg: 'rgba(239,68,68,.1)',    label: 'BAN'     },
     kick:    { color: 'var(--orange)',  bg: 'rgba(249,115,22,.1)',   label: 'KICK'    },
-    mute:    { color: 'var(--gold)',    bg: 'rgba(251,191,36,.1)',   label: 'MUTE'    },
+    mute:    { color: 'var(--amber)',    bg: 'rgba(251,191,36,.1)',   label: 'MUTE'    },
     conn:    { color: 'var(--cyan)',    bg: 'rgba(0,200,255,.1)',    label: 'SYS'     },
-    lvl:     { color: 'var(--gold)',    bg: 'rgba(251,191,36,.1)',   label: 'LVL UP'  },
+    lvl:     { color: 'var(--amber)',    bg: 'rgba(251,191,36,.1)',   label: 'LVL UP'  },
   }
 
   const getMeta = (t: string) =>
-    TYPE_META[t] ?? { color: 'var(--tx3)', bg: 'rgba(30,144,255,.05)', label: t.toUpperCase().slice(0,8) }
+    TYPE_META[t] ?? { color: 'var(--text3)', bg: 'rgba(30,144,255,.05)', label: t.toUpperCase().slice(0,8) }
 
   function fmtTs(ts: number) {
     return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -68,7 +68,7 @@ import { useEffect, useState, useRef } from 'react'
 
     if (!isConfigured()) return (
       <div className="empty-state">
-        <div className="empty-state-icon"><ActivityIcon size={20} color="var(--tx3)" /></div>
+        <div className="empty-state-icon"><ActivityIcon size={20} color="var(--text3)" /></div>
         <div className="empty-state-title">API SIN CONFIGURAR</div>
       </div>
     )
@@ -109,8 +109,8 @@ import { useEffect, useState, useRef } from 'react'
                 cursor: 'pointer',
               }} onClick={() => setFilter(filter === type ? 'all' : type)}>
                 <span style={{ width: 6, height: 6, borderRadius: 1, background: m.color, boxShadow: '0 0 4px ' + m.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 8, fontWeight: 700, color: m.color, letterSpacing: '.1em' }}>{m.label}</span>
-                <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 700, color: m.color }}>{cnt}</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 8, fontWeight: 700, color: m.color, letterSpacing: '.02em' }}>{m.label}</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, color: m.color }}>{cnt}</span>
               </div>
             )
           })}
@@ -119,10 +119,10 @@ import { useEffect, useState, useRef } from 'react'
         {/* Active filters */}
         {filter !== 'all' && (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--tx3)', fontFamily: "'Rajdhani',sans-serif", fontWeight: 700 }}>FILTRO:</span>
+            <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>FILTRO:</span>
             <span className="badge badge-blue">{getMeta(filter).label}</span>
             <button className="btn btn-ghost btn-xs" onClick={() => setFilter('all')}><X size={10} /> LIMPIAR</button>
-            <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--tx3)', fontFamily: "'Rajdhani',sans-serif" }}>{filtered.length} eventos</span>
+            <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--text3)', fontFamily: "'Inter', sans-serif" }}>{filtered.length} eventos</span>
           </div>
         )}
 
@@ -134,7 +134,7 @@ import { useEffect, useState, useRef } from 'react'
         ) : grouped.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <div className="empty-state-icon"><ActivityIcon size={20} color="var(--tx3)" /></div>
+              <div className="empty-state-icon"><ActivityIcon size={20} color="var(--text3)" /></div>
               <div className="empty-state-title">SIN EVENTOS</div>
               <div className="empty-state-sub">No se han registrado eventos aún</div>
             </div>
@@ -146,8 +146,8 @@ import { useEffect, useState, useRef } from 'react'
                 {/* Date separator */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 9, fontWeight: 700,
-                    letterSpacing: '.14em', color: 'var(--tx3)', padding: '2px 10px',
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700,
+                    letterSpacing: '.02em', color: 'var(--text3)', padding: '2px 10px',
                     border: '1px solid var(--border)', borderRadius: 2, background: 'var(--bg2)' }}>
                     {date}
                   </span>
@@ -164,8 +164,8 @@ import { useEffect, useState, useRef } from 'react'
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: 64 }}>
                           <div className="event-dot" style={{ background: m.color, boxShadow: '0 0 5px ' + m.color }} />
                           <span style={{
-                            fontFamily: "'Orbitron',sans-serif", fontSize: 8, fontWeight: 700,
-                            letterSpacing: '.1em', color: m.color, background: m.bg,
+                            fontFamily: "'Inter', sans-serif", fontSize: 8, fontWeight: 700,
+                            letterSpacing: '.02em', color: m.color, background: m.bg,
                             border: '1px solid ' + m.color + '30',
                             padding: '1px 5px', borderRadius: 2,
                           }}>{m.label}</span>
@@ -173,12 +173,12 @@ import { useEffect, useState, useRef } from 'react'
 
                         {/* Content */}
                         <div className="event-text">
-                          {data?.sender && <span style={{ color: 'var(--tx1)', fontWeight: 600 }}>{data.sender} </span>}
-                          {data?.cmd    && <span style={{ color: 'var(--purple2)' }}>→ {data.cmd} </span>}
-                          {data?.group  && <span style={{ color: 'var(--tx3)', fontSize: 10 }}>[{data.group}] </span>}
-                          {data?.text   && <span style={{ color: 'var(--tx3)' }}>{String(data.text).slice(0,60)}</span>}
+                          {data?.sender && <span style={{ color: 'var(--text)', fontWeight: 600 }}>{data.sender} </span>}
+                          {data?.cmd    && <span style={{ color: 'var(--purple)' }}>→ {data.cmd} </span>}
+                          {data?.group  && <span style={{ color: 'var(--text3)', fontSize: 10 }}>[{data.group}] </span>}
+                          {data?.text   && <span style={{ color: 'var(--text3)' }}>{String(data.text).slice(0,60)}</span>}
                           {!data?.sender && !data?.cmd && !data?.group &&
-                            <span style={{ color: 'var(--tx3)' }}>{ev.type} event</span>}
+                            <span style={{ color: 'var(--text3)' }}>{ev.type} event</span>}
                         </div>
 
                         {/* Timestamp */}
