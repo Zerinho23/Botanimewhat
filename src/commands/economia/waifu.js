@@ -30,7 +30,7 @@ function getRarity() {
 module.exports = {
   name: "waifu",
   description: `Obtén una waifu aleatoria por ${WAIFU_COST} monedas`,
-  aliases: ["gacha", "invocar"],
+  aliases: ["gacha"],
   async execute({ sock, msg, sender, from }) {
     const user = db.getUser(sender);
     if ((user.coins || 0) < WAIFU_COST) {
