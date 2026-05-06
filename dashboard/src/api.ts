@@ -33,6 +33,8 @@
       uptime: number;
       commandsToday?: number;
       messages?: number;
+      eventsToday?: number;
+      totalCommands?: number;
     }
 
     export interface BotConfig {
