@@ -3,7 +3,7 @@ import { RefreshCw, Key, AlertTriangle, CheckCircle, RotateCcw, Copy, ExternalLi
 import { getStatus, postPairingCode, postReset, getApiUrl, isConfigured, type BotStatus } from '../api'
 
 function StepCard({ num, title, desc, active, done }: { num: number; title: string; desc: string; active?: boolean; done?: boolean }) {
-  const color = done ? '#10B981' : active ? '#3B82F6' : 'var(--text3)'
+  const color = done ? '#10B981' : active ? '#EC4899' : 'var(--text3)'
   return (
     <div style={{
       display: 'flex', gap: 14, padding: '12px 0',
@@ -15,7 +15,7 @@ function StepCard({ num, title, desc, active, done }: { num: number; title: stri
         background: color + '15', border: `1px solid ${color}30`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 800, fontSize: 13, color,
-        boxShadow: active ? `0 0 16px ${color}20` : 'none',
+        boxShadow: active ? `0 0 16px ${color}25` : 'none',
         transition: 'all .22s',
       }}>
         {done ? <CheckCircle size={14} /> : num}
@@ -104,19 +104,18 @@ export default function Connect() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div className="page-title"><Wifi size={18} color="#10B981" />Conexión</div>
-          <div className="page-subtitle">Vinculación de WhatsApp · Sesión del bot</div>
+          <div className="page-title"><Wifi size={18} color="#EC4899" />Conexión</div>
+          <div className="page-subtitle">Vinculación de WhatsApp · Sesión del bot 🌸</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Status pill */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
-            borderRadius: 20, border: `1px solid ${loading ? 'var(--border)' : connected ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.25)'}`,
-            background: loading ? 'var(--card)' : connected ? 'rgba(16,185,129,.08)' : 'rgba(239,68,68,.07)',
+            borderRadius: 20, border: `1px solid ${loading ? 'var(--border)' : connected ? 'rgba(16,185,129,.3)' : 'rgba(236,72,153,.25)'}`,
+            background: loading ? 'var(--card)' : connected ? 'rgba(16,185,129,.08)' : 'rgba(236,72,153,.07)',
           }}>
-            {!loading && <div style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#10B981' : '#EF4444', animation: connected ? 'livePulse 1.8s ease-in-out infinite' : 'none' }} />}
+            {!loading && <div style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#10B981' : '#EC4899', animation: connected ? 'livePulse 1.8s ease-in-out infinite' : 'none' }} />}
             {loading && <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} color="var(--text3)" />}
-            <span style={{ fontSize: 12, fontWeight: 600, color: loading ? 'var(--text3)' : connected ? '#10B981' : '#F87171' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: loading ? 'var(--text3)' : connected ? '#10B981' : '#F9A8D4' }}>
               {loading ? 'Verificando…' : connected ? 'Sesión activa' : 'Sin sesión'}
             </span>
           </div>
@@ -132,7 +131,7 @@ export default function Connect() {
         <div className="card" style={{ padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
             <ArrowRight size={14} color="var(--text3)" />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Protocolo de conexión</span>
+            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "'Noto Serif JP', serif" }}>Protocolo de Invocación</span>
           </div>
           <div style={{ padding: '8px 18px 18px' }}>
             <StepCard num={1} title="Bot en Railway / Render" desc="El bot debe estar desplegado y corriendo en el servidor." done active={!connected} />
@@ -147,16 +146,16 @@ export default function Connect() {
 
           {/* Connected state */}
           {connected && (
-            <div className="card animate-scale-in" style={{ padding: '24px 20px', textAlign: 'center', borderColor: 'rgba(16,185,129,.3)', background: 'rgba(16,185,129,.03)' }}>
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(16,185,129,.12)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 0 24px rgba(16,185,129,.15)' }}>
-                <Wifi size={22} color="#10B981" />
+            <div className="card animate-scale-in" style={{ padding: '28px 20px', textAlign: 'center', borderColor: 'rgba(16,185,129,.3)', background: 'rgba(16,185,129,.03)' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(16,185,129,.12)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 0 28px rgba(16,185,129,.18)' }}>
+                <Wifi size={24} color="#10B981" />
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#10B981', marginBottom: 6 }}>Bot conectado</div>
+              <div style={{ fontFamily: "'Noto Serif JP', serif", fontWeight: 700, fontSize: 15, color: '#10B981', marginBottom: 6 }}>Bot Conectado 🌸</div>
               <div style={{ fontSize: 12, color: 'var(--text3)' }}>Sesión activa y procesando mensajes</div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'livePulse 1.8s ease-in-out infinite' }} />
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'livePulse 1.8s ease-in-out infinite .6s' }} />
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'livePulse 1.8s ease-in-out infinite 1.2s' }} />
+                {[0, 0.6, 1.2].map(d => (
+                  <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: `livePulse 1.8s ease-in-out ${d}s infinite` }} />
+                ))}
               </div>
             </div>
           )}
@@ -165,8 +164,8 @@ export default function Connect() {
           {!connected && (
             <div className="card" style={{ padding: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-                <Key size={14} color="#3B82F6" />
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Código de vinculación</span>
+                <Key size={14} color="#EC4899" />
+                <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "'Noto Serif JP', serif" }}>Código de Vinculación</span>
               </div>
               <div style={{ padding: 18 }}>
                 <label className="label">Número de WhatsApp</label>
@@ -175,27 +174,43 @@ export default function Connect() {
                     onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     style={{ fontFamily: 'ui-monospace,monospace' }}
                     onKeyDown={e => e.key === 'Enter' && requestCode()} />
-                  <button className="btn btn-primary" onClick={requestCode} disabled={sending || !phone.trim()}>
+                  <button className="btn btn-sm" onClick={requestCode} disabled={sending || !phone.trim()}
+                    style={{ background: 'linear-gradient(135deg, #EC4899, #8B5CF6)', border: 'none', color: '#fff', boxShadow: sending ? 'none' : '0 0 18px rgba(236,72,153,.30)' }}>
                     {sending ? <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Key size={12} />}
                     {sending ? '…' : 'Pedir'}
                   </button>
                 </div>
                 <p style={{ fontSize: 10, color: 'var(--text3)', lineHeight: 1.6 }}>
-                  Sin + ni espacios. Ej: <code style={{ fontFamily: 'monospace', color: '#3B82F6' }}>521234567890</code> (MX) · <code style={{ fontFamily: 'monospace', color: '#3B82F6' }}>541234567890</code> (AR)
+                  Sin + ni espacios. Ej: <code style={{ fontFamily: 'monospace', color: '#EC4899' }}>521234567890</code> (MX) · <code style={{ fontFamily: 'monospace', color: '#EC4899' }}>541234567890</code> (AR)
                 </p>
 
+                {/* ── Summoning card ── */}
                 {code && (
-                  <div className="animate-scale-in" style={{ marginTop: 16, padding: 20, background: 'rgba(59,130,246,.05)', border: '1px solid rgba(59,130,246,.20)', borderRadius: 10, textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Código de acceso</div>
-                    <div style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 32, letterSpacing: '.08em', color: '#3B82F6', textShadow: '0 0 28px rgba(59,130,246,.55)', marginBottom: 12 }}>
-                      {code}
+                  <div className="summon-card animate-scale-in" style={{ marginTop: 16, padding: '26px 20px', textAlign: 'center' }}>
+                    <div className="summon-corner summon-corner-tl" />
+                    <div className="summon-corner summon-corner-tr" />
+                    <div className="summon-corner summon-corner-bl" />
+                    <div className="summon-corner summon-corner-br" />
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(249,168,212,.60)', letterSpacing: '.22em', textTransform: 'uppercase', marginBottom: 12, fontFamily: "'Noto Serif JP', serif" }}>
+                        ∷ Código de Invocación ∷
+                      </div>
+                      <div style={{
+                        fontFamily: 'ui-monospace, monospace', fontWeight: 800, fontSize: 34,
+                        letterSpacing: '.10em', color: '#EC4899',
+                        textShadow: '0 0 32px rgba(236,72,153,.65), 0 0 64px rgba(236,72,153,.25)',
+                        marginBottom: 16,
+                      }}>
+                        {code}
+                      </div>
+                      <button className="btn btn-ghost btn-sm" onClick={copyCode}
+                        style={{ color: copied ? '#10B981' : 'rgba(249,168,212,.80)', borderColor: 'rgba(236,72,153,.28)' }}>
+                        <Copy size={11} />{copied ? '¡Copiado! ✓' : 'Copiar código'}
+                      </button>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,.28)', marginTop: 14, lineHeight: 1.8 }}>
+                        WhatsApp → ⋮ → <strong style={{ color: 'rgba(249,168,212,.65)' }}>Dispositivos vinculados</strong> → Vincular dispositivo → Código
+                      </p>
                     </div>
-                    <button className="btn btn-ghost btn-sm" onClick={copyCode} style={{ color: copied ? '#10B981' : 'var(--text2)' }}>
-                      <Copy size={11} />{copied ? 'Copiado ✓' : 'Copiar código'}
-                    </button>
-                    <p style={{ fontSize: 10, color: 'var(--text3)', marginTop: 12, lineHeight: 1.7 }}>
-                      WhatsApp → ⋮ → <strong style={{ color: 'var(--text2)' }}>Dispositivos vinculados</strong> → Vincular dispositivo → Código
-                    </p>
                   </div>
                 )}
               </div>
