@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Shield, RefreshCw, Search, AlertTriangle,
   UserX, Volume2, VolumeX, Trash2, ChevronDown, ChevronRight,
-  Clock, Users, Zap, CheckCircle, X, Crown
+  Clock, Users, CheckCircle, X, Crown
 } from 'lucide-react'
 import {
   getModHistory, getGroups, getModGroup, postModAction,
