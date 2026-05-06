@@ -33,7 +33,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: 'anime', label: 'Anime', icon: Star, color: '#8B5CF6',
+    id: 'anime', label: 'Anime', icon: Star, color: '#EC4899',
     description: 'Búsqueda, noticias y recomendaciones',
     commands: [
       { name: 'buscar',          description: 'Busca un anime por nombre en MyAnimeList con sinopsis, rating y más.', usage: '!buscar [nombre]', aliases: ['search','find'], permission: 'all', example: '!buscar Attack on Titan' },
@@ -80,13 +80,36 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+/* ── Anime character silhouette for empty states ── */
+function AnimeSilhouette() {
+  return (
+    <svg width="52" height="66" viewBox="0 0 52 66" fill="currentColor"
+      style={{ color: 'rgba(236,72,153,.14)', display: 'block', margin: '0 auto 8px' }}>
+      <ellipse cx="26" cy="13" rx="10" ry="11" />
+      <path d="M16 9 L9 1 L18 7Z" />
+      <path d="M36 9 L43 1 L34 7Z" />
+      <path d="M22 4 L20 0 L25 4Z" />
+      <path d="M30 4 L32 0 L27 4Z" />
+      <path d="M12 32 Q12 25 26 23 Q40 25 40 32 L42 58 L10 58Z" />
+      <path d="M12 32 L4 47 L9 49 L15 36Z" />
+      <path d="M40 32 L48 47 L43 49 L37 36Z" />
+      <path d="M16 56 L14 66 L20 66 L22 56Z" />
+      <path d="M36 56 L38 66 L32 66 L30 56Z" />
+    </svg>
+  )
+}
+
 function CommandCard({ cmd, prefix, color }: { cmd: Command; prefix: string; color: string }) {
   const [expanded, setExpanded] = useState(false)
   const pm = PERM_META[cmd.permission]
   const PmIcon = pm.icon
 
   return (
-    <div className="cmd-card" onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer', borderLeft: `2px solid ${color}` }}>
+    <div className="cmd-card" onClick={() => setExpanded(e => !e)}
+      style={{ cursor: 'pointer', borderLeft: `2px solid ${color}`, boxShadow: expanded ? `0 0 0 1px ${color}15` : 'none' }}>
+      {/* Colored top strip */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${color}60, transparent)` }} />
+
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -115,18 +138,32 @@ function CommandCard({ cmd, prefix, color }: { cmd: Command; prefix: string; col
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
           {/* Usage */}
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 10 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase', marginRight: 8 }}>USO</span>
             <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color: 'var(--text2)', background: 'rgba(255,255,255,.04)', padding: '2px 8px', borderRadius: 4 }}>{cmd.usage}</code>
           </div>
-          {/* Example */}
+
+          {/* Example — WhatsApp bubble style */}
           {cmd.example && (
-            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase' }}>EJEMPLO</span>
-              <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11, color, background: color + '10', border: `1px solid ${color}20`, padding: '2px 8px', borderRadius: 4 }}>{cmd.example}</code>
-              <CopyButton text={cmd.example} />
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em', textTransform: 'uppercase', display: 'block', marginBottom: 7 }}>EJEMPLO</span>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0, marginBottom: 3,
+                  background: color + '18', border: `1px solid ${color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
+                }}>👤</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="wa-bubble" style={{ color, borderColor: color + '30', background: color + '0a' }}>
+                    {cmd.example}
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 3, paddingLeft: 4 }}>✓✓ enviado</div>
+                </div>
+                <CopyButton text={cmd.example} />
+              </div>
             </div>
           )}
+
           {/* Aliases */}
           {cmd.aliases.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -171,17 +208,15 @@ export default function Commands() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <div className="page-title"><Terminal size={18} color="#06B6D4" />Comandos</div>
-          <div className="page-subtitle">{totalCmds} comandos · prefijo <code style={{ fontFamily: 'monospace', color: '#06B6D4', background: 'rgba(6,182,212,.12)', padding: '0 5px', borderRadius: 4 }}>{prefix}</code></div>
+          <div className="page-title"><Terminal size={18} color="#EC4899" />Comandos</div>
+          <div className="page-subtitle">{totalCmds} comandos · prefijo <code style={{ fontFamily: 'monospace', color: '#EC4899', background: 'rgba(236,72,153,.12)', padding: '0 5px', borderRadius: 4 }}>{prefix}</code></div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Search */}
           <div style={{ position: 'relative' }}>
             <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
             <input className="input" placeholder="Buscar comando…" value={search} onChange={e => setSearch(e.target.value)}
               style={{ paddingLeft: 28, width: 200, fontSize: 12 }} />
           </div>
-          {/* Perm filter */}
           <div style={{ display: 'flex', gap: 5 }}>
             {([['', 'Todos'], ['all', 'Público'], ['admin', 'Admin']] as [string, string][]).map(([k, l]) => (
               <button key={k} className={`btn btn-xs ${permFilter === k ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPermF(k as '' | 'all' | 'admin' | 'owner')}>{l}</button>
@@ -193,12 +228,12 @@ export default function Commands() {
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
         {[
-          { label: 'Total',      val: totalCmds,                                                           color: '#06B6D4', icon: Terminal },
+          { label: 'Total',      val: totalCmds,                                                                color: '#EC4899', icon: Terminal },
           { label: 'Públicos',   val: CATEGORIES.flatMap(c=>c.commands).filter(c=>c.permission==='all').length,  color: '#10B981', icon: Globe },
           { label: 'Admin',      val: CATEGORIES.flatMap(c=>c.commands).filter(c=>c.permission==='admin').length, color: '#F59E0B', icon: Shield },
-          { label: 'Categorías', val: CATEGORIES.length,                                                  color: '#8B5CF6', icon: BookOpen },
+          { label: 'Categorías', val: CATEGORIES.length,                                                         color: '#8B5CF6', icon: BookOpen },
         ].map(({ label, val, color, icon: Icon }) => (
-          <div key={label} className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div key={label} className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderTop: `2px solid ${color}40` }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: color + '12', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon size={13} color={color} />
             </div>
@@ -211,11 +246,10 @@ export default function Commands() {
       </div>
 
       {search.trim() ? (
-        /* Search results — show all categories */
         filteredCats.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <div className="empty-state-icon"><BookOpen size={20} color="var(--text3)" /></div>
+              <AnimeSilhouette />
               <div className="empty-state-title">Sin resultados</div>
               <div className="empty-state-sub">No se encontraron comandos con "{search}"</div>
             </div>
@@ -235,7 +269,6 @@ export default function Commands() {
           </div>
         ))
       ) : (
-        /* Category tab layout */
         <div style={{ display: 'flex', gap: 14 }}>
           {/* Sidebar tabs */}
           <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -248,6 +281,7 @@ export default function Commands() {
                     background: isActive ? cat.color + '12' : 'rgba(255,255,255,.025)',
                     border: `1px solid ${isActive ? cat.color + '35' : 'rgba(255,255,255,.06)'}`,
                     cursor: 'pointer', textAlign: 'left', transition: 'all .18s', width: '100%',
+                    boxShadow: isActive ? `0 0 14px ${cat.color}12` : 'none',
                   }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: cat.color + '18', border: `1px solid ${cat.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <cat.icon size={13} color={cat.color} />
@@ -271,14 +305,12 @@ export default function Commands() {
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: pm.bg, border: `1px solid ${pm.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon size={10} color={pm.color} />
                     </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: pm.color }}>{pm.label}</div>
-                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: pm.color }}>{pm.label}</div>
                   </div>
                 )
               })}
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Zap size={10} />Haz clic en un comando para ver más detalles
+                <Zap size={10} />Haz clic para ver detalles
               </div>
             </div>
           </div>
@@ -287,20 +319,17 @@ export default function Commands() {
           <div style={{ flex: 1, minWidth: 0 }}>
             {activeCategory ? (
               <>
-                {/* Category header */}
-                <div className="card" style={{ padding: '14px 18px', marginBottom: 12, borderLeft: `3px solid ${activeCategory.color}` }}>
+                <div className="card" style={{ padding: '14px 18px', marginBottom: 12, borderLeft: `3px solid ${activeCategory.color}`, background: activeCategory.color + '04' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: activeCategory.color + '18', border: `1px solid ${activeCategory.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <activeCategory.icon size={16} color={activeCategory.color} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: activeCategory.color }}>{activeCategory.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: activeCategory.color, fontFamily: "'Noto Serif JP', serif" }}>{activeCategory.label}</div>
                       <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{activeCategory.description} · {activeCategory.commands.length} comandos</div>
                     </div>
                   </div>
                 </div>
-
-                {/* Commands grid */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {activeCategory.commands.map(cmd => (
                     <CommandCard key={cmd.name} cmd={cmd} prefix={prefix} color={activeCategory.color} />
@@ -308,7 +337,10 @@ export default function Commands() {
                 </div>
               </>
             ) : (
-              <div className="empty-state"><div className="empty-state-title">Selecciona una categoría</div></div>
+              <div className="empty-state">
+                <AnimeSilhouette />
+                <div className="empty-state-title">Selecciona una categoría</div>
+              </div>
             )}
           </div>
         </div>
