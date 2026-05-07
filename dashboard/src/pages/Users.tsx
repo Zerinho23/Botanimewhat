@@ -7,7 +7,7 @@ import { getUsers, adjustUser, isConfigured, type User } from '../api'
 
 /* ─── Rank tiers ──────────────────────────────────────────── */
 const RANK_TIERS = [
-  { min:1000, rank:'👑', label:'CREADOR',  color:'#FDE047', glow:'rgba(253,224,71,.55)', bg:'linear-gradient(135deg,rgba(253,224,71,.22),rgba(253,224,71,.08))' },
+  { min:1000, rank:'神', label:'DIOSA',    color:'#E879F9', glow:'rgba(232,121,249,.55)', bg:'linear-gradient(135deg,rgba(232,121,249,.22),rgba(232,121,249,.08))' },
   { min:  30, rank:'SS', label:'MONARCA',  color:'#F97316', glow:'rgba(249,115,22,.35)', bg:'linear-gradient(135deg,rgba(249,115,22,.18),rgba(249,115,22,.06))' },
   { min:  20, rank:'S',  label:'NACIONAL', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
   { min:  15, rank:'A',  label:'HÉROE',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
@@ -199,7 +199,7 @@ function EditUserModal({
           </div>
         </div>
 
-        {/* CREADOR special button */}
+        {/* DIOSA special button */}
         {user.level < 1000 ? (
           <button
             disabled={busy}
@@ -209,7 +209,7 @@ function EditUserModal({
                 const delta = 1000 - user.level
                 const res = await adjustUser(user.jid, undefined, delta)
                 onSaved(res.user)
-                setMsg('✓ 👑 ¡Rango CREADOR otorgado!')
+                setMsg('✓ 🌸 ¡Rango DIOSA otorgado!')
               } catch (e: unknown) {
                 setMsg('❌ ' + (e instanceof Error ? e.message : 'Error'))
               }
@@ -222,7 +222,7 @@ function EditUserModal({
               color:'#FDE047', fontWeight:800, fontSize:14, cursor:'pointer',
               letterSpacing:'.06em', boxShadow:'0 0 20px rgba(253,224,71,.25)',
             }}
-          >👑 OTORGAR RANGO CREADOR</button>
+          >🌸 OTORGAR RANGO DIOSA</button>
         ) : (
           <div style={{
             marginTop:10, padding:'10px', borderRadius:10, textAlign:'center',
@@ -230,7 +230,7 @@ function EditUserModal({
             background:'linear-gradient(135deg,rgba(253,224,71,.12),rgba(253,224,71,.04))',
             color:'#FDE047', fontWeight:800, fontSize:13, letterSpacing:'.04em',
           }}>
-            👑 Ya tiene rango CREADOR
+            🌸 Ya tiene rango DIOSA
           </div>
         )}
 
