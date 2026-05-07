@@ -6,7 +6,7 @@ module.exports = {
   description: "Muestra tu perfil otaku con nivel, XP y monedas",
   aliases: ["profile", "me"],
   async execute({ sock, msg, sender, from }) {
-    const user = db.getUser(sender);
+    const user = await db.getUser(sender);
     const name = msg.pushName;
     const text = format.formatProfile(user, name);
     await sock.sendMessage(from, { text }, { quoted: msg });
