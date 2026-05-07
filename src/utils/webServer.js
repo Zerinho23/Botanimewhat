@@ -739,7 +739,43 @@ function showUserProfile(jid){
       <div style="font-size:10px;color:var(--tx3);font-family:Share Tech Mono,monospace;margin-bottom:4px">REGISTRADO</div>
       <div style="font-size:12px;font-family:Share Tech Mono,monospace">\${u.createdAt?new Date(u.createdAt).toLocaleDateString('es-CL',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</div>
     </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,180,255,.08)">
+      <div style="font-size:9px;color:var(--tx3);font-family:Share Tech Mono,monospace;text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px">// EDITAR</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:9px;color:var(--am);font-family:Share Tech Mono,monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">🪙 MONEDAS (actual: \${(u.coins||0).toLocaleString()})</div>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <input id="adj-coins-\${num}" type="number" min="1" value="100" style="width:72px;background:rgba(0,10,30,.8);border:1px solid rgba(0,180,255,.2);border-radius:2px;padding:5px 7px;color:var(--tx);font-size:12px;font-family:Share Tech Mono,monospace;outline:none">
+            <button class="btn bp bsm" onclick="adjustUser('\${jid}','coins',1,'adj-coins-\${num}')">+DAR</button>
+            <button class="btn bd bsm" onclick="adjustUser('\${jid}','coins',-1,'adj-coins-\${num}')">−QUITAR</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-family:Share Tech Mono,monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">⬡ NIVEL (actual: LV.\${u.level||1})</div>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <input id="adj-level-\${num}" type="number" min="1" value="1" style="width:55px;background:rgba(0,10,30,.8);border:1px solid rgba(0,180,255,.2);border-radius:2px;padding:5px 7px;color:var(--tx);font-size:12px;font-family:Share Tech Mono,monospace;outline:none">
+            <button class="btn bp bsm" onclick="adjustUser('\${jid}','level',1,'adj-level-\${num}')">+SUBIR</button>
+            <button class="btn bd bsm" onclick="adjustUser('\${jid}','level',-1,'adj-level-\${num}')">−BAJAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
   \`);
+}
+
+async function adjustUser(jid,field,dir,inputId){
+  const inputEl=document.getElementById(inputId);
+  const amount=Math.abs(parseInt(inputEl?.value)||1);
+  if(amount<=0){toast('Ingresa un valor mayor a 0',false);return;}
+  const body={};body[field]=dir*amount;
+  try{
+    const r=await api('/api/users/'+encodeURIComponent(jid)+'/adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const label=field==='coins'?(dir>0?'+MONEDAS':'−MONEDAS'):(dir>0?'+NIVEL':'−NIVEL');
+    toast(label+': '+amount);
+    const idx=_allUsers.findIndex(u=>u.jid===jid);
+    if(idx>=0&&r.user)_allUsers[idx]=r.user;
+    showUserProfile(jid);
+  }catch(e){toast(e.message,false);}
 }
 
 // ── Waifus ────────────────────────────────────────────────────────────────────
@@ -1175,6 +1211,22 @@ function startWebServer(port) {
   app.get("/api/users",async(req,res)=>{
     try{const db=require("../database/db");res.json((await db.getAllUsers()).sort((a,b)=>(b.xp||0)-(a.xp||0)));}
     catch(e){res.status(500).json({error:e.message});}
+  });
+
+  app.post("/api/users/:jid/adjust",async(req,res)=>{
+    try{
+      const db=require("../database/db");
+      const jid=decodeURIComponent(req.params.jid);
+      const {coins,level}=req.body||{};
+      const user=await db.getUser(jid);
+      const patch={};
+      if(coins!==undefined){const n=(user.coins||0)+parseInt(coins);patch.coins=Math.max(0,n);}
+      if(level!==undefined){const n=(user.level||1)+parseInt(level);patch.level=Math.max(1,n);}
+      if(!Object.keys(patch).length)return res.status(400).json({error:"Sin campos para actualizar"});
+      const updated=await db.updateUser(jid,patch);
+      emitEvent("mod",{action:"adjust_"+Object.keys(patch).join("+"),user:jid.split("@")[0]});
+      res.json({ok:true,user:updated});
+    }catch(e){res.status(500).json({error:e.message});}
   });
 
   // ── Groups ──
