@@ -22,7 +22,6 @@ const {
   setResetHandler,
 } = require("./utils/webServer");
 const { restoreAuth, scheduleBackup, performBackup, deleteBackup } = require("./utils/authBackup");
-const { restoreDatabase } = require("./utils/dbBackup");
 const {
   saveMessage,
   getMessage,
@@ -32,7 +31,6 @@ const {
 } = require("./utils/messageStore");
 
 const AUTH_DIR = path.join(__dirname, "..", "auth");
-const DB_DATA_DIR = path.join(__dirname, "database", "data");
 
 const PAIRING_NUMBER = (process.env.PAIRING_NUMBER || "").replace(/[^0-9]/g, "");
 const USE_PAIRING_CODE = PAIRING_NUMBER.length > 0;
@@ -73,7 +71,7 @@ function startKickChecker(sock) {
   const INTERVAL_MS = 5 * 60 * 1000;
 
   async function checkAndKick() {
-    const expired = db.getExpiredPending();
+    const expired = await db.getExpiredPending();
     if (!expired.length) return;
     logger.info(`⏰ Revisión de fichas: ${expired.length} miembro(s) con plazo vencido`);
     for (const { groupJid, userJid } of expired) {
@@ -87,7 +85,7 @@ function startKickChecker(sock) {
       } catch (err) {
         logger.warn(`No pude expulsar a ${userJid.split("@")[0]}: ${err.message}`);
       } finally {
-        db.removePending(groupJid, userJid);
+        await db.removePending(groupJid, userJid);
       }
     }
   }
@@ -126,13 +124,13 @@ function startAutoDinamica(sock) {
     const { startTrivia, startAdivina, startAdivinaPersonaje } = dinamicaCmd;
     if (!startTrivia || !startAdivina || !startAdivinaPersonaje) return;
 
-    const allUsers = db.getAllUsers();
+    const allUsers = await db.getAllUsers();
     // Obtener grupos activos buscando en lastMessageAt de la DB
     const activeGroups = new Set();
     const now = Date.now();
 
     // Revisar todos los grupos registrados
-    const groups = db.getAllGroups ? db.getAllGroups() : [];
+    const groups = await db.getAllGroups();
     for (const group of groups) {
       if (!group.jid || !group.jid.endsWith("@g.us")) continue;
       if (group.botEnabled === false) continue;
@@ -177,12 +175,7 @@ function startAutoDinamica(sock) {
 async function startBot() {
   logger.info(`Iniciando ${config.botName}...`);
 
-  try {
-    await restoreDatabase(DB_DATA_DIR);
-    db.reload();
-  } catch (err) {
-    logger.warn(`No pude restaurar la DB: ${err.message}`);
-  }
+  await db.initDB();
 
   const localExists = fs.existsSync(AUTH_DIR) && fs.readdirSync(AUTH_DIR).length > 0;
   if (!localExists && !restoredFromBackup) {
