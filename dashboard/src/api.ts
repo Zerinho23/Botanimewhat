@@ -123,6 +123,7 @@
     export const deleteGroup        = (jid: string) => apiFetch<{ok:boolean}>(`/api/groups/${encodeURIComponent(jid)}`,{method:'DELETE'});
     export const postGroupSettings  = (jid: string, data: Record<string,unknown>) => apiFetch<{ok:boolean}>(`/api/groups/${encodeURIComponent(jid)}`,{method:'POST',body:JSON.stringify(data)});
     export const postModAction      = (b: unknown) => apiFetch<{ok:boolean}>('/api/mod/action',{method:'POST',body:JSON.stringify(b)});
+    export const adjustUser         = (jid: string, coins?: number, level?: number) => apiFetch<{ok:boolean;user:User}>(`/api/users/${encodeURIComponent(jid)}/adjust`,{method:'POST',body:JSON.stringify({...(coins!==undefined&&{coins}),...(level!==undefined&&{level})})});
     export const getApiUrl          = () => API_URL;
     export const isConfigured       = () => API_URL.length > 0;
   
