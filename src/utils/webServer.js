@@ -613,7 +613,7 @@ async function loadGroups(){
     el.innerHTML=groups.map(g=>{
       const name=g.name||g.jid.split('@')[0];const num=g.jid.split('@')[0];
       const botOn=g.botEnabled!==false;
-      const members=g.memberCount?` · ${g.memberCount} miembros`:'';
+      const members=g.memberCount?\` · \${g.memberCount} miembros\`:'';
       return \`<div class="gcard" style="border-left:3px solid \${botOn?'var(--gr)':'var(--rd)'};transition:border-color .3s" id="gc-\${num}">
         <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
