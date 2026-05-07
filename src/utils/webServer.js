@@ -1104,10 +1104,10 @@ function startWebServer(port) {
   });
 
   // ── Stats ──
-  app.get("/api/stats",(req,res)=>{
+  app.get("/api/stats",async(req,res)=>{
     try{
-      const db=require("../database/db");const users=db.getAllUsers();
-      let gc=0;try{const gf=path.join(__dirname,"..","database","data","groups.json");if(fs.existsSync(gf))gc=Object.keys(JSON.parse(fs.readFileSync(gf,"utf-8"))).length;}catch{}
+      const db=require("../database/db");const users=await db.getAllUsers();
+      let gc=0;try{const allGrps=await db.getAllGroups();gc=allGrps.length;}catch{}
       // Sum total messages and commands from all users in the database
       const totalMessages=users.reduce((s,u)=>s+(u.messages||0),0);
       const totalCommands=users.reduce((s,u)=>s+(u.commands||0),0);
@@ -1147,46 +1147,46 @@ function startWebServer(port) {
   });
 
   // ── Users ──
-  app.get("/api/users",(req,res)=>{
-    try{const db=require("../database/db");res.json(db.getAllUsers().sort((a,b)=>(b.xp||0)-(a.xp||0)));}
+  app.get("/api/users",async(req,res)=>{
+    try{const db=require("../database/db");res.json((await db.getAllUsers()).sort((a,b)=>(b.xp||0)-(a.xp||0)));}
     catch(e){res.status(500).json({error:e.message});}
   });
 
   // ── Groups ──
-  app.get("/api/groups",(req,res)=>{
+  app.get("/api/groups",async(req,res)=>{
     try{
-      const gf=path.join(__dirname,"..","database","data","groups.json");
-      const groups=fs.existsSync(gf)?JSON.parse(fs.readFileSync(gf,"utf-8")):{};
-      res.json(Object.values(groups).map(g=>({jid:g.jid,name:g.name||"",antiLink:g.antiLink??false,antiSpam:g.antiSpam??true,welcome:g.welcome??true,botEnabled:g.botEnabled??true,memberCount:g.memberCount??0,createdAt:g.createdAt??null})));
+      const db=require("../database/db");
+      const groups=await db.getAllGroups();
+      res.json(groups.map(g=>({jid:g.jid,name:g.name||"",antiLink:g.antiLink??false,antiSpam:g.antiSpam??true,welcome:g.welcome??true,botEnabled:g.botEnabled??true,memberCount:g.memberCount??0,createdAt:g.createdAt??null})));
     }catch(e){res.status(500).json({error:e.message});}
   });
 
-  app.post("/api/groups/:jid",(req,res)=>{
+  app.post("/api/groups/:jid",async(req,res)=>{
     try{
       const db=require("../database/db");const jid=decodeURIComponent(req.params.jid);const safe={};
       for(const k of["antiLink","antiSpam","welcome"])if(req.body[k]!==undefined)safe[k]=!!req.body[k];
       if(req.body.botEnabled!==undefined)safe.botEnabled=!!req.body.botEnabled;
-      db.updateGroup(jid,safe);res.json({ok:true});
+      await db.updateGroup(jid,safe);res.json({ok:true});
     }catch(e){res.status(500).json({error:e.message});}
   });
 
   // Activar/desactivar bot en un grupo
-  app.patch("/api/groups/:jid/enabled",(req,res)=>{
+  app.patch("/api/groups/:jid/enabled",async(req,res)=>{
     try{
       const db=require("../database/db");
       const jid=decodeURIComponent(req.params.jid);
       const enabled=req.body.enabled!==false;
-      db.updateGroup(jid,{botEnabled:enabled});
+      await db.updateGroup(jid,{botEnabled:enabled});
       res.json({ok:true,jid,botEnabled:enabled});
     }catch(e){res.status(500).json({error:e.message});}
   });
 
   // Eliminar grupo del bot (queda como número normal)
-  app.delete("/api/groups/:jid",(req,res)=>{
+  app.delete("/api/groups/:jid",async(req,res)=>{
     try{
       const db=require("../database/db");
       const jid=decodeURIComponent(req.params.jid);
-      db.deleteGroup(jid);
+      await db.deleteGroup(jid);
       res.json({ok:true,jid});
     }catch(e){res.status(500).json({error:e.message});}
   });
@@ -1198,8 +1198,7 @@ function startWebServer(port) {
     if(!message?.trim()) return res.status(400).json({error:"Mensaje vacío"});
     let groups=[];
     try{
-      const gf=path.join(__dirname,"..","database","data","groups.json");
-      if(fs.existsSync(gf)) groups=Object.values(JSON.parse(fs.readFileSync(gf,"utf-8"))).map(g=>g.jid);
+      const db=require("../database/db");const allGrps=await db.getAllGroups();groups=allGrps.map(g=>g.jid);
     }catch{}
     if(targetGroups?.length) groups=groups.filter(jid=>targetGroups.includes(jid));
     let sent=0,failed=0;
@@ -1212,15 +1211,16 @@ function startWebServer(port) {
   });
 
   // ── Mod history ──
-  app.get("/api/mod/history",(req,res)=>{
+  app.get("/api/mod/history",async(req,res)=>{
     try{
       const db=require("../database/db");
-      res.json(modHistory.slice(0,100).map(e=>{
+      const entries=await Promise.all(modHistory.slice(0,100).map(async e=>{
         let userName="",groupName="";
-        try{const u=db.getUser(e.userJid);userName=u.name||"";}catch{}
-        try{const g=db.getGroup(e.groupJid);groupName=g.name||"";}catch{}
+        try{const u=await db.getUser(e.userJid);userName=u.name||"";}catch{}
+        try{const g=await db.getGroup(e.groupJid);groupName=g.name||"";}catch{}
         return{...e,userName,groupName};
       }));
+      res.json(entries);
     }catch(e){res.status(500).json({error:e.message});}
   });
 
@@ -1228,12 +1228,12 @@ function startWebServer(port) {
   app.get("/api/mod/group/:jid",async(req,res)=>{
     try{
       const db=require("../database/db");const jid=decodeURIComponent(req.params.jid);
-      const group=db.getGroup(jid);let members=[],groupName=group.name||jid.split("@")[0];
+      const group=await db.getGroup(jid);let members=[],groupName=group.name||jid.split("@")[0];
       if(state.sock&&state.connected){
         try{
           const meta=await Promise.race([state.sock.groupMetadata(jid),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),6000))]);
           groupName=meta.subject||groupName;
-          if(group.name!==meta.subject)try{db.updateGroup(jid,{name:meta.subject});}catch{}
+          if(group.name!==meta.subject)try{await db.updateGroup(jid,{name:meta.subject});}catch{}
           const adminSet=new Set(meta.participants.filter(p=>p.admin).map(p=>p.id));
           members=meta.participants.map(p=>({jid:p.id,isAdmin:adminSet.has(p.id),name:""}));
         }catch{}
@@ -1241,7 +1241,7 @@ function startWebServer(port) {
       if(!members.length){const log=group.lastMessageAt||{};members=Object.keys(log).map(j=>({jid:j,isAdmin:false,name:""}));}
       const botId=state.sock?.user?.id?state.sock.user.id.split(":")[0]+"@s.whatsapp.net":null;
       if(botId)members=members.filter(m=>m.jid!==botId);
-      members=members.map(m=>{try{const u=db.getUser(m.jid);if(u.name)m.name=u.name;}catch{}return m;});
+      members=await Promise.all(members.map(async m=>{try{const u=await db.getUser(m.jid);if(u.name)m.name=u.name;}catch{}return m;}));
       res.json({groupName,members,muted:group.mutedUsers||[],warnings:group.warnings||{}});
     }catch(e){res.status(500).json({error:e.message});}
   });
@@ -1251,14 +1251,14 @@ function startWebServer(port) {
     try{
       const db=require("../database/db");const {groupJid,userJid,action}=req.body||{};
       if(!groupJid||!userJid||!action)return res.status(400).json({error:"Faltan parámetros"});
-      const group=db.getGroup(groupJid);
-      if(action==="mute"){const m=new Set(group.mutedUsers||[]);m.add(userJid);db.updateGroup(groupJid,{mutedUsers:[...m]});}
-      else if(action==="unmute"){const m=new Set(group.mutedUsers||[]);m.delete(userJid);db.updateGroup(groupJid,{mutedUsers:[...m]});}
+      const group=await db.getGroup(groupJid);
+      if(action==="mute"){const m=new Set(group.mutedUsers||[]);m.add(userJid);await db.updateGroup(groupJid,{mutedUsers:[...m]});}
+      else if(action==="unmute"){const m=new Set(group.mutedUsers||[]);m.delete(userJid);await db.updateGroup(groupJid,{mutedUsers:[...m]});}
       else if(action==="warn"){
-        const w={...(group.warnings||{})};w[userJid]=(w[userJid]||0)+1;db.updateGroup(groupJid,{warnings:w});
+        const w={...(group.warnings||{})};w[userJid]=(w[userJid]||0)+1;await db.updateGroup(groupJid,{warnings:w});
         if(state.sock&&state.connected){const num=userJid.split("@")[0];await state.sock.sendMessage(groupJid,{text:`⚠️ @${num} recibió una advertencia desde el panel de control.\nTotal: ${w[userJid]}`,mentions:[userJid]}).catch(()=>{});}
       }
-      else if(action==="clearwarns"){const w={...(group.warnings||{})};delete w[userJid];db.updateGroup(groupJid,{warnings:w});}
+      else if(action==="clearwarns"){const w={...(group.warnings||{})};delete w[userJid];await db.updateGroup(groupJid,{warnings:w});}
       else if(action==="kick"){if(!state.sock||!state.connected)return res.status(503).json({error:"Bot no conectado"});await state.sock.groupParticipantsUpdate(groupJid,[userJid],"remove");}
       else return res.status(400).json({error:"Acción desconocida"});
       logMod(action,groupJid,userJid);
@@ -1267,12 +1267,12 @@ function startWebServer(port) {
   });
 
   // ── Waifus ──
-  app.delete("/api/waifus/:jid/:idx",(req,res)=>{
+  app.delete("/api/waifus/:jid/:idx",async(req,res)=>{
     try{
       const db=require("../database/db");const jid=decodeURIComponent(req.params.jid);const idx=parseInt(req.params.idx);
-      const user=db.getUser(jid);const waifus=user.waifus||[];
+      const user=await db.getUser(jid);const waifus=user.waifus||[];
       if(idx<0||idx>=waifus.length)return res.status(400).json({error:"Índice inválido"});
-      waifus.splice(idx,1);db.updateUser(jid,{waifus});res.json({ok:true});
+      waifus.splice(idx,1);await db.updateUser(jid,{waifus});res.json({ok:true});
     }catch(e){res.status(500).json({error:e.message});}
   });
 
