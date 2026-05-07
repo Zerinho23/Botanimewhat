@@ -62,27 +62,60 @@ function normalizeText(text) {
 // ── Validación de trivia (opción múltiple) ────────────────────────────────────
 function checkTriviaAnswer(userText, correctLetter, correctAnswer) {
   const norm = normalizeText(userText.trim());
-  if (/^[abcd]$/.test(norm)) return norm === correctLetter.toLowerCase();
+  const cL = correctLetter.toLowerCase();
+
+  // Letra sola: "b"
+  if (/^[abcd]$/.test(norm)) return norm === cL;
+
+  // Letra dentro del mensaje: "creo que b", "la b", "b es", "mi respuesta b"
+  const words = norm.split(" ");
+  const letterWord = words.find(w => /^[abcd]$/.test(w));
+  if (letterWord) return letterWord === cL;
+
+  // Coincidencia exacta con el texto de la respuesta correcta
   return norm === normalizeText(correctAnswer);
 }
 
 // ── Validación de anime/personaje ─────────────────────────────────────────────
+// Reglas (de más a menos permisiva):
+//  1. Coincidencia exacta normalizada
+//  2. La respuesta del usuario es subcadena del título (≥4 chars): "demon slayer" en "demon slayer kimetsu no yaiba"
+//  3. El título es subcadena de la respuesta del usuario
+//  4. Por palabras clave:
+//     - 1 palabra clave en el título: debe estar en la respuesta
+//     - 2 palabras clave: basta 1 (nombre o apellido)
+//     - 3+ palabras clave: al menos 2 deben coincidir
 function checkAnimeAnswer(userText, correctTitle) {
   const norm = normalizeText(userText.trim());
   const normTitle = normalizeText(correctTitle);
-  if (norm.length < 3) return false;
+
+  if (norm.length < 2) return false;
+
+  // 1. Coincidencia exacta
   if (norm === normTitle) return true;
 
-  const STOP_WORDS = new Set(["the", "los", "las", "del", "una", "uno", "que", "con", "por", "para"]);
-  const titleWords = normTitle.split(" ").filter((w) => w.length > 2 && !STOP_WORDS.has(w));
-  if (titleWords.length === 0) return norm === normTitle;
+  // 2. Subcadena: "demon slayer" está dentro de "demon slayer kimetsu no yaiba"
+  if (norm.length >= 4 && normTitle.includes(norm)) return true;
 
-  const userWords = new Set(norm.split(" ").filter((w) => w.length > 1));
-  const matched = titleWords.filter((w) => userWords.has(w));
-  const ratio = matched.length / titleWords.length;
+  // 3. El título cabe dentro de lo que escribió el usuario
+  if (normTitle.length >= 4 && norm.includes(normTitle)) return true;
 
-  if (titleWords.length === 1) return userWords.has(titleWords[0]);
-  return ratio >= 0.8 && matched.length >= 2;
+  const STOP = new Set(["the", "los", "las", "del", "una", "uno", "que", "con", "por", "para", "and", "de", "no", "wa", "ga"]);
+  const titleWords = normTitle.split(" ").filter(w => w.length > 2 && !STOP.has(w));
+
+  if (titleWords.length === 0) return false;
+
+  const userWordSet = new Set(norm.split(" ").filter(w => w.length > 1));
+  const matched = titleWords.filter(w => userWordSet.has(w));
+
+  // 4a. 1 palabra clave: debe coincidir exactamente
+  if (titleWords.length === 1) return matched.length >= 1;
+
+  // 4b. 2 palabras clave (nombre + apellido): con 1 basta
+  if (titleWords.length === 2) return matched.length >= 1;
+
+  // 4c. 3+ palabras clave: al menos 2 deben coincidir
+  return matched.length >= 2;
 }
 
 // ── Traducir sinopsis al español (con límite corto para dinámicas) ─────────────
