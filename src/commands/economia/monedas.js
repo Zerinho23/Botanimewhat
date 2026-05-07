@@ -7,7 +7,7 @@ module.exports = {
   description: "Ver tu saldo de monedas",
   aliases: ["coins", "wallet", "saldo", "billetera"],
   async execute({ sock, msg, sender, from }) {
-    const user = db.getUser(sender);
+    const user = await db.getUser(sender);
     const name = msg.pushName || sender.split("@")[0];
     const lines = [
       `${config.emojis.crown} *${name}*`,
