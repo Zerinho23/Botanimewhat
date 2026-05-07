@@ -87,7 +87,8 @@ function formatWaifu(character, owner) {
 }
 
 function _getRankLabel(level) {
-  if (level >= 1000) return "🌸 DIOSA [神]";
+  if (level >= 1001) return "🌸 DIOSA [神]";
+  if (level >= 1000) return "🔱 DIOS [神]";
   if (level >= 30)   return "🔥 MONARCA [SS]";
   if (level >= 20)   return "⭐ NACIONAL [S]";
   if (level >= 15)   return "🛡️ HÉROE [A]";
