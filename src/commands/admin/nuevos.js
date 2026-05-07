@@ -68,7 +68,7 @@ const config = require("../../config/config");
       if (onlyPending) days = 1;
 
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-      const group  = db.getGroup(from);
+      const group  = await db.getGroup(from);
 
       // Obtener metadatos del grupo (participantes actuales + timestamps lb)
       let metadata;
@@ -159,7 +159,7 @@ const config = require("../../config/config");
 
       for (const [jid, ts] of entries) {
         const num  = jid.split("@")[0].split(":")[0];
-        const user = db.getUser(jid);
+        const user = await db.getUser(jid);
         const name = (user?.name && user.name !== `+${num}`) ? user.name : null;
         lines.push(`${config.emojis.cherry} @${num}${name ? ` _(${name} · ${timeAgo(ts)})_` : ` _(${timeAgo(ts)})_`}`);
       }
@@ -177,7 +177,7 @@ const config = require("../../config/config");
       for (const [jid, ts] of entries) {
         if (!updatedJoins[jid]) { updatedJoins[jid] = ts; changed = true; }
       }
-      if (changed) db.updateGroup(from, { recentJoins: updatedJoins });
+      if (changed) await db.updateGroup(from, { recentJoins: updatedJoins });
 
       logger.info(`!nuevos: ${entries.length} miembro(s) en ${from.split("@")[0]} (${days}d)`);
 
