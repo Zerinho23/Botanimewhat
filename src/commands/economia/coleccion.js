@@ -7,7 +7,7 @@ module.exports = {
   description: "Ver tu colección de waifus",
   aliases: ["miswaifus", "harem", "collection"],
   async execute({ sock, msg, sender, from }) {
-    const user = db.getUser(sender);
+    const user = await db.getUser(sender);
     const waifus = user.waifus || [];
 
     if (!waifus.length) {
