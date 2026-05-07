@@ -9,7 +9,7 @@ module.exports = {
   description: "Recoge tu recompensa diaria de monedas",
   aliases: ["diario", "recompensa", "claim"],
   async execute({ sock, msg, sender, from }) {
-    const user = db.getUser(sender);
+    const user = await db.getUser(sender);
     const now = Date.now();
     const last = user.lastDaily || 0;
     const diff = now - last;
@@ -27,7 +27,7 @@ module.exports = {
     const bonus = user.level >= 10 ? Math.floor(reward * 0.5) : 0;
     const total = reward + bonus;
 
-    db.updateUser(sender, {
+    await db.updateUser(sender, {
       coins: (user.coins || 0) + total,
       lastDaily: now,
     });
