@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   Search, RefreshCw, Users as UsersIcon, Zap, DollarSign, Trophy,
-  MessageSquare, ChevronUp, ChevronDown, Filter, Crown, Star, TrendingUp,
+  MessageSquare, ChevronUp, ChevronDown, Filter, Crown, Star, TrendingUp, Pencil, X,
 } from 'lucide-react'
-import { getUsers, isConfigured, type User } from '../api'
+import { getUsers, adjustUser, isConfigured, type User } from '../api'
 
 /* ─── Rank tiers ──────────────────────────────────────────── */
 const RANK_TIERS = [
@@ -53,8 +53,160 @@ function PosBadge({ pos }: { pos: number }) {
   return <span style={{ fontSize:11, color:'var(--text3)', fontWeight:600, width:28, textAlign:'center', flexShrink:0 }}>#{pos}</span>
 }
 
+/* ─── Edit User Modal ────────────────────────────────────── */
+function EditUserModal({
+  user, onClose, onSaved,
+}: { user: User; onClose: () => void; onSaved: (u: User) => void }) {
+  const t = getTier(user.level)
+  const name = user.name || user.jid.split('@')[0]
+  const [coinsAmt, setCoinsAmt] = useState(100)
+  const [levelAmt, setLevelAmt] = useState(1)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  async function apply(field: 'coins' | 'level', dir: 1 | -1) {
+    const amount = field === 'coins' ? coinsAmt : levelAmt
+    if (amount < 1) { setMsg('Ingresa un valor mayor a 0'); return }
+    setBusy(true); setMsg('')
+    try {
+      const delta = dir * amount
+      const res = await adjustUser(
+        user.jid,
+        field === 'coins' ? delta : undefined,
+        field === 'level' ? delta : undefined,
+      )
+      onSaved(res.user)
+      setMsg(
+        field === 'coins'
+          ? (dir > 0 ? `✓ +${amount} monedas añadidas` : `✓ −${amount} monedas quitadas`)
+          : (dir > 0 ? `✓ Nivel subido +${amount}` : `✓ Nivel bajado −${amount}`)
+      )
+    } catch (e: unknown) {
+      setMsg('❌ ' + (e instanceof Error ? e.message : 'Error'))
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div style={{
+        background: '#0d0d1a', border: `1px solid ${t.color}40`,
+        borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
+        boxShadow: `0 0 40px ${t.glow}, 0 20px 60px rgba(0,0,0,.5)`,
+        position: 'relative',
+      }}>
+        {/* Top accent */}
+        <div style={{ position:'absolute', top:0, left:0, right:0, height:2, borderRadius:'16px 16px 0 0', background:`linear-gradient(90deg,${t.color},${t.color}44,transparent)` }}/>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+          <div style={{
+            width:44, height:44, borderRadius:11, flexShrink:0,
+            background: t.bg, border:`1.5px solid ${t.color}50`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontWeight:800, fontSize:15, color:t.color,
+          }}>
+            {name.slice(0,2).toUpperCase()}
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:700, fontSize:15, color:'#fff' }}>{name.length>20?name.slice(0,19)+'…':name}</div>
+            <div style={{ fontSize:10, color:'var(--text3)', fontFamily:'monospace', marginTop:2 }}>
+              {user.jid.split('@')[0].slice(0,20)}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text3)', padding:4, borderRadius:6 }}>
+            <X size={16}/>
+          </button>
+        </div>
+
+        {/* Coins section */}
+        <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:16, marginBottom:12 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:'#F59E0B', letterSpacing:'.05em', textTransform:'uppercase' }}>🪙 Monedas</span>
+            <span style={{ fontFamily:'monospace', fontSize:13, fontWeight:700, color:'#F59E0B' }}>
+              {(user.coins ?? 0).toLocaleString()} actuales
+            </span>
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <input
+              type="number" min={1} value={coinsAmt}
+              onChange={e => setCoinsAmt(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                flex:1, background:'rgba(0,0,0,.4)', border:'1px solid rgba(245,158,11,.25)',
+                borderRadius:8, padding:'8px 10px', color:'#fff', fontSize:13,
+                fontFamily:'monospace', outline:'none',
+              }}
+            />
+            <button
+              disabled={busy}
+              onClick={() => apply('coins', 1)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+            >+ DAR</button>
+            <button
+              disabled={busy}
+              onClick={() => apply('coins', -1)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+            >− QUITAR</button>
+          </div>
+        </div>
+
+        {/* Level section */}
+        <div style={{ background:'rgba(59,130,246,.06)', border:'1px solid rgba(59,130,246,.2)', borderRadius:10, padding:16 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:'#3B82F6', letterSpacing:'.05em', textTransform:'uppercase' }}>⬡ Nivel</span>
+            <span style={{ fontFamily:'monospace', fontSize:13, fontWeight:700, color:'#3B82F6' }}>
+              LV.{user.level ?? 1} actual
+            </span>
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <input
+              type="number" min={1} value={levelAmt}
+              onChange={e => setLevelAmt(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                flex:1, background:'rgba(0,0,0,.4)', border:'1px solid rgba(59,130,246,.25)',
+                borderRadius:8, padding:'8px 10px', color:'#fff', fontSize:13,
+                fontFamily:'monospace', outline:'none',
+              }}
+            />
+            <button
+              disabled={busy}
+              onClick={() => apply('level', 1)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+            >+ SUBIR</button>
+            <button
+              disabled={busy}
+              onClick={() => apply('level', -1)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+            >− BAJAR</button>
+          </div>
+        </div>
+
+        {/* Feedback */}
+        {msg && (
+          <div style={{
+            marginTop:12, padding:'8px 12px', borderRadius:8,
+            background: msg.startsWith('✓') ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)',
+            border: `1px solid ${msg.startsWith('✓') ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`,
+            color: msg.startsWith('✓') ? '#10B981' : '#EF4444',
+            fontSize:12, fontWeight:600, fontFamily:'monospace',
+          }}>
+            {msg}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ─── User card ──────────────────────────────────────────── */
-function UserCard({ user, pos }: { user: User; pos: number }) {
+function UserCard({ user, pos, onEdit }: { user: User; pos: number; onEdit: (u: User) => void }) {
   const [exp, setExp] = useState(false)
   const t = getTier(user.level)
   const jidShort = user.jid.split('@')[0]
@@ -163,6 +315,20 @@ function UserCard({ user, pos }: { user: User; pos: number }) {
               <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: row.color }}>{row.val}</span>
             </div>
           ))}
+
+          {/* Edit button */}
+          <button
+            onClick={e => { e.stopPropagation(); onEdit(user) }}
+            style={{
+              marginTop: 10, width: '100%', padding: '8px', borderRadius: 8,
+              border: `1px solid ${t.color}40`, background: t.bg,
+              color: t.color, fontWeight: 700, fontSize: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              letterSpacing: '.04em',
+            }}
+          >
+            <Pencil size={11}/> EDITAR MONEDAS / NIVEL
+          </button>
         </div>
       )}
 
@@ -187,6 +353,7 @@ export default function Users() {
   const [sortBy,    setSort]   = useState<SortKey>('xp')
   const [sortAsc,   setAsc]    = useState(false)
   const [refreshing,setRef]    = useState(false)
+  const [editing,   setEditing] = useState<User | null>(null)
 
   const load = async (r = false) => {
     if (!isConfigured()) { setLoad(false); return }
@@ -195,6 +362,11 @@ export default function Users() {
     setLoad(false); setRef(false)
   }
   useEffect(() => { load() }, [])
+
+  function handleSaved(updated: User) {
+    setUsers(prev => prev.map(u => u.jid === updated.jid ? updated : u))
+    setEditing(updated)
+  }
 
   const sorted = useMemo(() => {
     let list = [...users]
@@ -227,6 +399,15 @@ export default function Users() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="animate-fade-up">
+
+      {/* Edit modal */}
+      {editing && (
+        <EditUserModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* ── Header ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
@@ -295,7 +476,7 @@ export default function Users() {
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:9 }}>
-          {sorted.map((u, i) => <UserCard key={u.jid} user={u} pos={i + 1}/>)}
+          {sorted.map((u, i) => <UserCard key={u.jid} user={u} pos={i + 1} onEdit={setEditing}/>)}
         </div>
       )}
 
