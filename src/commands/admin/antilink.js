@@ -17,10 +17,10 @@ module.exports = {
         text: `${config.emojis.error} Solo admins.`,
       }, { quoted: msg });
     }
-    const group = db.getGroup(from);
+    const group = await db.getGroup(from);
     const arg = args[0]?.toLowerCase();
     const enable = arg === "on" ? true : arg === "off" ? false : !group.antiLink;
-    db.updateGroup(from, { antiLink: enable });
+    await db.updateGroup(from, { antiLink: enable });
     await sock.sendMessage(from, {
       text: `${enable ? config.emojis.success : config.emojis.warning} Antilink *${enable ? "ACTIVADO" : "DESACTIVADO"}*.`,
     }, { quoted: msg });
