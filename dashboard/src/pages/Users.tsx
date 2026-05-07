@@ -10,12 +10,12 @@ const RANK_TIERS = [
     { min:1001, rank:'神', label:'DIOSA',    color:'#E879F9', glow:'rgba(232,121,249,.55)', bg:'linear-gradient(135deg,rgba(232,121,249,.22),rgba(232,121,249,.08))' },
     { min:1000, rank:'神', label:'DIOS',     color:'#60A5FA', glow:'rgba(96,165,250,.50)',  bg:'linear-gradient(135deg,rgba(96,165,250,.20),rgba(96,165,250,.07))'  },
   { min:  30, rank:'SS', label:'MONARCA',  color:'#F97316', glow:'rgba(249,115,22,.35)', bg:'linear-gradient(135deg,rgba(249,115,22,.18),rgba(249,115,22,.06))' },
-  { min:  20, rank:'S',  label:'NACIONAL', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
-  { min:  15, rank:'A',  label:'HÉROE',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
-  { min:  10, rank:'B',  label:'AVANZADO', color:'#8B5CF6', glow:'rgba(139,92,246,.30)', bg:'linear-gradient(135deg,rgba(139,92,246,.16),rgba(139,92,246,.06))' },
-  { min:   5, rank:'C',  label:'INTER.',   color:'#3B82F6', glow:'rgba(59,130,246,.30)', bg:'linear-gradient(135deg,rgba(59,130,246,.16),rgba(59,130,246,.06))'  },
-  { min:   1, rank:'D',  label:'NOVATO',   color:'#10B981', glow:'rgba(16,185,129,.28)', bg:'linear-gradient(135deg,rgba(16,185,129,.14),rgba(16,185,129,.05))' },
-  { min:   0, rank:'E',  label:'RANGO E',  color:'#52525B', glow:'rgba(82,82,91,.18)',   bg:'linear-gradient(135deg,rgba(82,82,91,.10),rgba(82,82,91,.03))'     },
+  { min:  20, rank:'S',  label:'ÉLITE', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
+  { min:  15, rank:'A',  label:'CAZADOR',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
+  { min:  10, rank:'B',  label:'GUERRERO', color:'#8B5CF6', glow:'rgba(139,92,246,.30)', bg:'linear-gradient(135deg,rgba(139,92,246,.16),rgba(139,92,246,.06))' },
+  { min:   5, rank:'C',  label:'EXPLORADOR',   color:'#3B82F6', glow:'rgba(59,130,246,.30)', bg:'linear-gradient(135deg,rgba(59,130,246,.16),rgba(59,130,246,.06))'  },
+  { min:   1, rank:'D',  label:'APRENDIZ',   color:'#10B981', glow:'rgba(16,185,129,.28)', bg:'linear-gradient(135deg,rgba(16,185,129,.14),rgba(16,185,129,.05))' },
+  { min:   0, rank:'E',  label:'NOVATO',  color:'#52525B', glow:'rgba(82,82,91,.18)',   bg:'linear-gradient(135deg,rgba(82,82,91,.10),rgba(82,82,91,.03))'     },
 ]
 function getTier(level: number) { return RANK_TIERS.find(t => level >= t.min) ?? RANK_TIERS[RANK_TIERS.length - 1] }
 
