@@ -7,13 +7,14 @@ import { getUsers, adjustUser, isConfigured, type User } from '../api'
 
 /* ─── Rank tiers ──────────────────────────────────────────── */
 const RANK_TIERS = [
-  { min:30, rank:'SS', label:'MONARCA',  color:'#F97316', glow:'rgba(249,115,22,.35)', bg:'linear-gradient(135deg,rgba(249,115,22,.18),rgba(249,115,22,.06))' },
-  { min:20, rank:'S',  label:'NACIONAL', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
-  { min:15, rank:'A',  label:'HÉROE',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
-  { min:10, rank:'B',  label:'AVANZADO', color:'#8B5CF6', glow:'rgba(139,92,246,.30)', bg:'linear-gradient(135deg,rgba(139,92,246,.16),rgba(139,92,246,.06))' },
-  { min: 5, rank:'C',  label:'INTER.',   color:'#3B82F6', glow:'rgba(59,130,246,.30)', bg:'linear-gradient(135deg,rgba(59,130,246,.16),rgba(59,130,246,.06))'  },
-  { min: 1, rank:'D',  label:'NOVATO',   color:'#10B981', glow:'rgba(16,185,129,.28)', bg:'linear-gradient(135deg,rgba(16,185,129,.14),rgba(16,185,129,.05))' },
-  { min: 0, rank:'E',  label:'RANGO E',  color:'#52525B', glow:'rgba(82,82,91,.18)',   bg:'linear-gradient(135deg,rgba(82,82,91,.10),rgba(82,82,91,.03))'     },
+  { min:1000, rank:'👑', label:'CREADOR',  color:'#FDE047', glow:'rgba(253,224,71,.55)', bg:'linear-gradient(135deg,rgba(253,224,71,.22),rgba(253,224,71,.08))' },
+  { min:  30, rank:'SS', label:'MONARCA',  color:'#F97316', glow:'rgba(249,115,22,.35)', bg:'linear-gradient(135deg,rgba(249,115,22,.18),rgba(249,115,22,.06))' },
+  { min:  20, rank:'S',  label:'NACIONAL', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
+  { min:  15, rank:'A',  label:'HÉROE',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
+  { min:  10, rank:'B',  label:'AVANZADO', color:'#8B5CF6', glow:'rgba(139,92,246,.30)', bg:'linear-gradient(135deg,rgba(139,92,246,.16),rgba(139,92,246,.06))' },
+  { min:   5, rank:'C',  label:'INTER.',   color:'#3B82F6', glow:'rgba(59,130,246,.30)', bg:'linear-gradient(135deg,rgba(59,130,246,.16),rgba(59,130,246,.06))'  },
+  { min:   1, rank:'D',  label:'NOVATO',   color:'#10B981', glow:'rgba(16,185,129,.28)', bg:'linear-gradient(135deg,rgba(16,185,129,.14),rgba(16,185,129,.05))' },
+  { min:   0, rank:'E',  label:'RANGO E',  color:'#52525B', glow:'rgba(82,82,91,.18)',   bg:'linear-gradient(135deg,rgba(82,82,91,.10),rgba(82,82,91,.03))'     },
 ]
 function getTier(level: number) { return RANK_TIERS.find(t => level >= t.min) ?? RANK_TIERS[RANK_TIERS.length - 1] }
 
@@ -106,19 +107,27 @@ function EditUserModal({
         <div style={{ position:'absolute', top:0, left:0, right:0, height:2, borderRadius:'16px 16px 0 0', background:`linear-gradient(90deg,${t.color},${t.color}44,transparent)` }}/>
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
           <div style={{
-            width:44, height:44, borderRadius:11, flexShrink:0,
-            background: t.bg, border:`1.5px solid ${t.color}50`,
+            width:48, height:48, borderRadius:12, flexShrink:0,
+            background: t.bg, border:`2px solid ${t.color}60`,
             display:'flex', alignItems:'center', justifyContent:'center',
-            fontWeight:800, fontSize:15, color:t.color,
+            fontWeight:800, fontSize:16, color:t.color,
+            boxShadow:`0 0 20px ${t.glow}`,
           }}>
             {name.slice(0,2).toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:15, color:'#fff' }}>{name.length>20?name.slice(0,19)+'…':name}</div>
-            <div style={{ fontSize:10, color:'var(--text3)', fontFamily:'monospace', marginTop:2 }}>
-              {user.jid.split('@')[0].slice(0,20)}
+            <div style={{ fontWeight:700, fontSize:15, color:'#fff', marginBottom:3 }}>{name.length>18?name.slice(0,17)+'…':name}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{
+                fontSize:10, fontWeight:800, padding:'2px 8px', borderRadius:20,
+                background:`${t.color}22`, color:t.color, border:`1px solid ${t.color}40`,
+                boxShadow:`0 0 8px ${t.glow}`, letterSpacing:'.05em',
+              }}>
+                {t.rank} · {t.label}
+              </span>
+              <span style={{ fontSize:10, color:'var(--text3)', fontFamily:'monospace' }}>LV.{user.level}</span>
             </div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text3)', padding:4, borderRadius:6 }}>
@@ -190,10 +199,45 @@ function EditUserModal({
           </div>
         </div>
 
+        {/* CREADOR special button */}
+        {user.level < 1000 ? (
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true); setMsg('')
+              try {
+                const delta = 1000 - user.level
+                const res = await adjustUser(user.jid, undefined, delta)
+                onSaved(res.user)
+                setMsg('✓ 👑 ¡Rango CREADOR otorgado!')
+              } catch (e: unknown) {
+                setMsg('❌ ' + (e instanceof Error ? e.message : 'Error'))
+              }
+              setBusy(false)
+            }}
+            style={{
+              marginTop:10, width:'100%', padding:'12px 0', borderRadius:10,
+              border:'2px solid rgba(253,224,71,.5)',
+              background:'linear-gradient(135deg,rgba(253,224,71,.18),rgba(253,224,71,.06))',
+              color:'#FDE047', fontWeight:800, fontSize:14, cursor:'pointer',
+              letterSpacing:'.06em', boxShadow:'0 0 20px rgba(253,224,71,.25)',
+            }}
+          >👑 OTORGAR RANGO CREADOR</button>
+        ) : (
+          <div style={{
+            marginTop:10, padding:'10px', borderRadius:10, textAlign:'center',
+            border:'2px solid rgba(253,224,71,.4)',
+            background:'linear-gradient(135deg,rgba(253,224,71,.12),rgba(253,224,71,.04))',
+            color:'#FDE047', fontWeight:800, fontSize:13, letterSpacing:'.04em',
+          }}>
+            👑 Ya tiene rango CREADOR
+          </div>
+        )}
+
         {/* Feedback */}
         {msg && (
           <div style={{
-            marginTop:12, padding:'8px 12px', borderRadius:8,
+            marginTop:10, padding:'8px 12px', borderRadius:8,
             background: msg.startsWith('✓') ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)',
             border: `1px solid ${msg.startsWith('✓') ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`,
             color: msg.startsWith('✓') ? '#10B981' : '#EF4444',
