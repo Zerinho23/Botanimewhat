@@ -7,37 +7,46 @@ const { startGame, getGame, endGame } = require("../../utils/dinamicaManager");
 
 // ── Pool de preguntas de trivia ───────────────────────────────────────────────
 const TRIVIA_POOL = [
-  { q: "¿De qué anime es el personaje Naruto Uzumaki?", a: "naruto", opts: ["A) Bleach", "B) Naruto", "C) One Piece", "D) Dragon Ball"], correct: "B" },
-  { q: "¿Quién es el capitán del Going Merry en One Piece?", a: "luffy", opts: ["A) Zoro", "B) Sanji", "C) Luffy", "D) Nami"], correct: "C" },
-  { q: "¿En qué anime aparece el 'Titán Colosal'?", a: "attack on titan", opts: ["A) Sword Art Online", "B) Attack on Titan", "C) Demon Slayer", "D) My Hero Academia"], correct: "B" },
-  { q: "¿Cómo se llama la espada de Ichigo en Bleach?", a: "zangetsu", opts: ["A) Senbonzakura", "B) Ryūjin Jakka", "C) Zangetsu", "D) Wabisuke"], correct: "C" },
-  { q: "¿Cuál es el quirk de Deku en My Hero Academia?", a: "one for all", opts: ["A) Half-Cold Half-Hot", "B) One For All", "C) Explosion", "D) Erasure"], correct: "B" },
-  { q: "¿Qué estudio animó Sword Art Online?", a: "a-1 pictures", opts: ["A) Ufotable", "B) Mappa", "C) A-1 Pictures", "D) Kyoto Animation"], correct: "C" },
-  { q: "¿Cuántos Pilares Hashira hay en Demon Slayer?", a: "nueve", opts: ["A) Siete", "B) Ocho", "C) Nueve", "D) Diez"], correct: "C" },
-  { q: "¿De qué color es el pelo de Rem en Re:Zero?", a: "azul", opts: ["A) Rosa", "B) Azul", "C) Blanco", "D) Negro"], correct: "B" },
-  { q: "¿Quién creó la técnica Edo Tensei en Naruto?", a: "tobirama", opts: ["A) Orochimaru", "B) Hashirama", "C) Tobirama", "D) Minato"], correct: "C" },
-  { q: "¿Cuál es el opening más famoso de Attack on Titan?", a: "guren no yumiya", opts: ["A) Shinzou wo Sasageyo", "B) Guren no Yumiya", "C) My War", "D) The Rumbling"], correct: "B" },
-  { q: "¿Qué poder tiene Lelouch en Code Geass?", a: "geass", opts: ["A) Sharingan", "B) Geass", "C) Rinnegan", "D) Byakugan"], correct: "B" },
-  { q: "¿Cuál es el apellido de Mikasa en Attack on Titan?", a: "ackerman", opts: ["A) Yeager", "B) Ackerman", "C) Lenz", "D) Reiss"], correct: "B" },
-  { q: "¿Qué es un 'Bankai' en Bleach?", a: "liberacion final del zanpakuto", opts: ["A) Tipo de espada", "B) Técnica de Hollow", "C) Liberación final del Zanpakuto", "D) Un arrancar"], correct: "C" },
-  { q: "¿Qué estudio animó Demon Slayer: Kimetsu no Yaiba?", a: "ufotable", opts: ["A) Mappa", "B) Ufotable", "C) Bones", "D) Wit Studio"], correct: "B" },
-  { q: "¿Cuál es el nombre completo de Tanjiro en Demon Slayer?", a: "tanjiro kamado", opts: ["A) Tanjiro Uzumaki", "B) Tanjiro Kamado", "C) Tanjiro Agatsuma", "D) Tanjiro Rengoku"], correct: "B" },
-  { q: "¿Qué tipo de magia usa Natsu en Fairy Tail?", a: "fuego", opts: ["A) Hielo", "B) Rayo", "C) Fuego", "D) Gravedad"], correct: "C" },
-  { q: "¿Quién es el protagonista de Hunter x Hunter?", a: "gon freecss", opts: ["A) Killua", "B) Kurapika", "C) Leorio", "D) Gon Freecss"], correct: "D" },
-  { q: "¿En qué anime aparece Ryuk, el shinigami con manzanas?", a: "death note", opts: ["A) Bleach", "B) Soul Eater", "C) Noragami", "D) Death Note"], correct: "D" },
-  { q: "¿Cuántas Dragon Balls existen en la saga original?", a: "siete", opts: ["A) Tres", "B) Cinco", "C) Siete", "D) Nueve"], correct: "C" },
-  { q: "¿Quién tiene el sharingan en Naruto Shippuden?", a: "kakashi", opts: ["A) Naruto", "B) Sakura", "C) Kakashi", "D) Rock Lee"], correct: "C" },
-  { q: "¿De dónde viene Zero Two en Darling in the FranXX?", a: "klaxosaur", opts: ["A) Es humana", "B) Es un android", "C) Es mitad klaxosaur", "D) Es extraterrestre"], correct: "C" },
-  { q: "¿Cuántos episodios tiene Fullmetal Alchemist: Brotherhood?", a: "64", opts: ["A) 51", "B) 52", "C) 64", "D) 74"], correct: "C" },
-  { q: "¿Cuál es el verdadero nombre de Tuxedo Mask en Sailor Moon?", a: "mamoru chiba", opts: ["A) Darien Shields", "B) Mamoru Chiba", "C) Ken Ito", "D) Shingo Tsukino"], correct: "B" },
-  { q: "¿Qué animal es Chopper en One Piece?", a: "reno", opts: ["A) Oso", "B) Conejo", "C) Mapache", "D) Reno"], correct: "D" },
-  { q: "¿En qué ciudad ocurre la historia de Steins;Gate?", a: "akihabara", opts: ["A) Shibuya", "B) Shinjuku", "C) Akihabara", "D) Harajuku"], correct: "C" },
-  { q: "¿Cuál es la espada legendaria de Sword Art Online?", a: "excalibur", opts: ["A) Elucidator", "B) Dark Repulser", "C) Excalibur", "D) Lambent Light"], correct: "C" },
-  { q: "¿Quién es el maestro de Kakashi en Naruto?", a: "minato", opts: ["A) Jiraiya", "B) Orochimaru", "C) Hiruzen", "D) Minato"], correct: "D" },
-  { q: "¿De qué clan viene Itachi en Naruto?", a: "uchiha", opts: ["A) Hyuga", "B) Senju", "C) Uchiha", "D) Uzumaki"], correct: "C" },
-  { q: "¿Cómo se llama el ataque principal de Goku?", a: "kamehameha", opts: ["A) Genki-Dama", "B) Kamehameha", "C) Masenko", "D) Galick-Ho"], correct: "B" },
-  { q: "¿Cuál es el nombre del instituto en My Hero Academia?", a: "ua", opts: ["A) Seika", "B) Shiketsu", "C) Ketsubutsu", "D) UA"], correct: "D" },
+  { q: "¿De qué anime es Naruto Uzumaki?", a: "naruto", opts: ["Bleach", "Naruto", "One Piece", "Dragon Ball"], correct: "B" },
+  { q: "¿Quién es el capitán del Going Merry?", a: "luffy", opts: ["Zoro", "Sanji", "Luffy", "Nami"], correct: "C" },
+  { q: "¿En qué anime aparece el Titán Colosal?", a: "attack on titan", opts: ["Sword Art Online", "Attack on Titan", "Demon Slayer", "My Hero Academia"], correct: "B" },
+  { q: "¿Cómo se llama la espada de Ichigo en Bleach?", a: "zangetsu", opts: ["Senbonzakura", "Ryūjin Jakka", "Zangetsu", "Wabisuke"], correct: "C" },
+  { q: "¿Cuál es el quirk de Deku en My Hero Academia?", a: "one for all", opts: ["Half-Cold Half-Hot", "One For All", "Explosion", "Erasure"], correct: "B" },
+  { q: "¿Qué estudio animó Sword Art Online?", a: "a-1 pictures", opts: ["Ufotable", "Mappa", "A-1 Pictures", "Kyoto Animation"], correct: "C" },
+  { q: "¿Cuántos Pilares Hashira hay en Demon Slayer?", a: "nueve", opts: ["Siete", "Ocho", "Nueve", "Diez"], correct: "C" },
+  { q: "¿De qué color es el pelo de Rem en Re:Zero?", a: "azul", opts: ["Rosa", "Azul", "Blanco", "Negro"], correct: "B" },
+  { q: "¿Quién creó la técnica Edo Tensei en Naruto?", a: "tobirama", opts: ["Orochimaru", "Hashirama", "Tobirama", "Minato"], correct: "C" },
+  { q: "¿Cuál es el opening más famoso de Attack on Titan?", a: "guren no yumiya", opts: ["Shinzou wo Sasageyo", "Guren no Yumiya", "My War", "The Rumbling"], correct: "B" },
+  { q: "¿Qué poder tiene Lelouch en Code Geass?", a: "geass", opts: ["Sharingan", "Geass", "Rinnegan", "Byakugan"], correct: "B" },
+  { q: "¿Cuál es el apellido de Mikasa en AoT?", a: "ackerman", opts: ["Yeager", "Ackerman", "Lenz", "Reiss"], correct: "B" },
+  { q: "¿Qué es un Bankai en Bleach?", a: "liberacion final del zanpakuto", opts: ["Tipo de espada", "Técnica de Hollow", "Liberación final del Zanpakuto", "Un Arrancar"], correct: "C" },
+  { q: "¿Qué estudio animó Demon Slayer?", a: "ufotable", opts: ["Mappa", "Ufotable", "Bones", "Wit Studio"], correct: "B" },
+  { q: "¿Cuál es el apellido de Tanjiro?", a: "tanjiro kamado", opts: ["Uzumaki", "Kamado", "Agatsuma", "Rengoku"], correct: "B" },
+  { q: "¿Qué tipo de magia usa Natsu en Fairy Tail?", a: "fuego", opts: ["Hielo", "Rayo", "Fuego", "Gravedad"], correct: "C" },
+  { q: "¿Quién es el protagonista de Hunter x Hunter?", a: "gon freecss", opts: ["Killua", "Kurapika", "Leorio", "Gon Freecss"], correct: "D" },
+  { q: "¿En qué anime aparece Ryuk, el shinigami?", a: "death note", opts: ["Bleach", "Soul Eater", "Noragami", "Death Note"], correct: "D" },
+  { q: "¿Cuántas Dragon Balls hay en la saga original?", a: "siete", opts: ["Tres", "Cinco", "Siete", "Nueve"], correct: "C" },
+  { q: "¿Quién tiene el sharingan en Naruto Shippuden?", a: "kakashi", opts: ["Naruto", "Sakura", "Kakashi", "Rock Lee"], correct: "C" },
+  { q: "¿De dónde viene Zero Two en Darling in the FranXX?", a: "klaxosaur", opts: ["Es humana", "Es un android", "Es mitad klaxosaur", "Es extraterrestre"], correct: "C" },
+  { q: "¿Cuántos episodios tiene FMA: Brotherhood?", a: "64", opts: ["51", "52", "64", "74"], correct: "C" },
+  { q: "¿El verdadero nombre de Tuxedo Mask en Sailor Moon?", a: "mamoru chiba", opts: ["Darien Shields", "Mamoru Chiba", "Ken Ito", "Shingo Tsukino"], correct: "B" },
+  { q: "¿Qué animal es Chopper en One Piece?", a: "reno", opts: ["Oso", "Conejo", "Mapache", "Reno"], correct: "D" },
+  { q: "¿En qué ciudad ocurre Steins;Gate?", a: "akihabara", opts: ["Shibuya", "Shinjuku", "Akihabara", "Harajuku"], correct: "C" },
+  { q: "¿La espada legendaria de Kirito en SAO?", a: "excalibur", opts: ["Elucidator", "Dark Repulser", "Excalibur", "Lambent Light"], correct: "C" },
+  { q: "¿Quién fue el maestro de Kakashi?", a: "minato", opts: ["Jiraiya", "Orochimaru", "Hiruzen", "Minato"], correct: "D" },
+  { q: "¿De qué clan viene Itachi en Naruto?", a: "uchiha", opts: ["Hyuga", "Senju", "Uchiha", "Uzumaki"], correct: "C" },
+  { q: "¿Cómo se llama el ataque principal de Goku?", a: "kamehameha", opts: ["Genki-Dama", "Kamehameha", "Masenko", "Galick-Ho"], correct: "B" },
+  { q: "¿Cómo se llama el instituto de MHA?", a: "ua", opts: ["Seika", "Shiketsu", "Ketsubutsu", "UA"], correct: "D" },
 ];
+
+// Colores de las opciones A B C D
+const OPT_ICONS = ["🔵", "🟡", "🔴", "🟢"];
+const OPT_LETTERS = ["A", "B", "C", "D"];
+
+// ── Formatear opciones de trivia ──────────────────────────────────────────────
+function formatOpts(opts) {
+  return opts.map((opt, i) => `${OPT_ICONS[i]} *${OPT_LETTERS[i]})* ${opt}`).join("\n");
+}
 
 // ── Normalización ─────────────────────────────────────────────────────────────
 function normalizeText(text) {
@@ -53,62 +62,50 @@ function normalizeText(text) {
 // ── Validación de trivia (opción múltiple) ────────────────────────────────────
 function checkTriviaAnswer(userText, correctLetter, correctAnswer) {
   const norm = normalizeText(userText.trim());
-
-  // Acepta solo la letra (A, B, C o D)
-  if (/^[abcd]$/.test(norm)) {
-    return norm === correctLetter.toLowerCase();
-  }
-
-  // Acepta la respuesta completa escrita (coincidencia exacta normalizada)
-  const normAnswer = normalizeText(correctAnswer);
-  return norm === normAnswer;
+  if (/^[abcd]$/.test(norm)) return norm === correctLetter.toLowerCase();
+  return norm === normalizeText(correctAnswer);
 }
 
-// ── Validación de anime/personaje (matching ESTRICTO de palabras enteras) ─────
+// ── Validación de anime/personaje ─────────────────────────────────────────────
 function checkAnimeAnswer(userText, correctTitle) {
   const norm = normalizeText(userText.trim());
   const normTitle = normalizeText(correctTitle);
-
-  // Respuesta demasiado corta para ser válida
   if (norm.length < 3) return false;
-
-  // Coincidencia exacta completa
   if (norm === normTitle) return true;
 
-  // Palabras significativas del título (> 2 caracteres, sin artículos comunes)
   const STOP_WORDS = new Set(["the", "los", "las", "del", "una", "uno", "que", "con", "por", "para"]);
   const titleWords = normTitle.split(" ").filter((w) => w.length > 2 && !STOP_WORDS.has(w));
-
-  // Si el título no tiene palabras significativas, exigir coincidencia exacta
   if (titleWords.length === 0) return norm === normTitle;
 
-  // Palabras exactas que el usuario escribió (conjunto)
   const userWords = new Set(norm.split(" ").filter((w) => w.length > 1));
-
-  // Contar cuántas palabras significativas del título están en la respuesta (match exacto de palabra completa)
   const matched = titleWords.filter((w) => userWords.has(w));
   const ratio = matched.length / titleWords.length;
 
-  // Para títulos de 1 sola palabra significativa: debe aparecer exactamente
-  if (titleWords.length === 1) {
-    return userWords.has(titleWords[0]);
-  }
-
-  // Para títulos de 2+ palabras: al menos 80% de palabras significativas deben coincidir
-  // Y al menos 2 palabras deben coincidir
+  if (titleWords.length === 1) return userWords.has(titleWords[0]);
   return ratio >= 0.8 && matched.length >= 2;
 }
 
-// ── Traducir sinopsis al español ──────────────────────────────────────────────
-async function translateSynopsis(text, maxChars = 280) {
+// ── Traducir sinopsis al español (con límite corto para dinámicas) ─────────────
+async function translateSynopsis(text, maxChars = 220) {
   if (!text) return "Sin sinopsis disponible.";
   try {
     const translated = await translator.translate(text, "es");
     const result = translated || text;
-    return result.length > maxChars ? result.slice(0, maxChars) + "..." : result;
+    return result.length > maxChars ? result.slice(0, maxChars).trimEnd() + "…" : result;
   } catch (_) {
-    return text.length > maxChars ? text.slice(0, maxChars) + "..." : text;
+    return text.length > maxChars ? text.slice(0, maxChars).trimEnd() + "…" : text;
   }
+}
+
+// ── Línea de pistas inline (compacta) ────────────────────────────────────────
+function buildHintsLine(anime) {
+  const parts = [];
+  if (anime.type) parts.push(`📺 ${anime.type}`);
+  if (anime.episodes) parts.push(`🎞️ ${anime.episodes} ep`);
+  if (anime.score) parts.push(`⭐ ${anime.score}`);
+  if (anime.aired?.prop?.from?.year) parts.push(`📅 ${anime.aired.prop.from.year}`);
+  if (anime.genres?.length) parts.push(`🏷️ ${anime.genres.slice(0, 2).map((g) => g.name).join(", ")}`);
+  return parts.join("  ·  ");
 }
 
 // ── Trivia ────────────────────────────────────────────────────────────────────
@@ -123,15 +120,14 @@ async function startTrivia(sock, groupJid, autoMode = false) {
   const timeoutSecs = config.dinamica?.timeoutSeconds ?? 90;
 
   const text = [
-    `🎮 *¡TRIVIA ANIME!* 🎮`,
-    format.divider(),
+    `🎮 *TRIVIA* ${format.divider()}`,
     ``,
     `❓ *${q.q}*`,
     ``,
-    ...q.opts,
+    formatOpts(q.opts),
     ``,
-    `${config.emojis.coin} Premio: *${reward} monedas* al primero en responder correctamente`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe la letra (A, B, C o D) o la respuesta exacta.`,
+    `💰 *+${reward}* monedas  ·  ⏱️ *${timeoutSecs}s*`,
+    `_Responde con la letra o la respuesta exacta_`,
   ].join("\n");
 
   await sock.sendMessage(groupJid, { text });
@@ -140,9 +136,14 @@ async function startTrivia(sock, groupJid, autoMode = false) {
     if (!getGame(groupJid)) return;
     endGame(groupJid);
     try {
-      const correctOpt = q.opts.find((o) => o.startsWith(q.correct));
+      const correctOpt = q.opts[OPT_LETTERS.indexOf(q.correct)];
       await sock.sendMessage(groupJid, {
-        text: `⏰ *¡Tiempo agotado!*\n\nLa respuesta correcta era: *${correctOpt}*\n\n_Nadie ganó esta vez. Usa *${config.prefix}dinamica* para jugar de nuevo._`,
+        text: [
+          `⏰ *Tiempo agotado*`,
+          ``,
+          `La respuesta era: ${OPT_ICONS[OPT_LETTERS.indexOf(q.correct)]} *${q.correct}) ${correctOpt}*`,
+          `_Usa *${config.prefix}dinamica* para volver a jugar_`,
+        ].join("\n"),
       });
     } catch (_) {}
   }, timeoutSecs * 1000);
@@ -179,32 +180,22 @@ async function startAdivina(sock, groupJid, autoMode = false) {
 
   const reward = config.dinamica?.adivinaReward ?? 50;
   const timeoutSecs = config.dinamica?.timeoutSeconds ?? 90;
+  const synopsis = await translateSynopsis(anime.synopsis, 220);
+  const hintsLine = buildHintsLine(anime);
 
-  // Traducir sinopsis al español
-  const synopsis = await translateSynopsis(anime.synopsis, 300);
-
-  const hints = [
-    anime.type ? `📺 *Tipo:* ${anime.type}` : null,
-    anime.episodes ? `🎞️ *Episodios:* ${anime.episodes}` : null,
-    anime.score ? `⭐ *Score:* ${anime.score}/10` : null,
-    anime.genres?.length ? `🏷️ *Géneros:* ${anime.genres.slice(0, 2).map((g) => g.name).join(", ")}` : null,
-    anime.aired?.prop?.from?.year ? `📅 *Año:* ${anime.aired.prop.from.year}` : null,
-  ].filter(Boolean);
-
-  const text = [
-    `🎯 *¡ADIVINA EL ANIME!* 🎯`,
-    format.divider(),
+  const lines = [
+    `🎯 *¿DE QUÉ ANIME ES?* ${format.divider()}`,
     ``,
-    `📖 *Sinopsis:*`,
-    synopsis,
+    `📖 ${synopsis}`,
+  ];
+  if (hintsLine) lines.push(``, hintsLine);
+  lines.push(
     ``,
-    ...hints,
-    ``,
-    `${config.emojis.coin} Premio: *${reward} monedas* al primero en acertar`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre *exacto* del anime.`,
-  ].join("\n");
+    `💰 *+${reward}* monedas  ·  ⏱️ *${timeoutSecs}s*`,
+    `_Escribe el nombre del anime_`,
+  );
 
-  await sock.sendMessage(groupJid, { text });
+  await sock.sendMessage(groupJid, { text: lines.join("\n") });
 
   const allTitles = [
     anime.title,
@@ -219,7 +210,13 @@ async function startAdivina(sock, groupJid, autoMode = false) {
     endGame(groupJid);
     try {
       await sock.sendMessage(groupJid, {
-        text: `⏰ *¡Tiempo agotado!*\n\nEl anime era: *${anime.title}*\n🔗 ${anime.url}\n\n_Usa *${config.prefix}dinamica* para jugar de nuevo._`,
+        text: [
+          `⏰ *Tiempo agotado*`,
+          ``,
+          `Era: 🎬 *${anime.title}*`,
+          anime.url ? `🔗 ${anime.url}` : null,
+          `_Usa *${config.prefix}dinamica* para volver a jugar_`,
+        ].filter(Boolean).join("\n"),
       });
     } catch (_) {}
   }, timeoutSecs * 1000);
@@ -260,32 +257,36 @@ async function startAdivinaPersonaje(sock, groupJid, autoMode = false) {
 
   const reward = config.dinamica?.personajeReward ?? 40;
   const timeoutSecs = config.dinamica?.timeoutSeconds ?? 90;
-
-  // Traducir descripción al español
-  const about = await translateSynopsis(character.about, 280);
+  const about = await translateSynopsis(character.about, 220);
   const animeNames = character.anime?.slice(0, 2).map((a) => a.anime?.title).filter(Boolean).join(", ");
 
-  const text = [
-    `🧩 *¡ADIVINA EL PERSONAJE!* 🧩`,
-    format.divider(),
+  const lines = [
+    `🧩 *¿QUIÉN SOY?* ${format.divider()}`,
     ``,
-    `📖 *Descripción:*`,
-    about,
-    animeNames ? `\n🎬 *Aparece en:* ${animeNames}` : ``,
-    `⭐ *Favoritos globales:* ${character.favorites?.toLocaleString() || "N/A"}`,
+    `📖 ${about}`,
+  ];
+  if (animeNames) lines.push(``, `🎬 Aparece en: *${animeNames}*`);
+  if (character.favorites) lines.push(`⭐ ${character.favorites.toLocaleString()} favoritos globales`);
+  lines.push(
     ``,
-    `${config.emojis.coin} Premio: *${reward} monedas* al primero en acertar`,
-    `⏳ Tienes *${timeoutSecs} segundos*. Escribe el nombre *exacto* del personaje.`,
-  ].filter(Boolean).join("\n");
+    `💰 *+${reward}* monedas  ·  ⏱️ *${timeoutSecs}s*`,
+    `_Escribe el nombre del personaje_`,
+  );
 
-  await sock.sendMessage(groupJid, { text });
+  await sock.sendMessage(groupJid, { text: lines.join("\n") });
 
   const timeout = setTimeout(async () => {
     if (!getGame(groupJid)) return;
     endGame(groupJid);
     try {
       await sock.sendMessage(groupJid, {
-        text: `⏰ *¡Tiempo agotado!*\n\nEl personaje era: *${character.name}*\n🔗 ${character.url}\n\n_Usa *${config.prefix}dinamica* para jugar de nuevo._`,
+        text: [
+          `⏰ *Tiempo agotado*`,
+          ``,
+          `Era: 🧩 *${character.name}*`,
+          character.url ? `🔗 ${character.url}` : null,
+          `_Usa *${config.prefix}dinamica* para volver a jugar_`,
+        ].filter(Boolean).join("\n"),
       });
     } catch (_) {}
   }, timeoutSecs * 1000);
@@ -308,7 +309,7 @@ const GAME_TYPES = ["trivia", "adivina", "personaje"];
 
 module.exports = {
   name: "dinamica",
-  description: "Solo admins. Inicia una dinámica de anime. Tipos: trivia, adivina, personaje",
+  description: "Inicia una dinámica de anime (solo admins). Tipos: trivia, adivina, personaje",
   aliases: ["juego", "game", "play", "reto"],
 
   startTrivia,
@@ -331,10 +332,21 @@ module.exports = {
 
     const type = args[0]?.toLowerCase();
 
+    // Detener dinámica activa
+    if (type === "stop" || type === "fin" || type === "parar") {
+      const game = getGame(from);
+      if (!game) {
+        return sock.sendMessage(from, { text: `${config.emojis.info} No hay ninguna dinámica activa ahora mismo.` }, { quoted: msg });
+      }
+      endGame(from);
+      return sock.sendMessage(from, { text: `🛑 *Dinámica cancelada* por el admin.` }, { quoted: msg });
+    }
+
     if (type === "trivia") return startTrivia(sock, from);
     if (type === "adivina") return startAdivina(sock, from);
     if (type === "personaje") return startAdivinaPersonaje(sock, from);
 
+    // Sin argumento — elegir aleatoriamente
     const chosen = GAME_TYPES[Math.floor(Math.random() * GAME_TYPES.length)];
     if (chosen === "trivia") return startTrivia(sock, from);
     if (chosen === "adivina") return startAdivina(sock, from);
