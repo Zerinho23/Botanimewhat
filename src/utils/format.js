@@ -87,7 +87,7 @@ function formatWaifu(character, owner) {
 }
 
 function _getRankLabel(level) {
-  if (level >= 1000) return "👑 CREADOR";
+  if (level >= 1000) return "🌸 DIOSA [神]";
   if (level >= 30)   return "🔥 MONARCA [SS]";
   if (level >= 20)   return "⭐ NACIONAL [S]";
   if (level >= 15)   return "🛡️ HÉROE [A]";
@@ -404,6 +404,23 @@ function formatHelp(prefix, commands) {
   return box(`MENÚ DE ${commands.length} COMANDOS`, lines);
 }
 
+
+function formatRankBoard(users) {
+  const medals = ["🥇","🥈","🥉"];
+  const divLine = "────────────────────";
+  const lines = users.map((u, i) => {
+    const pos = medals[i] !== undefined ? medals[i] : ("  *" + (i + 1) + ".*");
+    const name = "@" + u.jid.split("@")[0];
+    const rankLabel = _getRankLabel(u.level);
+    const xp = u.xp >= 1000 ? (u.xp / 1000).toFixed(1) + "K" : u.xp;
+    const coins = (u.coins || 0) >= 1000 ? ((u.coins || 0) / 1000).toFixed(1) + "K" : (u.coins || 0);
+    return pos + " " + name + "\n" +
+      "    " + rankLabel + "\n" +
+      "    ⭐ Lv.*" + u.level + "*  🔥 " + xp + " XP  🪙 " + coins;
+  });
+  if (lines.length > 3) lines.splice(3, 0, divLine);
+  return box("🏆 RANKING OTAKU — TOP " + users.length, lines);
+}
 module.exports = {
   divider,
   header,
@@ -421,4 +438,5 @@ module.exports = {
   formatSeasonCard,
   formatSearchResults,
   formatHelp,
+  formatRankBoard,
 };
