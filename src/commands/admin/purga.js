@@ -38,7 +38,7 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    const group = db.getGroup(from);
+    const group = await db.getGroup(from);
     const now = Date.now();
 
     // 1) Verificar que el bot lleve al menos 30 días observando el grupo,
@@ -124,7 +124,7 @@ module.exports = {
       }
     }
 
-    db.updateGroup(from, { lastPurga: now });
+    await db.updateGroup(from, { lastPurga: now });
 
     const lines = [
       `🗡️ *PURGA COMPLETADA* 🗡️`,
