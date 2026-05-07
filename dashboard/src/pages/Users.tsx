@@ -127,63 +127,65 @@ function EditUserModal({
         </div>
 
         {/* Coins section */}
-        <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:16, marginBottom:12 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+        <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:14, marginBottom:10 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
             <span style={{ fontSize:11, fontWeight:700, color:'#F59E0B', letterSpacing:'.05em', textTransform:'uppercase' }}>🪙 Monedas</span>
-            <span style={{ fontFamily:'monospace', fontSize:13, fontWeight:700, color:'#F59E0B' }}>
+            <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:'#F59E0B' }}>
               {(user.coins ?? 0).toLocaleString()} actuales
             </span>
           </div>
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <input
-              type="number" min={1} value={coinsAmt}
-              onChange={e => setCoinsAmt(Math.max(1, parseInt(e.target.value) || 1))}
-              style={{
-                flex:1, background:'rgba(0,0,0,.4)', border:'1px solid rgba(245,158,11,.25)',
-                borderRadius:8, padding:'8px 10px', color:'#fff', fontSize:13,
-                fontFamily:'monospace', outline:'none',
-              }}
-            />
+          <input
+            type="number" min={1} value={coinsAmt}
+            onChange={e => setCoinsAmt(Math.max(1, parseInt(e.target.value) || 1))}
+            style={{
+              width:'100%', boxSizing:'border-box',
+              background:'rgba(0,0,0,.4)', border:'1px solid rgba(245,158,11,.25)',
+              borderRadius:8, padding:'9px 12px', color:'#fff', fontSize:14,
+              fontFamily:'monospace', outline:'none', marginBottom:8,
+            }}
+          />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             <button
               disabled={busy}
               onClick={() => apply('coins', 1)}
-              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+              style={{ padding:'10px 0', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:13, cursor:'pointer' }}
             >+ DAR</button>
             <button
               disabled={busy}
               onClick={() => apply('coins', -1)}
-              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+              style={{ padding:'10px 0', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:13, cursor:'pointer' }}
             >− QUITAR</button>
           </div>
         </div>
 
         {/* Level section */}
-        <div style={{ background:'rgba(59,130,246,.06)', border:'1px solid rgba(59,130,246,.2)', borderRadius:10, padding:16 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+        <div style={{ background:'rgba(59,130,246,.06)', border:'1px solid rgba(59,130,246,.2)', borderRadius:10, padding:14 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
             <span style={{ fontSize:11, fontWeight:700, color:'#3B82F6', letterSpacing:'.05em', textTransform:'uppercase' }}>⬡ Nivel</span>
-            <span style={{ fontFamily:'monospace', fontSize:13, fontWeight:700, color:'#3B82F6' }}>
+            <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:'#3B82F6' }}>
               LV.{user.level ?? 1} actual
             </span>
           </div>
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <input
-              type="number" min={1} value={levelAmt}
-              onChange={e => setLevelAmt(Math.max(1, parseInt(e.target.value) || 1))}
-              style={{
-                flex:1, background:'rgba(0,0,0,.4)', border:'1px solid rgba(59,130,246,.25)',
-                borderRadius:8, padding:'8px 10px', color:'#fff', fontSize:13,
-                fontFamily:'monospace', outline:'none',
-              }}
-            />
+          <input
+            type="number" min={1} value={levelAmt}
+            onChange={e => setLevelAmt(Math.max(1, parseInt(e.target.value) || 1))}
+            style={{
+              width:'100%', boxSizing:'border-box',
+              background:'rgba(0,0,0,.4)', border:'1px solid rgba(59,130,246,.25)',
+              borderRadius:8, padding:'9px 12px', color:'#fff', fontSize:14,
+              fontFamily:'monospace', outline:'none', marginBottom:8,
+            }}
+          />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             <button
               disabled={busy}
               onClick={() => apply('level', 1)}
-              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+              style={{ padding:'10px 0', borderRadius:8, border:'1px solid rgba(16,185,129,.4)', background:'rgba(16,185,129,.12)', color:'#10B981', fontWeight:700, fontSize:13, cursor:'pointer' }}
             >+ SUBIR</button>
             <button
               disabled={busy}
               onClick={() => apply('level', -1)}
-              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}
+              style={{ padding:'10px 0', borderRadius:8, border:'1px solid rgba(239,68,68,.4)', background:'rgba(239,68,68,.1)', color:'#EF4444', fontWeight:700, fontSize:13, cursor:'pointer' }}
             >− BAJAR</button>
           </div>
         </div>
