@@ -86,6 +86,17 @@ function formatWaifu(character, owner) {
   return box("WAIFU ASIGNADA", lines);
 }
 
+function _getRankLabel(level) {
+  if (level >= 1000) return "👑 CREADOR";
+  if (level >= 30)   return "🔥 MONARCA [SS]";
+  if (level >= 20)   return "⭐ NACIONAL [S]";
+  if (level >= 15)   return "🛡️ HÉROE [A]";
+  if (level >= 10)   return "💜 AVANZADO [B]";
+  if (level >= 5)    return "💙 INTER. [C]";
+  if (level >= 1)    return "💚 NOVATO [D]";
+  return "⬛ RANGO E";
+}
+
 function formatProfile(user, name) {
   const nextLevel = _xpForNextLevel(user.level);
   const remaining = Math.max(0, nextLevel - user.xp);
@@ -94,6 +105,7 @@ function formatProfile(user, name) {
 
   const lines = [
     `${emojis.crown} *Usuario:* ${name || "Otaku"}`,
+    `🏅 *Rango:* ${_getRankLabel(user.level)}`,
     "",
     `${emojis.star} *Nivel ${user.level}*`,
     `${emojis.fire} XP:  *${user.xp}* / ${nextLevel}`,
