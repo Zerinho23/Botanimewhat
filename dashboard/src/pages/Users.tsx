@@ -7,7 +7,8 @@ import { getUsers, adjustUser, isConfigured, type User } from '../api'
 
 /* ─── Rank tiers ──────────────────────────────────────────── */
 const RANK_TIERS = [
-  { min:1000, rank:'神', label:'DIOSA',    color:'#E879F9', glow:'rgba(232,121,249,.55)', bg:'linear-gradient(135deg,rgba(232,121,249,.22),rgba(232,121,249,.08))' },
+    { min:1001, rank:'神', label:'DIOSA',    color:'#E879F9', glow:'rgba(232,121,249,.55)', bg:'linear-gradient(135deg,rgba(232,121,249,.22),rgba(232,121,249,.08))' },
+    { min:1000, rank:'神', label:'DIOS',     color:'#60A5FA', glow:'rgba(96,165,250,.50)',  bg:'linear-gradient(135deg,rgba(96,165,250,.20),rgba(96,165,250,.07))'  },
   { min:  30, rank:'SS', label:'MONARCA',  color:'#F97316', glow:'rgba(249,115,22,.35)', bg:'linear-gradient(135deg,rgba(249,115,22,.18),rgba(249,115,22,.06))' },
   { min:  20, rank:'S',  label:'NACIONAL', color:'#F59E0B', glow:'rgba(245,158,11,.35)', bg:'linear-gradient(135deg,rgba(245,158,11,.18),rgba(245,158,11,.06))' },
   { min:  15, rank:'A',  label:'HÉROE',    color:'#EF4444', glow:'rgba(239,68,68,.30)',  bg:'linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06))'  },
@@ -199,42 +200,64 @@ function EditUserModal({
           </div>
         </div>
 
-        {/* DIOSA special button */}
-        {user.level < 1000 ? (
-          <button
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true); setMsg('')
-              try {
-                const delta = 1000 - user.level
-                const res = await adjustUser(user.jid, undefined, delta)
-                onSaved(res.user)
-                setMsg('✓ 🌸 ¡Rango DIOSA otorgado!')
-              } catch (e: unknown) {
-                setMsg('❌ ' + (e instanceof Error ? e.message : 'Error'))
-              }
-              setBusy(false)
-            }}
-            style={{
-              marginTop:10, width:'100%', padding:'12px 0', borderRadius:10,
-              border:'2px solid rgba(253,224,71,.5)',
-              background:'linear-gradient(135deg,rgba(253,224,71,.18),rgba(253,224,71,.06))',
-              color:'#FDE047', fontWeight:800, fontSize:14, cursor:'pointer',
-              letterSpacing:'.06em', boxShadow:'0 0 20px rgba(253,224,71,.25)',
-            }}
-          >🌸 OTORGAR RANGO DIOSA</button>
-        ) : (
-          <div style={{
-            marginTop:10, padding:'10px', borderRadius:10, textAlign:'center',
-            border:'2px solid rgba(253,224,71,.4)',
-            background:'linear-gradient(135deg,rgba(253,224,71,.12),rgba(253,224,71,.04))',
-            color:'#FDE047', fontWeight:800, fontSize:13, letterSpacing:'.04em',
-          }}>
-            🌸 Ya tiene rango DIOSA
+        {/* Divine rank buttons */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:10 }}>
+            {user.level >= 1001 ? (
+              <div style={{
+                padding:'10px 0', borderRadius:10, textAlign:'center',
+                border:'2px solid rgba(232,121,249,.4)',
+                background:'linear-gradient(135deg,rgba(232,121,249,.12),rgba(232,121,249,.04))',
+                color:'#E879F9', fontWeight:800, fontSize:12, letterSpacing:'.03em',
+              }}>🌸 Ya es DIOSA</div>
+            ) : (
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true); setMsg('')
+                  try {
+                    const res = await adjustUser(user.jid, undefined, 1001 - user.level)
+                    onSaved(res.user); setMsg('✓ 🌸 ¡Rango DIOSA otorgado!')
+                  } catch (e: unknown) { setMsg('❌ ' + (e instanceof Error ? e.message : 'Error')) }
+                  setBusy(false)
+                }}
+                style={{
+                  padding:'10px 0', borderRadius:10,
+                  border:'2px solid rgba(232,121,249,.5)',
+                  background:'linear-gradient(135deg,rgba(232,121,249,.18),rgba(232,121,249,.08))',
+                  color:'#E879F9', fontWeight:800, fontSize:12, cursor:'pointer',
+                  letterSpacing:'.03em', boxShadow:'0 0 16px rgba(232,121,249,.2)',
+                }}
+              >🌸 DIOSA</button>
+            )}
+            {user.level >= 1000 ? (
+              <div style={{
+                padding:'10px 0', borderRadius:10, textAlign:'center',
+                border:'2px solid rgba(96,165,250,.4)',
+                background:'linear-gradient(135deg,rgba(96,165,250,.12),rgba(96,165,250,.04))',
+                color:'#60A5FA', fontWeight:800, fontSize:12, letterSpacing:'.03em',
+              }}>🔱 Ya es DIOS</div>
+            ) : (
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true); setMsg('')
+                  try {
+                    const res = await adjustUser(user.jid, undefined, 1000 - user.level)
+                    onSaved(res.user); setMsg('✓ 🔱 ¡Rango DIOS otorgado!')
+                  } catch (e: unknown) { setMsg('❌ ' + (e instanceof Error ? e.message : 'Error')) }
+                  setBusy(false)
+                }}
+                style={{
+                  padding:'10px 0', borderRadius:10,
+                  border:'2px solid rgba(96,165,250,.5)',
+                  background:'linear-gradient(135deg,rgba(96,165,250,.18),rgba(96,165,250,.08))',
+                  color:'#60A5FA', fontWeight:800, fontSize:12, cursor:'pointer',
+                  letterSpacing:'.03em', boxShadow:'0 0 16px rgba(96,165,250,.2)',
+                }}
+              >🔱 DIOS</button>
+            )}
           </div>
-        )}
-
-        {/* Feedback */}
+                  {/* Feedback */}
         {msg && (
           <div style={{
             marginTop:10, padding:'8px 12px', borderRadius:8,
