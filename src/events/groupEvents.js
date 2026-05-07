@@ -44,8 +44,8 @@ const config = require("../config/config");
   // ── Registrar ingreso en recentJoins (historial de 30 días) ──────────────────
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
-  function recordJoin(groupJid, participantJid) {
-    const group = db.getGroup(groupJid);
+  async function recordJoin(groupJid, participantJid) {
+    const group = await db.getGroup(groupJid);
     const recentJoins = group.recentJoins || {};
     recentJoins[participantJid] = Date.now();
 
@@ -55,18 +55,18 @@ const config = require("../config/config");
       if (recentJoins[jid] < cutoff) delete recentJoins[jid];
     }
 
-    db.updateGroup(groupJid, { recentJoins });
+    await db.updateGroup(groupJid, { recentJoins });
   }
 
   function handleGroupEvents(sock) {
     sock.ev.on("group-participants.update", async ({ id, participants, action }) => {
       try {
-        const group = db.getGroup(id);
+        const group = await db.getGroup(id);
 
         if (action === "add") {
           const botWasAdded = participants.some((p) => isBotJid(sock, p));
           if (botWasAdded) {
-            db.updateGroup(id, { botJoinedAt: Date.now() });
+            await db.updateGroup(id, { botJoinedAt: Date.now() });
             logger.info(`🤖 Bot agregado al grupo ${id}. Empieza a observar desde ahora.`);
           }
 
@@ -74,10 +74,10 @@ const config = require("../config/config");
             if (isBotJid(sock, participant)) continue;
 
             // Registrar fecha de ingreso (para comando !nuevos)
-            recordJoin(id, participant);
+            await recordJoin(id, participant);
 
             // Registrar como pendiente — tiene 24h para mandar su ficha
-            db.addPending(id, participant);
+            await db.addPending(id, participant);
             logger.info(`📋 Pendiente de ficha: ${participant.split("@")[0]} — 24h para presentarse`);
 
             if (!group.welcome) continue;
@@ -96,8 +96,8 @@ const config = require("../config/config");
 
         } else if (action === "remove") {
           for (const participant of participants) {
-            if (db.isPending(id, participant)) {
-              db.removePending(id, participant);
+            if (await db.isPending(id, participant)) {
+              await db.removePending(id, participant);
             }
             if (isBotJid(sock, participant)) continue;
             if (!group.welcome) continue;
