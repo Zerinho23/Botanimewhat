@@ -1,146 +1,179 @@
-const fs = require("fs");
-const path = require("path");
-const { scheduleDbBackup } = require("../utils/dbBackup");
+'use strict';
+const { Pool } = require('pg');
 
-const DB_DIR = path.join(__dirname, "data");
-const USERS_FILE   = path.join(DB_DIR, "users.json");
-const GROUPS_FILE  = path.join(DB_DIR, "groups.json");
-const WAIFUS_FILE  = path.join(DB_DIR, "waifus.json");
-const PENDING_FILE = path.join(DB_DIR, "pending.json");
+let logger;
+try { logger = require('../utils/logger'); } catch (_) { logger = { info: console.log, error: console.error, warn: console.warn }; }
 
-if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
-function load(file, defaultValue = {}) {
-  try {
-    if (!fs.existsSync(file)) { fs.writeFileSync(file, JSON.stringify(defaultValue, null, 2)); return defaultValue; }
-    const raw = fs.readFileSync(file, "utf-8");
-    return JSON.parse(raw || "{}");
-  } catch (err) { console.error(`Error cargando ${file}:`, err.message); return defaultValue; }
+pool.on('error', (err) => {
+  logger.error(`PostgreSQL pool error: ${err.message}`);
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      jid TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS groups (
+      jid TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS pending (
+      group_jid TEXT NOT NULL,
+      user_jid  TEXT NOT NULL,
+      joined_at BIGINT NOT NULL,
+      deadline  BIGINT NOT NULL,
+      PRIMARY KEY (group_jid, user_jid)
+    );
+  `);
+  logger.info('✓ PostgreSQL: tablas inicializadas');
 }
 
-function save(file, data) {
-  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); scheduleDbBackup(DB_DIR); }
-  catch (err) { console.error(`Error guardando ${file}:`, err.message); }
+// ── USUARIOS ─────────────────────────────────────────────────────────────────
+
+function defaultUser(jid) {
+  return {
+    jid, name: '', xp: 0, level: 1, coins: 0,
+    messages: 0, commands: 0, waifus: [], lastDaily: 0, createdAt: Date.now(),
+  };
 }
 
-let users   = load(USERS_FILE, {});
-let groups  = load(GROUPS_FILE, {});
-let waifus  = load(WAIFUS_FILE, {});
-let pending = load(PENDING_FILE, {});
-
-function reload() {
-  users   = load(USERS_FILE, {});
-  groups  = load(GROUPS_FILE, {});
-  waifus  = load(WAIFUS_FILE, {});
-  pending = load(PENDING_FILE, {});
+async function getUser(jid) {
+  const { rows } = await pool.query('SELECT data FROM users WHERE jid = $1', [jid]);
+  if (rows.length) return rows[0].data;
+  const u = defaultUser(jid);
+  await pool.query(
+    'INSERT INTO users (jid, data) VALUES ($1, $2) ON CONFLICT (jid) DO NOTHING',
+    [jid, u]
+  );
+  return u;
 }
 
-// ── USUARIOS ──────────────────────────────────────────────────────────────────
-function getUser(jid) {
-  if (!users[jid]) {
-    users[jid] = {
-      jid,
-      name: "",
-      xp: 0,
-      level: 1,
-      coins: 0,
-      messages: 0,
-      commands: 0,
-      waifus: [],
-      lastDaily: 0,
-      createdAt: Date.now(),
-    };
-    save(USERS_FILE, users);
-  }
-  return users[jid];
+async function updateUser(jid, patch) {
+  const current = await getUser(jid);
+  const updated = { ...current, ...patch };
+  await pool.query(
+    'INSERT INTO users (jid, data) VALUES ($1, $2) ON CONFLICT (jid) DO UPDATE SET data = EXCLUDED.data',
+    [jid, updated]
+  );
+  return updated;
 }
 
-function updateUser(jid, data) {
-  users[jid] = { ...getUser(jid), ...data };
-  save(USERS_FILE, users);
-  return users[jid];
+async function getAllUsers() {
+  const { rows } = await pool.query("SELECT data FROM users ORDER BY (data->>'xp')::int DESC NULLS LAST");
+  return rows.map(r => r.data);
 }
 
-// ── GRUPOS ────────────────────────────────────────────────────────────────────
-function getGroup(jid) {
-  if (!groups[jid]) {
-    const now = Date.now();
-    groups[jid] = {
-      jid,
-      name: "",
-      antiSpam: true,
-      antiLink: false,
-      welcome: true,
-      mutedUsers: [],
-      warnings: {},
-      messageLog: {},
-      lastMessageAt: {},
-      botJoinedAt: now,
-      createdAt: now,
-    };
-    save(GROUPS_FILE, groups);
-  }
-  return groups[jid];
-}
+// ── GRUPOS ───────────────────────────────────────────────────────────────────
 
-function updateGroup(jid, data) {
-  groups[jid] = { ...getGroup(jid), ...data };
-  save(GROUPS_FILE, groups);
-  return groups[jid];
-}
-
-function getAllUsers() { return Object.values(users); }
-function getAllGroups() { return Object.values(groups); }
-
-// ── WAIFUS ────────────────────────────────────────────────────────────────────
-function getWaifuOwners() { return waifus; }
-
-function assignWaifu(userJid, waifu) {
-  const user = getUser(userJid);
-  user.waifus.push(waifu);
-  updateUser(userJid, { waifus: user.waifus });
-}
-
-// ── PENDIENTES ────────────────────────────────────────────────────────────────
-const DEADLINE_MS = 24 * 60 * 60 * 1000;
-
-function addPending(groupJid, userJid) {
-  if (!pending[groupJid]) pending[groupJid] = {};
+function defaultGroup(jid) {
   const now = Date.now();
-  pending[groupJid][userJid] = { joinedAt: now, deadline: now + DEADLINE_MS };
-  save(PENDING_FILE, pending);
+  return {
+    jid, name: '', antiSpam: true, antiLink: false, welcome: true, botEnabled: true,
+    mutedUsers: [], warnings: {}, messageLog: {}, lastMessageAt: {}, stickerLog: {},
+    recentJoins: {}, botJoinedAt: now, lastPurga: null, createdAt: now,
+  };
 }
 
-function removePending(groupJid, userJid) {
-  if (!pending[groupJid]) return;
-  delete pending[groupJid][userJid];
-  if (Object.keys(pending[groupJid]).length === 0) delete pending[groupJid];
-  save(PENDING_FILE, pending);
+async function getGroup(jid) {
+  const { rows } = await pool.query('SELECT data FROM groups WHERE jid = $1', [jid]);
+  if (rows.length) return rows[0].data;
+  const g = defaultGroup(jid);
+  await pool.query(
+    'INSERT INTO groups (jid, data) VALUES ($1, $2) ON CONFLICT (jid) DO NOTHING',
+    [jid, g]
+  );
+  return g;
 }
 
-function isPending(groupJid, userJid) { return !!(pending[groupJid] && pending[groupJid][userJid]); }
+async function updateGroup(jid, patch) {
+  const current = await getGroup(jid);
+  const updated = { ...current, ...patch };
+  await pool.query(
+    'INSERT INTO groups (jid, data) VALUES ($1, $2) ON CONFLICT (jid) DO UPDATE SET data = EXCLUDED.data',
+    [jid, updated]
+  );
+  return updated;
+}
 
-function getExpiredPending() {
-  const now = Date.now(), expired = [];
-  for (const groupJid of Object.keys(pending)) {
-    for (const userJid of Object.keys(pending[groupJid])) {
-      if (pending[groupJid][userJid].deadline <= now) expired.push({ groupJid, userJid, deadline: pending[groupJid][userJid].deadline });
-    }
+async function deleteGroup(jid) {
+  await pool.query('DELETE FROM groups WHERE jid = $1', [jid]);
+}
+
+async function getAllGroups() {
+  const { rows } = await pool.query('SELECT data FROM groups');
+  return rows.map(r => r.data);
+}
+
+// ── WAIFUS ───────────────────────────────────────────────────────────────────
+
+async function getWaifuOwners() {
+  const { rows } = await pool.query(
+    "SELECT data FROM users WHERE jsonb_array_length(data->'waifus') > 0"
+  );
+  return rows.map(r => ({ jid: r.data.jid, waifus: r.data.waifus }));
+}
+
+async function assignWaifu(userJid, waifu) {
+  const user = await getUser(userJid);
+  const waifus = user.waifus || [];
+  waifus.push(waifu);
+  return updateUser(userJid, { waifus });
+}
+
+// ── PENDIENTES ───────────────────────────────────────────────────────────────
+
+async function addPending(groupJid, userJid) {
+  const joinedAt = Date.now();
+  const deadline = joinedAt + 24 * 60 * 60 * 1000;
+  await pool.query(
+    'INSERT INTO pending (group_jid, user_jid, joined_at, deadline) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+    [groupJid, userJid, joinedAt, deadline]
+  );
+}
+
+async function removePending(groupJid, userJid) {
+  await pool.query('DELETE FROM pending WHERE group_jid = $1 AND user_jid = $2', [groupJid, userJid]);
+}
+
+async function isPending(groupJid, userJid) {
+  const { rows } = await pool.query(
+    'SELECT 1 FROM pending WHERE group_jid = $1 AND user_jid = $2',
+    [groupJid, userJid]
+  );
+  return rows.length > 0;
+}
+
+async function getExpiredPending() {
+  const { rows } = await pool.query(
+    'SELECT group_jid, user_jid FROM pending WHERE deadline <= $1',
+    [Date.now()]
+  );
+  return rows.map(r => ({ groupJid: r.group_jid, userJid: r.user_jid }));
+}
+
+async function removePendingBulk(entries) {
+  for (const { groupJid, userJid } of entries) {
+    await removePending(groupJid, userJid);
   }
-  return expired;
 }
 
-function deleteGroup(jid) {
-    if (groups[jid]) {
-      delete groups[jid];
-      save(GROUPS_FILE, groups);
-    }
-  }
-
-  function removePendingBulk(entries) { for (const { groupJid, userJid } of entries) removePending(groupJid, userJid); }
+// ── No-op para compatibilidad ─────────────────────────────────────────────────
+function reload() {}
 
 module.exports = {
-  getUser, updateUser, getGroup, updateGroup, deleteGroup, getAllUsers, getAllGroups,
-  getWaifuOwners, assignWaifu, reload,
+  initDB, pool,
+  getUser, updateUser, getAllUsers,
+  getGroup, updateGroup, deleteGroup, getAllGroups,
+  getWaifuOwners, assignWaifu,
   addPending, removePending, isPending, getExpiredPending, removePendingBulk,
+  reload,
 };
