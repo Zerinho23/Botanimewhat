@@ -87,16 +87,16 @@ function formatWaifu(character, owner) {
 }
 
 function _getRankLabel(level) {
-  if (level >= 1001) return "🌸 DIOSA [神]";
-  if (level >= 1000) return "🔱 DIOS [神]";
-  if (level >= 30)   return "🔥 MONARCA [SS]";
-  if (level >= 20)   return "⭐ NACIONAL [S]";
-  if (level >= 15)   return "🛡️ HÉROE [A]";
-  if (level >= 10)   return "💜 AVANZADO [B]";
-  if (level >= 5)    return "💙 INTER. [C]";
-  if (level >= 1)    return "💚 NOVATO [D]";
-  return "⬛ RANGO E";
-}
+    if (level >= 1001) return "🌸 DIOSA [神]";
+    if (level >= 1000) return "🔱 DIOS [神]";
+    if (level >= 30)   return "🔥 MONARCA [SS]";
+    if (level >= 20)   return "⚡ ÉLITE [S]";
+    if (level >= 15)   return "🗡️ CAZADOR [A]";
+    if (level >= 10)   return "⚔️ GUERRERO [B]";
+    if (level >= 5)    return "🧭 EXPLORADOR [C]";
+    if (level >= 1)    return "📖 APRENDIZ [D]";
+    return "🌱 NOVATO [E]";
+  }
 
 function formatProfile(user, name) {
   const nextLevel = _xpForNextLevel(user.level);
