@@ -407,8 +407,9 @@ function renderDashboard() {
     <div class="mb14"><label class="fl">TEXTO A ENVIAR</label><textarea class="ta" id="bc-msg" rows="4" placeholder="Escribe el mensaje para todos los grupos..."></textarea></div>
     <div class="mb14">
       <label class="fl">GRUPOS DESTINO</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label class="tog"><input type="checkbox" id="bc-all" onchange="toggleBcAll(this.checked)" checked><div class="trk"><div class="tth"></div></div><div style="font-size:13px;color:var(--tx);font-weight:500">Todos los grupos</div></label>
+        <span id="bc-count" style="font-size:11px;color:var(--tx3);font-family:'Share Tech Mono',monospace">cargando...</span>
       </div>
       <select class="sel" id="bc-group" style="display:none" multiple>
         <option value="">Cargando...</option>
@@ -608,18 +609,21 @@ async function loadGroups(){
   const el=document.getElementById('groups-list');el.innerHTML='<div class="empty"><span class="spin"></span></div>';
   try{
     const groups=await api('/api/groups');
-    if(!groups.length){el.innerHTML='<div class="empty"><div class="empty-i">◆</div>SIN GRUPOS</div>';return;}
+    if(!groups.length){el.innerHTML='<div class="empty"><div class="empty-i">◆</div>SIN GRUPOS REGISTRADOS<div style="font-size:11px;margin-top:6px;color:var(--tx3)">Los grupos aparecen cuando el bot recibe un mensaje.</div></div>';return;}
     el.innerHTML=groups.map(g=>{
       const name=g.name||g.jid.split('@')[0];const num=g.jid.split('@')[0];
-      return \`<div class="gcard">
+      const botOn=g.botEnabled!==false;
+      const members=g.memberCount?` · ${g.memberCount} miembros`:'';
+      return \`<div class="gcard" style="border-left:3px solid \${botOn?'var(--gr)':'var(--rd)'};transition:border-color .3s" id="gc-\${num}">
         <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
             <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:.03em;color:#fff">\${name}</div>
-            \${g.name?'<div style="font-size:11px;color:var(--tx3);font-family:Share Tech Mono,monospace;margin-top:2px">+\${num}</div>':''}
+            <div style="font-size:11px;color:var(--tx3);font-family:Share Tech Mono,monospace;margin-top:2px">+\${num}\${members}</div>
           </div>
-          <span style="font-size:9px;color:var(--tx3);font-family:Share Tech Mono,monospace;white-space:nowrap">◆ DUNGEON</span>
+          <span id="gc-pill-\${num}" style="font-size:9px;font-family:Share Tech Mono,monospace;padding:3px 8px;border-radius:4px;background:\${botOn?'rgba(0,255,136,.15)':'rgba(255,60,60,.15)'};color:\${botOn?'var(--gr)':'var(--rd)'};">\${botOn?'⬡ BOT ON':'⬡ BOT OFF'}</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:18px">
+          <label class="tog"><input type="checkbox" \${botOn?'checked':''} onchange="updateGroup('\${g.jid}','botEnabled',this.checked,'\${num}')"><div class="trk"><div class="tth"></div></div><div style="font-size:12px;font-weight:700;color:\${botOn?'var(--gr)':'var(--rd)'}">BOT ACTIVO</div></label>
           <label class="tog"><input type="checkbox" \${g.antiLink?'checked':''} onchange="updateGroup('\${g.jid}','antiLink',this.checked)"><div class="trk"><div class="tth"></div></div><div style="font-size:12px;color:var(--tx);font-weight:500">ANTI-LINK</div></label>
           <label class="tog"><input type="checkbox" \${g.antiSpam!==false?'checked':''} onchange="updateGroup('\${g.jid}','antiSpam',this.checked)"><div class="trk"><div class="tth"></div></div><div style="font-size:12px;color:var(--tx);font-weight:500">ANTI-SPAM</div></label>
           <label class="tog"><input type="checkbox" \${g.welcome!==false?'checked':''} onchange="updateGroup('\${g.jid}','welcome',this.checked)"><div class="trk"><div class="tth"></div></div><div style="font-size:12px;color:var(--tx);font-weight:500">BIENVENIDA</div></label>
@@ -628,8 +632,18 @@ async function loadGroups(){
     }).join('');
   }catch(e){el.innerHTML=\`<div class="empty"><div class="empty-i">⚠</div>\${e.message}</div>\`;}
 }
-async function updateGroup(jid,key,val){
-  try{await api('/api/groups/'+encodeURIComponent(jid),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({[key]:val})});toast(key+(val?' ACTIVADO':' DESACTIVADO'));}catch(e){toast(e.message,false);}
+async function updateGroup(jid,key,val,numId){
+  try{
+    await api('/api/groups/'+encodeURIComponent(jid),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({[key]:val})});
+    const label=key==='botEnabled'?(val?'BOT ACTIVADO':'BOT DESACTIVADO'):key+(val?' ACTIVADO':' DESACTIVADO');
+    toast(label,val!==false);
+    if(key==='botEnabled'&&numId){
+      const card=document.getElementById('gc-'+numId);
+      const pill=document.getElementById('gc-pill-'+numId);
+      if(card)card.style.borderLeftColor=val?'var(--gr)':'var(--rd)';
+      if(pill){pill.style.background=val?'rgba(0,255,136,.15)':'rgba(255,60,60,.15)';pill.style.color=val?'var(--gr)':'var(--rd)';pill.textContent=val?'⬡ BOT ON':'⬡ BOT OFF';}
+    }
+  }catch(e){toast(e.message,false);}
 }
 
 // ── Hunters ───────────────────────────────────────────────────────────────────
@@ -841,12 +855,16 @@ async function loadModHistory(){
 }
 
 // ── Broadcast ─────────────────────────────────────────────────────────────────
+let _bcGroups=[];
 async function loadBcGroups(){
   try{
     const groups=await api('/api/groups');
+    _bcGroups=groups.filter(g=>g.botEnabled!==false);
     const sel=document.getElementById('bc-group');
-    sel.innerHTML=groups.map(g=>\`<option value="\${g.jid}">\${g.name||g.jid.split('@')[0]}</option>\`).join('');
-  }catch{}
+    sel.innerHTML=_bcGroups.map(g=>\`<option value="\${g.jid}">\${g.name||'+'+g.jid.split('@')[0]}</option>\`).join('');
+    const cnt=document.getElementById('bc-count');
+    if(cnt)cnt.textContent=\`\${_bcGroups.length} grupo\${_bcGroups.length!==1?'s':''} con bot activo\`;
+  }catch(e){const cnt=document.getElementById('bc-count');if(cnt)cnt.textContent='Error cargando grupos';}
 }
 
 function toggleBcAll(all){
@@ -859,16 +877,23 @@ async function sendBroadcast(){
   const allGroups=document.getElementById('bc-all')?.checked;
   const groupSel=document.getElementById('bc-group');
   const targets=allGroups?[]:Array.from(groupSel.selectedOptions).map(o=>o.value);
+  if(!allGroups&&!targets.length){toast('Selecciona al menos un grupo',false);return;}
+  if(allGroups&&!_bcGroups.length){toast('No hay grupos con el bot activo',false);return;}
   const btn=document.getElementById('bc-btn');const result=document.getElementById('bc-result');
-  btn.disabled=true;btn.textContent='ENVIANDO...';result.textContent='';
+  btn.disabled=true;btn.textContent='⏳ ENVIANDO...';result.textContent='Conectando con Railway...';
   try{
     const r=await api('/api/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,groups:allGroups?null:targets})});
-    toast(\`ENVIADO A \${r.sent} GRUPOS\`);
-    result.textContent=\`// \${r.sent} enviados, \${r.failed} fallidos\`;
-    _bcHistory.unshift({msg:msg.slice(0,60)+(msg.length>60?'...':''),sent:r.sent,failed:r.failed,ts:Date.now()});
-    renderBcHistory();
-    document.getElementById('bc-msg').value='';
-  }catch(e){toast(e.message,false);result.textContent='ERROR: '+e.message;}
+    if(r.sent===0){
+      toast('Sin grupos destino — verifica que el bot esté activo en algún grupo',false);
+      result.textContent=\`// 0 enviados\${r.failed?' · '+r.failed+' fallidos':''}\`;
+    }else{
+      toast(\`✓ ENVIADO A \${r.sent} GRUPOS\`);
+      result.textContent=\`// \${r.sent} enviados\${r.failed?' · '+r.failed+' fallidos':''}\`;
+      _bcHistory.unshift({msg:msg.slice(0,60)+(msg.length>60?'...':''),sent:r.sent,failed:r.failed,ts:Date.now()});
+      renderBcHistory();
+      document.getElementById('bc-msg').value='';
+    }
+  }catch(e){toast(e.message||'Error de conexión con el bot',false);result.textContent='// ERROR: '+(e.message||'bot desconectado');}
   btn.disabled=false;btn.textContent='📡 ENVIAR BROADCAST';
 }
 
@@ -1198,9 +1223,13 @@ function startWebServer(port) {
     if(!message?.trim()) return res.status(400).json({error:"Mensaje vacío"});
     let groups=[];
     try{
-      const db=require("../database/db");const allGrps=await db.getAllGroups();groups=allGrps.map(g=>g.jid);
-    }catch{}
+      const db=require("../database/db");
+      const allGrps=await db.getAllGroups();
+      // Solo grupos con bot activo
+      groups=allGrps.filter(g=>g.botEnabled!==false).map(g=>g.jid);
+    }catch(dbErr){return res.status(500).json({error:"Error leyendo grupos: "+dbErr.message});}
     if(targetGroups?.length) groups=groups.filter(jid=>targetGroups.includes(jid));
+    if(!groups.length) return res.json({ok:true,sent:0,failed:0,info:"Sin grupos destino"});
     let sent=0,failed=0;
     for(const jid of groups){
       try{await state.sock.sendMessage(jid,{text:message});sent++;await new Promise(r=>setTimeout(r,800));}
