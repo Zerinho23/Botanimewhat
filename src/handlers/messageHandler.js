@@ -95,26 +95,31 @@ async function handleDinamicaAnswer(sock, msg, from, sender, text) {
   const winnerUser = await db.getUser(winner);
   await db.updateUser(winner, { coins: (winnerUser.coins || 0) + reward });
 
-  const typeLabels = { trivia: "la trivia", adivina: "adivinar el anime", personaje: "adivinar el personaje" };
-  const label = typeLabels[game.type] || "la dinámica";
+  const typeIcons = { trivia: "🎮 Trivia", adivina: "🎯 Adivina el anime", personaje: "🧩 Adivina el personaje" };
+  const typeLabel = typeIcons[game.type] || "🎮 Dinámica";
+  const newBalance = (winnerUser.coins || 0) + reward;
 
-  let replyText = [
-    `${config.emojis.sparkles} *¡@${winner.split("@")[0]} ganó ${label}!* ${config.emojis.sparkles}`,
+  const replyText = [
+    `🏆 *¡@${winner.split("@")[0]} acertó!*`,
+    `━━━━━━━━━━━━━━━━━━━━`,
     ``,
-    `${config.emojis.coin} *+${reward} monedas* agregadas a tu cuenta`,
-    `💰 Saldo total: *${(winnerUser.coins || 0) + reward} monedas*`,
+    `${typeLabel}  ·  💰 *+${reward} monedas*`,
+    `💳 Saldo: *${newBalance} monedas*`,
   ];
 
   if (game.type === "adivina" && result.anime) {
-    replyText.push(``, `✅ El anime era: *${result.anime.title}*`);
-  } else if (game.type === "personaje" && result.character) {
-    replyText.push(``, `✅ El personaje era: *${result.character.name}*`);
+    replyText.push(``, `✅ Era: *${result.anime.title}*`);
+  } else if (game.type === "personaje") {
+    const charName = result.character?.name || game.character?.name;
+    if (charName) replyText.push(``, `✅ Era: *${charName}*`);
   } else if (game.type === "trivia") {
-    const correctOpt = game.question?.opts?.find((o) => o.startsWith(game.question.correct));
-    if (correctOpt) replyText.push(``, `✅ Respuesta correcta: *${correctOpt}*`);
+    const LETTERS = ["A", "B", "C", "D"];
+    const idx = LETTERS.indexOf(game.question?.correct);
+    const correctOpt = idx >= 0 ? game.question.opts[idx] : null;
+    if (correctOpt) replyText.push(``, `✅ *${game.question.correct}) ${correctOpt}*`);
   }
 
-  replyText.push(``, `_Usa *${config.prefix}dinamica* para jugar de nuevo._`);
+  replyText.push(``, `_Usa *${config.prefix}dinamica* para volver a jugar_`);
 
   await sock.sendMessage(from, {
     text: replyText.join("\n"),
