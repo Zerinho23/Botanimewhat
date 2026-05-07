@@ -64,11 +64,11 @@ async function checkAntiSpam(sock, msg, group, sender, from) {
       });
       logger.warn(`Spam detectado de ${sender} en ${from}`);
     } catch {}
-    db.updateGroup(from, { messageLog: group.messageLog });
+    await db.updateGroup(from, { messageLog: group.messageLog });
     return true;
   }
 
-  db.updateGroup(from, { messageLog: group.messageLog });
+  await db.updateGroup(from, { messageLog: group.messageLog });
   return false;
 }
 
@@ -90,7 +90,7 @@ async function checkStickerSpam(sock, msg, group, sender, from) {
 
   if (count > MAX_STICKERS) {
     if (await isAdmin(sock, from, sender)) {
-      db.updateGroup(from, { stickerLog: group.stickerLog });
+      await db.updateGroup(from, { stickerLog: group.stickerLog });
       return false;
     }
     try {
@@ -108,11 +108,11 @@ async function checkStickerSpam(sock, msg, group, sender, from) {
       }
       logger.warn(`Sticker spam: ${sender.split("@")[0]} envió ${count} stickers en ${from}`);
     } catch {}
-    db.updateGroup(from, { stickerLog: group.stickerLog });
+    await db.updateGroup(from, { stickerLog: group.stickerLog });
     return true;
   }
 
-  db.updateGroup(from, { stickerLog: group.stickerLog });
+  await db.updateGroup(from, { stickerLog: group.stickerLog });
   return false;
 }
 
