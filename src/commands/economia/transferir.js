@@ -27,16 +27,16 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    const giver = db.getUser(sender);
+    const giver = await db.getUser(sender);
     if ((giver.coins || 0) < amount) {
       return sock.sendMessage(from, {
         text: `${config.emojis.error} No tienes suficientes monedas. Tienes *${giver.coins || 0}* ${config.emojis.coin}`,
       }, { quoted: msg });
     }
 
-    const receiver = db.getUser(mentioned);
-    db.updateUser(sender, { coins: giver.coins - amount });
-    db.updateUser(mentioned, { coins: (receiver.coins || 0) + amount });
+    const receiver = await db.getUser(mentioned);
+    await db.updateUser(sender, { coins: giver.coins - amount });
+    await db.updateUser(mentioned, { coins: (receiver.coins || 0) + amount });
 
     const lines = [
       `${config.emojis.success} *¡Transferencia exitosa!*`,
