@@ -32,7 +32,7 @@ module.exports = {
   description: `Obtén una waifu aleatoria por ${WAIFU_COST} monedas`,
   aliases: ["gacha"],
   async execute({ sock, msg, sender, from }) {
-    const user = db.getUser(sender);
+    const user = await db.getUser(sender);
     if ((user.coins || 0) < WAIFU_COST) {
       return sock.sendMessage(from, {
         text: `${config.emojis.error} Necesitas *${WAIFU_COST}* ${config.emojis.coin} para invocar una waifu.\n\nTienes *${user.coins || 0}* monedas.\n\n_Usa *${config.prefix}daily* para ganar monedas._`,
@@ -40,7 +40,7 @@ module.exports = {
     }
 
     // Descontar monedas primero
-    db.updateUser(sender, { coins: user.coins - WAIFU_COST });
+    await db.updateUser(sender, { coins: user.coins - WAIFU_COST });
 
     let imageUrl = null;
     try {
@@ -51,10 +51,10 @@ module.exports = {
     const name = randomWaifuName();
     const waifuEntry = { name, rarity, obtainedAt: Date.now(), imageUrl };
 
-    const updatedUser = db.getUser(sender);
+    const updatedUser = await db.getUser(sender);
     const waifus = updatedUser.waifus || [];
     waifus.push(waifuEntry);
-    db.updateUser(sender, { waifus });
+    await db.updateUser(sender, { waifus });
 
     const lines = [
       `${config.emojis.heart} *¡Nueva waifu obtenida!*`,
