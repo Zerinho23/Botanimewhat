@@ -27,11 +27,11 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    const group = db.getGroup(from);
+    const group = await db.getGroup(from);
     if (!group.mutedUsers) group.mutedUsers = [];
     if (group.mutedUsers.includes(target)) {
       group.mutedUsers = group.mutedUsers.filter((u) => u !== target);
-      db.updateGroup(from, { mutedUsers: group.mutedUsers });
+      await db.updateGroup(from, { mutedUsers: group.mutedUsers });
       await sock.sendMessage(from, {
         text: `${config.emojis.success} @${target.split("@")[0]} ya puede hablar.`,
         mentions: [target],
@@ -39,7 +39,7 @@ module.exports = {
       logger.info(`Unmute: ${target} en ${from}`);
     } else {
       group.mutedUsers.push(target);
-      db.updateGroup(from, { mutedUsers: group.mutedUsers });
+      await db.updateGroup(from, { mutedUsers: group.mutedUsers });
       await sock.sendMessage(from, {
         text: `${config.emojis.warning} @${target.split("@")[0]} ha sido silenciado. Usa *${config.prefix}mute* otra vez para liberarlo.`,
         mentions: [target],
