@@ -40,14 +40,14 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
     const cooldownMs = (config.level.xpCooldownSeconds ?? 30) * 1000;
     const last = xpCooldowns.get(userJid) || 0;
     if (Date.now() - last < cooldownMs) {
-      const u = db.getUser(userJid);
+      const u = await db.getUser(userJid);
       u.messages += 1;
-      db.updateUser(userJid, u);
+      await db.updateUser(userJid, u);
       return;
     }
     xpCooldowns.set(userJid, Date.now());
   }
-  const user = db.getUser(userJid);
+  const user = await db.getUser(userJid);
   const xpGain = isCommand ? config.level.xpPerCommand : config.level.xpPerMessage;
   user.xp += xpGain;
   user.messages += isCommand ? 0 : 1;
@@ -55,7 +55,7 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
   let leveledUp = false;
   let required = user.level * config.level.levelMultiplier;
   while (user.xp >= required) { user.xp -= required; user.level += 1; leveledUp = true; required = user.level * config.level.levelMultiplier; }
-  db.updateUser(userJid, user);
+  await db.updateUser(userJid, user);
   if (leveledUp && groupJid) {
     await sock.sendMessage(groupJid, {
       text: `${config.emojis.sparkles} ¡@${userJid.split("@")[0]} subió al *nivel ${user.level}*! ${config.emojis.fire}`,
@@ -65,7 +65,7 @@ async function awardXp(sock, userJid, groupJid, isCommand) {
 }
 
 // ── Otorgar monedas ───────────────────────────────────────────────────────────
-function awardCoins(userJid, isCommand) {
+async function awardCoins(userJid, isCommand) {
   if (!config.economy?.enabled) return;
   if (!isCommand) {
     const cooldownMs = (config.economy.coinCooldownSeconds ?? 30) * 1000;
@@ -76,8 +76,8 @@ function awardCoins(userJid, isCommand) {
   const gain = isCommand
     ? (config.economy.coinsPerCommand ?? 5)
     : (config.economy.coinsPerMessage ?? 2);
-  const user = db.getUser(userJid);
-  db.updateUser(userJid, { coins: (user.coins || 0) + gain });
+  const user = await db.getUser(userJid);
+  await db.updateUser(userJid, { coins: (user.coins || 0) + gain });
 }
 
 // ── Manejar respuesta a una dinámica activa ───────────────────────────────────
@@ -92,8 +92,8 @@ async function handleDinamicaAnswer(sock, msg, from, sender, text) {
   endGame(from);
 
   const { winner, reward } = result;
-  const winnerUser = db.getUser(winner);
-  db.updateUser(winner, { coins: (winnerUser.coins || 0) + reward });
+  const winnerUser = await db.getUser(winner);
+  await db.updateUser(winner, { coins: (winnerUser.coins || 0) + reward });
 
   const typeLabels = { trivia: "la trivia", adivina: "adivinar el anime", personaje: "adivinar el personaje" };
   const label = typeLabels[game.type] || "la dinámica";
@@ -141,8 +141,8 @@ async function handleMessages(sock, { messages }) {
       // ── Guardar nombre del usuario ────────────────────────────────
       if (msg.pushName && !msg.key.fromMe) {
         try {
-          const u = db.getUser(sender);
-          if (u.name !== msg.pushName) db.updateUser(sender, { name: msg.pushName });
+          const u = await db.getUser(sender);
+          if (u.name !== msg.pushName) await db.updateUser(sender, { name: msg.pushName });
         } catch (_) {}
       }
 
@@ -163,7 +163,7 @@ async function handleMessages(sock, { messages }) {
 
       if (msg.message?.stickerMessage) {
         if (isGroup && !msg.key.fromMe) {
-          const group = db.getGroup(from);
+          const group = await db.getGroup(from);
           if (config.antiSpam.enabled && group.antiSpam) await checkStickerSpam(sock, msg, group, sender, from);
         }
         continue;
@@ -175,7 +175,7 @@ async function handleMessages(sock, { messages }) {
 
       // ── Grupos con bot desactivado ────────────────────────────────
       if (isGroup) {
-        const _g = db.getGroup(from);
+        const _g = await db.getGroup(from);
         if (_g.botEnabled === false) continue;
       }
 
@@ -198,13 +198,13 @@ async function handleMessages(sock, { messages }) {
         if (answered) {
           // También damos XP y monedas al ganador por haber participado
           await awardXp(sock, sender, from, false);
-          awardCoins(sender, false);
+          awardCoins(sender, false).catch(() => {});
           continue;
         }
       }
 
       if (isGroup) {
-        const group = db.getGroup(from);
+        const group = await db.getGroup(from);
         if (group.mutedUsers?.includes(sender)) {
           try { await sock.sendMessage(from, { delete: msg.key }); } catch {}
           continue;
@@ -215,10 +215,10 @@ async function handleMessages(sock, { messages }) {
         if (config.antiSpam.deleteLinks && group.antiLink) {
           if (await checkAntiLink(sock, msg, text, sender, from)) continue;
         }
-        if (!msg.key.fromMe && db.isPending(from, sender) && isFichaRellena(text)) {
+        if (!msg.key.fromMe && await db.isPending(from, sender) && isFichaRellena(text)) {
           try {
             await sock.sendMessage(from, { react: { text: "✅", key: msg.key } });
-            db.removePending(from, sender);
+            await db.removePending(from, sender);
             logger.info(`✅ Ficha de ${sender.split("@")[0]}`);
             await sock.sendMessage(from, {
               text: `✅ ¡Gracias por presentarte, @${sender.split("@")[0]}! 🎉\nYa formas parte oficial del grupo ${config.emojis.cherry}\nUsa *${config.prefix}help* para ver todo lo que puedes hacer 🌸`,
@@ -226,20 +226,20 @@ async function handleMessages(sock, { messages }) {
             });
           } catch (err) { logger.error(`Error aprobando ficha: ${err.message}`); }
           await awardXp(sock, sender, from, false);
-          awardCoins(sender, false);
+          awardCoins(sender, false).catch(() => {});
           continue;
         }
         try {
           const lastMessageAt = group.lastMessageAt || {};
           lastMessageAt[sender] = Date.now();
-          db.updateGroup(from, { lastMessageAt });
+          await db.updateGroup(from, { lastMessageAt });
         } catch (_) {}
       }
 
       const isCommand = text.startsWith(config.prefix);
       if (!isCommand) {
         await awardXp(sock, sender, isGroup ? from : null, false);
-        awardCoins(sender, false);
+        awardCoins(sender, false).catch(() => {});
         continue;
       }
 
@@ -272,7 +272,7 @@ async function handleMessages(sock, { messages }) {
 
       try { await sock.sendPresenceUpdate("composing", from); } catch (_) {}
       awardXp(sock, sender, isGroup ? from : null, true).catch(() => {});
-      awardCoins(sender, true);
+      awardCoins(sender, true).catch(() => {});
 
       try {
         await command.execute({ sock, msg, args, from, sender, isGroup, text });
