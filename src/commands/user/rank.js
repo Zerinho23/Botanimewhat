@@ -7,7 +7,7 @@ module.exports = {
   description: "Top 10 usuarios con más nivel",
   aliases: ["leaderboard", "lb"],
   async execute({ sock, msg, from }) {
-    const users = db.getAllUsers()
+    const users = (await db.getAllUsers())
       .sort((a, b) => b.level - a.level || b.xp - a.xp)
       .slice(0, 10);
 
