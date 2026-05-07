@@ -45,7 +45,7 @@ module.exports = {
     const participants = metadata.participants || [];
     const total = participants.length;
 
-    const group = db.getGroup(from);
+    const group = await db.getGroup(from);
     const messageLog = group.lastMessageAt || {};
 
     const ghosts = [];
