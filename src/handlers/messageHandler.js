@@ -280,12 +280,16 @@ async function handleMessages(sock, { messages }) {
       awardCoins(sender, true).catch(() => {});
 
       try {
-        await command.execute({ sock, msg, args, from, sender, isGroup, text });
-      } catch (err) {
-        logger.error(`Error en ${commandName}: ${err.message}`);
-        try { await sock.sendMessage(from, { text: `${config.emojis.error} Error ejecutando el comando.` }, { quoted: msg }); } catch (_) {}
-      }
-      try { await sock.sendPresenceUpdate("paused", from); } catch (_) {}
+          await command.execute({ sock, msg, args, from, sender, isGroup, text });
+        } catch (err) {
+          logger.error(`Error en ${commandName}: ${err.message}\n${err.stack || ""}`);
+          try {
+            await sock.sendMessage(from, { text: `${config.emojis.error} Error ejecutando el comando.` }, { quoted: msg });
+          } catch (_) {
+            try { await sock.sendMessage(from, { text: `${config.emojis.error} Error en *${commandName}*.` }); } catch (_2) {}
+          }
+        }
+              try { await sock.sendPresenceUpdate("paused", from); } catch (_) {}
 
     } catch (err) { logger.error(`Error procesando mensaje: ${err.message}`); }
   }
