@@ -224,38 +224,33 @@ async function startBot() {
 
   const _origSend = sock.sendMessage.bind(sock);
   async function safeSend(jid, content, options, attempt = 1) {
-    try {
-      const r = await Promise.race([
-        _origSend(jid, content, options),
-        new Promise((_, rej) => setTimeout(() => rej(new Error("send-timeout")), 25000)),
-      ]);
-      const kind = content?.image ? "imagen" : content?.video ? "video" : "texto";
-      logger.info(`📤 ${kind} → ${jid?.split("@")[0]} OK`);
-      return r;
-    } catch (e) {
-      const msg = e?.message || String(e);
-      logger.error(`❌ Falló envío a ${jid} (intento ${attempt}): ${msg}`);
-      if (attempt < 2) {
-        try {
-          if (jid?.endsWith("@g.us")) {
-            const meta = await sock.groupMetadata(jid);
-            const participants = meta.participants?.map((p) => p.id) || [];
-            if (participants.length && typeof sock.assertSessions === "function") {
-              await sock.assertSessions(participants, true);
-              logger.info(`🔄 Sesiones de grupo refrescadas para ${participants.length} participantes`);
-            }
-          } else if (typeof sock.assertSessions === "function") {
-            await sock.assertSessions([jid], true);
-            logger.info(`🔄 Sesión privada refrescada para ${jid?.split("@")[0]}`);
+      try {
+        const r = await Promise.race([
+          _origSend(jid, content, options),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("send-timeout")), 20000)),
+        ]);
+        const kind = content?.image ? "imagen" : content?.video ? "video" : "texto";
+        logger.info(`📤 ${kind} → ${jid?.split("@")[0]} OK`);
+        return r;
+      } catch (e) {
+        const msg = e?.message || String(e);
+        logger.error(`❌ Falló envío a ${jid} (intento ${attempt}): ${msg}`);
+        if (attempt < 2) {
+          // Esperar antes de reintentar para que Baileys estabilice la sesión
+          await new Promise(r => setTimeout(r, 2000));
+          // Eliminar 'quoted' en el reintento — en grupos puede causar fallos de encriptación
+          let retryOptions = options ? { ...options } : undefined;
+          if (retryOptions?.quoted) {
+            delete retryOptions.quoted;
+            logger.info(`🔄 Reintentando sin quoted → ${jid?.split("@")[0]}`);
+          } else {
+            logger.info(`🔄 Reintentando envío → ${jid?.split("@")[0]}`);
           }
-        } catch (refreshErr) {
-          logger.warn(`No pude refrescar sesiones: ${refreshErr.message}`);
+          return safeSend(jid, content, retryOptions, attempt + 1);
         }
-        return safeSend(jid, content, options, attempt + 1);
+        throw e;
       }
-      throw e;
     }
-  }
   sock.sendMessage = (jid, content, options) => safeSend(jid, content, options);
 
   sock.ev.on("creds.update", async () => {
